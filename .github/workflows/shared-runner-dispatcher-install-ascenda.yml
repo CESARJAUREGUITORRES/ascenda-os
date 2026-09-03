@@ -1,0 +1,140 @@
+name: Shared Runner Dispatcher Install — ASCENDA
+
+on:
+  push:
+    branches: ['infra/shared-runner-dispatcher-v1']
+    paths:
+      - '.github/workflows/shared-runner-dispatcher-install-ascenda.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shared-runner-dispatcher-install-ascenda
+  cancel-in-progress: false
+
+jobs:
+  install:
+    name: Stage ASCENDA dispatcher side
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - name: Install staged supervisor
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(id -un)" = 'ascenda-runner'
+          RUNNER_DIR='/home/ascenda-runner/actions-runner/actions-runner'
+          SUPERVISOR='/home/ascenda-runner/shared-runner-supervisor-v1.sh'
+          HEALTH='/home/ascenda-runner/shared-runner-health-v1.sh'
+          STATE_DIR='/var/tmp/ascenda-shared-runner-v1'
+          LOG='/home/ascenda-runner/shared-runner-supervisor-v1.log'
+          test -x "$RUNNER_DIR/run.sh"
+
+          mkdir -p "$STATE_DIR"
+          chmod 1777 "$STATE_DIR"
+          touch "$STATE_DIR/runner.lock" "$STATE_DIR/turn" "$STATE_DIR/active"
+          chmod 666 "$STATE_DIR/runner.lock" "$STATE_DIR/turn" "$STATE_DIR/active"
+          if [ ! -s "$STATE_DIR/turn" ]; then printf '%s\n' 'ASCENDA' > "$STATE_DIR/turn"; fi
+
+          cat > "$SUPERVISOR" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -u
+          SELF='ASCENDA'
+          OTHER='ROO7'
+          RUNNER_DIR='/home/ascenda-runner/actions-runner/actions-runner'
+          STATE_DIR='/var/tmp/ascenda-shared-runner-v1'
+          LOCK="$STATE_DIR/runner.lock"
+          TURN="$STATE_DIR/turn"
+          ACTIVE="$STATE_DIR/active"
+          LOG='/home/ascenda-runner/shared-runner-supervisor-v1.log'
+          IDLE_SLICE=35
+          POLL=2
+
+          rotate_log() {
+            [ -f "$LOG" ] || return 0
+            size=$(/usr/bin/stat -c%s "$LOG" 2>/dev/null || echo 0)
+            if [ "${size:-0}" -gt 5242880 ]; then /bin/mv -f "$LOG" "$LOG.1" 2>/dev/null || true; fi
+          }
+          log() { rotate_log; printf '[%s] %s\n' "$(/bin/date -Is)" "$*" >> "$LOG"; }
+          ensure_state() {
+            /bin/mkdir -p "$STATE_DIR" 2>/dev/null || true
+            /bin/chmod 1777 "$STATE_DIR" 2>/dev/null || true
+            /usr/bin/touch "$LOCK" "$TURN" "$ACTIVE" 2>/dev/null || true
+            /bin/chmod 666 "$LOCK" "$TURN" "$ACTIVE" 2>/dev/null || true
+            if [ ! -s "$TURN" ]; then printf '%s\n' 'ASCENDA' > "$TURN" 2>/dev/null || true; fi
+          }
+          stop_listener() {
+            pid="$1"
+            kill "$pid" 2>/dev/null || true
+            for _ in $(seq 1 10); do kill -0 "$pid" 2>/dev/null || return 0; /bin/sleep 1; done
+            kill -TERM "$pid" 2>/dev/null || true
+          }
+
+          ensure_state
+          log 'supervisor started'
+          while true; do
+            ensure_state
+            turn=$(cat "$TURN" 2>/dev/null || echo ASCENDA)
+            if [ "$turn" != "$SELF" ]; then /bin/sleep "$POLL"; continue; fi
+
+            exec 9>"$LOCK"
+            if ! /usr/bin/flock -n 9; then exec 9>&-; /bin/sleep "$POLL"; continue; fi
+            turn=$(cat "$TURN" 2>/dev/null || echo ASCENDA)
+            if [ "$turn" != "$SELF" ]; then exec 9>&-; /bin/sleep "$POLL"; continue; fi
+
+            printf '%s\n' "$SELF" > "$ACTIVE"
+            log 'listener starting'
+            cd "$RUNNER_DIR" || { log 'runner dir missing'; printf '%s\n' "$OTHER" > "$TURN"; exec 9>&-; /bin/sleep 5; continue; }
+            ./run.sh >> "$LOG" 2>&1 &
+            listener_pid=$!
+            idle_since=$(/bin/date +%s)
+            had_worker=0
+
+            while kill -0 "$listener_pid" 2>/dev/null; do
+              now=$(/bin/date +%s)
+              if /usr/bin/pgrep -u "$(id -u)" -f "$RUNNER_DIR/bin/Runner.Worker" >/dev/null 2>&1; then
+                had_worker=1
+                idle_since=$now
+              else
+                idle_for=$((now-idle_since))
+                if [ "$idle_for" -ge "$IDLE_SLICE" ]; then
+                  log "idle ${idle_for}s; yielding to $OTHER"
+                  stop_listener "$listener_pid"
+                  wait "$listener_pid" 2>/dev/null || true
+                  printf '%s\n' "$OTHER" > "$TURN"
+                  printf '%s\n' 'NONE' > "$ACTIVE"
+                  break
+                fi
+              fi
+              /bin/sleep "$POLL"
+            done
+
+            if ! kill -0 "$listener_pid" 2>/dev/null; then
+              printf '%s\n' "$OTHER" > "$TURN" 2>/dev/null || true
+              printf '%s\n' 'NONE' > "$ACTIVE" 2>/dev/null || true
+              if [ "$had_worker" -eq 1 ]; then log "job completed; yielding to $OTHER"; else log "listener exited; yielding to $OTHER"; fi
+            fi
+            exec 9>&-
+            /bin/sleep "$POLL"
+          done
+          SCRIPT
+          chmod 700 "$SUPERVISOR"
+
+          cat > "$HEALTH" <<'SCRIPT'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          STATE_DIR='/var/tmp/ascenda-shared-runner-v1'
+          echo "USER=$(id -un)"
+          echo "TURN=$(cat "$STATE_DIR/turn" 2>/dev/null || echo missing)"
+          echo "ACTIVE=$(cat "$STATE_DIR/active" 2>/dev/null || echo missing)"
+          echo "SUPERVISOR=$([ -x /home/ascenda-runner/shared-runner-supervisor-v1.sh ] && echo installed || echo missing)"
+          echo "LISTENER=$(/usr/bin/pgrep -u "$(id -u)" -f '/home/ascenda-runner/actions-runner/actions-runner/bin/Runner.Listener run' >/dev/null && echo running || echo stopped)"
+          echo 'ASCENDA_SHARED_RUNNER_HEALTH=PASS'
+          SCRIPT
+          chmod 700 "$HEALTH"
+
+          crontab -l > /home/ascenda-runner/crontab.before-shared-runner-v1 2>/dev/null || true
+          "$HEALTH"
+          echo 'ASCENDA_DISPATCHER_SIDE_INSTALLED=PASS'
