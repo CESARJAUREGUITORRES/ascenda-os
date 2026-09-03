@@ -151,7 +151,7 @@ jobs:
           test "$(psql "$DB" -X -qAt -c "select cost_state||':'||cost_amount::text||':'||billing_market_code from public.aos_wa_l7_meta_cost_events_v1 where provider_message_id='wamid.l8.meta.paid'")" = 'KNOWN:0.03000000:PE'
           test "$(psql "$DB" -X -qAt -c "select mode||':'||kill_switch_engaged from public.aos_wa_auto_authority_v1 where id=1")" = 'AUTO_OFF:true'
           test "$(psql "$DB" -X -qAt -c "select auto_reply_enabled::text||':'||ai_send_enabled::text||':'||auto_routing_enabled::text||':'||human_send_enabled::text from public.aos_wa_ai_control_v1 cross join public.aos_wa_routing_control_v1 where aos_wa_ai_control_v1.id=1 and aos_wa_routing_control_v1.id=1")" = 'false:false:false:true'
-          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l5_book_v1(uuid,text,jsonb)') is not null and to_regprocedure('public.aos_wa_l5_rebook_v1(uuid,text,jsonb)') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regproc('public.aos_wa_l5_commit_confirmed_v1') is not null and to_regproc('public.aos_wa_l5_availability_v1') is not null")" = 't'
       - name: Bounded-read / index / 3s fail-fast matrix
         run: |
           set -euo pipefail
