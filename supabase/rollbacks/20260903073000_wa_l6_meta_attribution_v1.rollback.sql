@@ -1,4 +1,4 @@
--- WA-L6 recovery. Existing WA-7A.3 touchpoint view and pre-L6 campaign map are preserved.
+-- WA-L6 recovery. Existing WA-7A.3 touchpoint semantics and pre-L6 campaign map are preserved.
 
 begin;
 
@@ -18,8 +18,10 @@ drop trigger if exists trg_aos_wa_l6_campaign_context_audit_guard_v1 on public.a
 drop function if exists public.aos_wa_l6_campaign_context_audit_guard_v1();
 drop table if exists public.aos_wa_l6_campaign_context_audit_v1;
 
--- Restore the WA-7A.3 adapter to its pre-L6 exact column contract.
-create or replace view public.aos_wa_attribution_touchpoints_v1
+-- CREATE OR REPLACE cannot remove appended columns from a view. L6-owned dependents are
+-- already gone, so explicitly drop the adapter and recreate the certified WA-7A.3 shape.
+drop view if exists public.aos_wa_attribution_touchpoints_v1;
+create view public.aos_wa_attribution_touchpoints_v1
 with (security_invoker=true, security_barrier=true)
 as
 select
@@ -50,6 +52,8 @@ left join public.aos_wa_identity_resolution_v1 i
   on i.conversation_id=m.conversation_id
 where e.event_type='attribution.touchpoint';
 
+comment on view public.aos_wa_attribution_touchpoints_v1 is
+'WA-7A.3 private derived attribution adapter over sanitized WA evidence. Read-only; identity and attribution remain separate facts.';
 revoke all on public.aos_wa_attribution_touchpoints_v1 from public,anon,authenticated;
 grant select on public.aos_wa_attribution_touchpoints_v1 to service_role;
 select pg_catalog.pg_notify('pgrst','reload schema');
