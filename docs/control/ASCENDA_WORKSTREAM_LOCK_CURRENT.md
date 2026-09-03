@@ -1,109 +1,77 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-03 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
-**Last closed lane:** `WA-L8 — Security Gate for Autonomous Canary + Meta 2026 pricing/policy hardening`  
+**ACTIVE HIGH/CRITICAL LOCK:** `WA-L9 — AUTONOMOUS DEMO READY`  
+**GitHub authority:** Issue `#453` = `OPEN / ACTIVE`  
+**ENTRY baseline:** `main@c0e546b77f072f85662c0c2ce5ab13f6f4f64f0d`  
+**Parent roadmap:** Issue `#410`  
+**Previous closed lane:** `WA-L8 — Security Gate for Autonomous Canary + Meta 2026 pricing/policy hardening`  
 **WA-L8 status:** `CLOSED · PRODUCTION CERTIFIED · DORMANT / SAFE-OFF`  
-**GitHub authority:** Issue `#451` = `CLOSED / completed`  
-**WA-L8 certified exact-head:** `7d50c28aba0c1b78c86c4d55b035d8e184d23cc0`  
-**WA-L8 merge SHA:** `31efdda8b082122436c2587fc8b635ecd313e5d8`  
-**Railway:** `SUCCESS` on exact merged lineage `31efdda8b082122436c2587fc8b635ecd313e5d8`  
 **Effective production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF`  
-**NEXT ELIGIBLE:** `WA-L9 — AUTONOMOUS DEMO READY · NOT STARTED`  
-**CANARY:** `NOT AUTHORIZED` — separate explicit owner authorization required.
+**CANARY:** `NOT AUTHORIZED` — L10 remains a separate explicit owner-authorized boundary.
 
-## WA-L8 production closeout
+## WA-L9 authority
 
-WA-L8 is production-certified as a dormant security/policy layer. It hardens the autonomous WhatsApp/Agenda path without enabling autonomous production traffic.
+L9 is the sole mutable HIGH/CRITICAL lane. Its purpose is to certify the WhatsApp Revenue Agent as **AUTONOMOUS DEMO READY** while suppressing autonomous provider dispatch in production.
 
-### CODE / exact-head
+Required demonstration chain:
 
-- sole HIGH/CRITICAL WA-L8 lock was acquired at `main@e57c2c6339134efd79dc71d4e7b0b980b723ea8d`;
-- PR `#452` head certified at `7d50c28aba0c1b78c86c4d55b035d8e184d23cc0`;
-- **13/13 exact-head workflows SUCCESS**;
-- anti-drift PASS against `main@e57c2c6339134efd79dc71d4e7b0b980b723ea8d`;
-- merge executed with `expected_head_sha=7d50c28aba0c1b78c86c4d55b035d8e184d23cc0`;
-- merged lineage: `31efdda8b082122436c2587fc8b635ecd313e5d8`.
+`Meta/campaign context → conversation + identity state → intent/need → governed knowledge/price → real availability authority → BOOK/REBOOK decision path → confirmation/follow-up plan → attribution context → Meta/AI cost reconciliation/projection → audit/human handoff`.
 
-### DEPLOY / PROD
+L9 must:
 
-Railway commit status on the exact merge SHA is `SUCCESS`.
+- reuse L4 autonomous authority and L8 security/preflight; no parallel autonomy authority;
+- reuse WA-7A.4 scoped consent/suppression + persistent STOP semantics;
+- use deterministic shadow/dry-run evidence for the autonomous send decision/envelope;
+- suppress live autonomous Meta/provider dispatch during L9 certification;
+- retain identity, attribution and revenue strong-key boundaries;
+- remain fail-closed on consent, STOP, identity, capability, availability, template/provider verification, pricing/cost materiality, replay/duplicate and safety ambiguity;
+- retain direct auditable human escalation;
+- keep telemetry PII/PHI/raw-prompt/raw-model-reply safe;
+- preserve one-message-per-turn economy where UX allows;
+- pass dedicated exact-head L9 CI plus L8/L7/L6/L5/L4, WA-4C FULL LOCAL and P0 #432 cross-module regressions;
+- merge only with `expected_head_sha` after exact-head green CI;
+- if runtime/schema changes reach PROD, deploy them dormant and prove PRE→POST SAFE-OFF/cross-module parity before L9 closeout.
 
-Supabase PROD project `ituyqwstonmhnfshnaqz` records the certified release sequence:
+## WA-L8 certified dependency
 
-1. `20260903215729 · wa7a4_marketing_eligibility_v1`
-2. `20260903215903 · wa_l8_security_gate_v1`
-3. `20260903215938 · wa_l8_bounded_preflight_fix_v1`
-4. `20260903220009 · wa_l8_persistent_stop_index_v1`
-5. `20260903220053 · wa_l8_scoped_eligibility_v1`
-6. `20260903220139 · wa_l8_bounded_scoped_eligibility_v1`
-7. `20260903220209 · wa_l8_bounded_eligibility_null_guard_v1`
+WA-L8 remains closed and live as a dormant security/policy layer:
 
-No synthetic Meta pricing, free-tier entitlement, consent, booking, sale, patient or autonomous-send rows were inserted for certification.
-
-### SAFE-OFF / cross-module readback
-
-PRE→POST operating counts remained unchanged through the release:
-
-- Agenda `3209 → 3209`;
-- Call Center / llamadas `37186 → 37186`;
-- Leads `6694 → 6694`;
-- Ventas `1393 → 1393`;
-- Pacientes `7760 → 7760`;
-- WA conversations `2 → 2`;
-- WA messages `21 → 21`;
-- AI runs `0 → 0`;
-- autonomous outbound `0 → 0`;
-- pricing authority rows `0 → 0`.
-
-Effective controls after PROD deployment:
-
-- mode `AUTO_OFF`;
-- kill switch engaged;
-- `auto_reply=false`;
-- `ai_send=false`;
-- `auto_routing=false`;
-- `human_send=true`;
-- browser message writes = false;
-- browser Booking Ops writes = false;
-- direct service-role Booking Ops INSERT = false;
-- deprecated L8 consent ledger remains inert and empty.
-
-### Cost / consent readback
-
-Real conversation `9c48cc78-2ca0-48ee-8011-cb7fc2081996`:
-
-- Meta cost events `7`, all `KNOWN`;
-- provider-billable messages `0`;
-- Meta cost `0`, reason `META_COST_RECONCILED`;
-- AI runs/cost `0`, `KNOWN`;
-- all 7 cost events resolve billing market `PE`;
-- historical `pricing.type` is absent and remains un-fabricated;
-- `UTILITY` and `MARKETING` scoped eligibility both fail closed with `send_allowed=false · CONSENT_UNKNOWN`.
+- issue `#451` CLOSED/completed;
+- certified exact-head `7d50c28aba0c1b78c86c4d55b035d8e184d23cc0`;
+- 13/13 exact-head workflows SUCCESS;
+- merge `31efdda8b082122436c2587fc8b635ecd313e5d8`;
+- Railway exact-merge SUCCESS;
+- Supabase PROD WA-7A.4 + L8 lineage `20260903215729` through `20260903220209`;
+- PRE→POST unchanged: Agenda 3209, llamadas 37186, Leads 6694, Ventas 1393, Pacientes 7760;
+- autonomous outbound 0, AI runs 0, pricing authority rows 0;
+- Meta real cost events 7/7 KNOWN, 0 billables, cost 0;
+- Utility/Marketing eligibility on sampled real conversation fail closed with `CONSENT_UNKNOWN`.
 
 ## Retained P0 #432 doctrine
 
 - no heavy global analytical views on synchronous hot paths;
 - no synchronous materialized-view refresh/rebuild on message/call/booking/sales writes;
-- no timeout inflation used to hide query defects;
+- no timeout inflation;
 - bounded/indexed reads;
 - no duplicate legacy/new generation;
-- browser fan-out governed;
-- enrichment/cold path isolated from operational hot path;
-- mandatory cross-module regressions: Agenda + Call Center + Marketing + Sales/Commissions + Patients/Identity + shared Supabase/background;
+- governed browser fan-out;
+- enrichment/cold path isolated;
+- mandatory regressions: Agenda + Call Center + Marketing + Sales/Commissions + Patients/Identity + shared Supabase/background;
 - CODE PASS ≠ DEPLOY PASS ≠ PROD PASS.
 
-## Continuation boundary
+## Explicitly outside WA-L9 authority
 
-`WA-L9 — AUTONOMOUS DEMO READY` is **NEXT ELIGIBLE / NOT STARTED**.
-
-This closeout does **not** authorize:
+WA-L9 does **not** authorize:
 
 - `AUTO_OFF → CANARY`;
 - kill-switch disengagement;
-- autonomous reply/send/routing;
+- `auto_reply=true`;
+- `ai_send=true`;
+- `auto_routing=true`;
 - live allowlisted autonomous traffic;
+- autonomous provider dispatch in production;
 - bulk sends/broadcasts;
 - WA-L10 execution.
 
-Any CANARY transition remains a separate explicit owner authorization and production certification boundary.
+`WA-L10 — AUTONOMOUS PRODUCTION CANARY` requires a separate explicit owner authorization after L9 closeout.
