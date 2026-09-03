@@ -99,6 +99,7 @@ grant execute on function public.aos_wa_l4_authorize_autonomous_send_v1(uuid,tex
 -- Final scoped L8 helpers/adapters.
 drop function if exists public.aos_wa_l8_consent_record_v2(text,uuid,text,text,text,text);
 drop function if exists public.aos_wa_l8_record_booking_utility_optin_v1(uuid,text,text,text);
+drop function if exists public.aos_wa_l8_scoped_eligibility_check_v1(uuid,text);
 drop function if exists public.aos_wa_l8_scope_for_send_v1(text,text);
 
 drop function if exists public.aos_wa_l8_security_status_v1();
