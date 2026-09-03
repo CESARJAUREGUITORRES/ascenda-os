@@ -43,6 +43,11 @@ values
 ('55555555-5555-4555-8555-555555555553'::uuid,'wa-l5-conflict:51922222222','51922222222','CONFLICT TEST','local-phone-id','AI_ACTIVE','L5_SYNTHETIC','51922222222','PHONE')
 on conflict(id) do update set state='AI_ACTIVE',human_takeover_at=null,contact_number=excluded.contact_number,contact_address=excluded.contact_address,contact_address_type='PHONE';
 
+-- The production WA4 trigger intentionally blocks direct WhatsApp Agenda writes.
+-- This TEST-ONLY fixture enters the same governed transaction-local boundary rather
+-- than weakening or bypassing the production trigger contract.
+begin;
+select set_config('aos.wa4_governed_booking_write','1',true);
 with f as (
   select treatment_id,target_date from public.aos_wa4c_booking_test_fixture where id=1
 ), s as (
@@ -56,6 +61,7 @@ select 'L5-REBOOK-APPT-1',s.target_date,s.nombre,'CONSULTA NUEVA','SAN ISIDRO','
        'WHATSAPP','00000000-0000-4000-8000-000000000004','PENDIENTE',now(),now(),'10:30','DRA. TEST','DOCTORA','WHATSAPP','51933333333','WHATSAPP_ORGANIC',null
 from s
 on conflict(id) do update set fecha_cita=excluded.fecha_cita,hora_cita='10:30',sede='SAN ISIDRO',estado_cita='PENDIENTE',numero='51933333333',numero_limpio='51933333333';
+commit;
 
 insert into public.aos_rev_customer_agenda_identity_v1(appointment_id,fecha_cita,estado_cita,canonical_patient_id,candidate_count,identity_status,match_methods)
 select a.id,a.fecha_cita,a.estado_cita,'P-L5-TEST-1',1,'RESOLVED','["DOCUMENT_EXACT","PHONE_CONTEXT"]'::jsonb
