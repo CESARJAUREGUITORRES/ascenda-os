@@ -57,10 +57,14 @@ insert into public.aos_wa_conversations_v1(
   '77777777-7777-4777-8777-777777777761'::uuid,'pn-l6:51977777771','51977777771','L6 TEST','pn-l6','AI_COPILOT','META_CTWA','ad-l6-1','lead-l6-1',now(),now()
 ) on conflict(id) do update set conversation_key=excluded.conversation_key,state='AI_COPILOT',campaign_source='META_CTWA',ad_id='ad-l6-1',lead_id='lead-l6-1';
 
+-- The fixture binds through the certified WA7A0/WA2 authority by presenting the
+-- already-existing canonical conversation_id; the trigger validates existence and
+-- registers the presented phone alias instead of guessing a parallel conversation.
 insert into public.aos_wa_messages_v1(
-  provider_message_id,direction,from_number,to_number,phone_number_id,message_type,message_body,status,provider_timestamp,received_at
+  provider_message_id,direction,from_number,to_number,phone_number_id,message_type,message_body,status,provider_timestamp,received_at,conversation_id
 ) values (
-  'wamid.l6.db.1','INBOUND','51977777771','519999111222','pn-l6','text','Hola','received',now(),now()
+  'wamid.l6.db.1','INBOUND','51977777771','519999111222','pn-l6','text','Hola','received',now(),now(),
+  '77777777-7777-4777-8777-777777777761'::uuid
 );
 
 insert into public.aos_wa_events_v1(event_key,event_type,provider_message_id,status,payload)
@@ -136,9 +140,10 @@ end $$;
 
 -- Multiple provider touchpoints remain explicit and fail closed for single-touch revenue attribution.
 insert into public.aos_wa_messages_v1(
-  provider_message_id,direction,from_number,to_number,phone_number_id,message_type,message_body,status,provider_timestamp,received_at
+  provider_message_id,direction,from_number,to_number,phone_number_id,message_type,message_body,status,provider_timestamp,received_at,conversation_id
 ) values (
-  'wamid.l6.db.2','INBOUND','51977777771','519999111222','pn-l6','text','Segundo click','received',now(),now()
+  'wamid.l6.db.2','INBOUND','51977777771','519999111222','pn-l6','text','Segundo click','received',now(),now(),
+  '77777777-7777-4777-8777-777777777761'::uuid
 );
 insert into public.aos_wa_events_v1(event_key,event_type,provider_message_id,status,payload)
 values(
