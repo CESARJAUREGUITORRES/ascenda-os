@@ -140,7 +140,7 @@ function extractWebhook(payload){
               payload:{business_scope:businessScope,system_type:systemType,previous_user_id:previousUser,user_id:currentUser,previous_parent_user_id:previousParent,parent_user_id:currentParent,wa_id:changedPhone,observed_at:observedAt,source:'META_MESSAGES_SYSTEM'}
             });
           }
-          return; // System identity events are state transitions, not customer chat messages.
+          return;
         }
 
         const contact=contactForMessage(contacts,msg);const profile=contact.profile||{};
@@ -165,18 +165,15 @@ function extractWebhook(payload){
         messages.push(row);
         events.push({event_key:'message:'+row.provider_message_id,event_type:'message.received',provider_message_id:row.provider_message_id,status:'received',payload:{message_type:row.message_type,phone_number_id:row.phone_number_id,has_referral:!!row.raw_referral,sender_kind:row.from_number?'PHONE':(row.from_user_id?'BSUID':'UNKNOWN'),has_user_id:!!row.from_user_id}});
 
-        // WA-L6/WA-7A.3: acquisition provenance is a separate immutable event, never an identity fact.
         const provenance=referralEvidence(referral,businessScope,row.provider_message_id,observedAt);
         if(provenance){
           events.push({event_key:'attribution:touchpoint:'+row.provider_message_id,event_type:'attribution.touchpoint',provider_message_id:row.provider_message_id,status:'observed',payload:provenance});
         }
 
-        // A signed Meta message carrying both identifiers is direct channel-pair evidence.
         if(fromPhone&&fromUser){
           events.push({event_key:'identity:pair:'+row.provider_message_id,event_type:'identity.meta_pair',provider_message_id:row.provider_message_id,status:'observed',payload:{business_scope:businessScope,phone:fromPhone,user_id:fromUser,parent_user_id:parentUser,observed_at:observedAt,source:'META_SIGNED_MESSAGE_PAIR'}});
         }
 
-        // REQUEST_CONTACT_INFO response versus an arbitrary forwarded contact card.
         if(String(msg.type||'').toLowerCase()==='contacts'&&Array.isArray(msg.contacts)){
           msg.contacts.forEach((card,index)=>{
             const phones=contactPhones(card);const origin=String(card&&card.origin||'other').toLowerCase();
@@ -197,10 +194,11 @@ function extractWebhook(payload){
         const observedAt=isoFromUnix(st.timestamp);
         const row={provider_message_id:id,status:state,recipient_id:recipientPhone,recipient_user_id:recipientUser,recipient_parent_user_id:recipientParent,provider_timestamp:observedAt,
           pricing_category:trimText(pricing.category||'',64)||null,pricing_model:trimText(pricing.pricing_model||'',64)||null,
+          pricing_type:trimText(pricing.type||'',64)||null,
           billable:typeof pricing.billable==='boolean'?pricing.billable:null,error_code:null,error_title:null};
         if(Array.isArray(st.errors)&&st.errors[0]){row.error_code=trimText(st.errors[0].code,64)||null;row.error_title=trimText(st.errors[0].title||st.errors[0].message,512)||null;}
         statuses.push(row);
-        events.push({event_key:'status:'+id+':'+state+':'+String(st.timestamp||''),event_type:'message.status',provider_message_id:id,status:state,payload:{recipient_id:row.recipient_id,recipient_user_id:row.recipient_user_id,recipient_parent_user_id:row.recipient_parent_user_id,recipient_kind:row.recipient_id?'PHONE':(row.recipient_user_id?'BSUID':'UNKNOWN'),pricing_category:row.pricing_category,pricing_model:row.pricing_model,billable:row.billable,error_code:row.error_code}});
+        events.push({event_key:'status:'+id+':'+state+':'+String(st.timestamp||''),event_type:'message.status',provider_message_id:id,status:state,payload:{recipient_id:row.recipient_id,recipient_user_id:row.recipient_user_id,recipient_parent_user_id:row.recipient_parent_user_id,recipient_kind:row.recipient_id?'PHONE':(row.recipient_user_id?'BSUID':'UNKNOWN'),pricing_category:row.pricing_category,pricing_model:row.pricing_model,pricing_type:row.pricing_type,billable:row.billable,error_code:row.error_code}});
         if(recipientUser&&['delivered','read'].includes(String(state).toLowerCase())){
           events.push({event_key:'identity:status:'+id+':'+state+':'+recipientUser,event_type:'identity.status_binding',provider_message_id:id,status:state,payload:{business_scope:businessScope,provider_status:state,recipient_user_id:recipientUser,recipient_parent_user_id:recipientParent,observed_at:observedAt,source:'META_STATUS_RECIPIENT_USER_ID'}});
         }
@@ -216,7 +214,6 @@ function buildOutboundPayload(input){
   if(recipient.kind==='PHONE')out.to=recipient.address;
   else{
     out.recipient=recipient.address;
-    // Compatibility alias for existing ASCENDA server code. Non-enumerable means it is never sent to Meta.
     Object.defineProperty(out,'to',{value:recipient.address,enumerable:false,writable:false});
   }
   Object.defineProperty(out,'_recipient_kind',{value:recipient.kind,enumerable:false,writable:false});
