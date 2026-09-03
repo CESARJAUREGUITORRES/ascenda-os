@@ -8,7 +8,6 @@ begin;
 do $$
 begin
   if to_regclass('public.aos_wa_marketing_eligibility_events_v1') is null
-     or to_regprocedure('public.aos_wa_marketing_eligibility_check_v1(uuid,text)') is null
      or to_regprocedure('public.aos_wa_marketing_eligibility_record_v1(jsonb)') is null then
     raise exception 'WA_L8_SCOPED_ELIGIBILITY_AUTHORITY_REQUIRED';
   end if;
@@ -102,7 +101,12 @@ begin
   end if;
 
   v_key:='l8:'||pg_catalog.lower(v_scope)||':'||pg_catalog.lower(v_action)||':'||p_conversation_id::text||':'||
-    pg_catalog.substring(pg_catalog.encode(extensions.digest(pg_catalog.convert_to(v_evidence||'|'||pg_catalog.clock_timestamp()::text,'UTF8'),'sha256'),'hex') from 1 for 24);
+    pg_catalog.substr(
+      pg_catalog.encode(
+        extensions.digest(pg_catalog.convert_to(v_evidence||'|'||pg_catalog.clock_timestamp()::text,'UTF8'),'sha256'),
+        'hex'
+      ),1,24
+    );
   v_payload:=pg_catalog.jsonb_build_object(
     'event_key',v_key,
     'conversation_id',p_conversation_id,
@@ -130,7 +134,7 @@ grant execute on function public.aos_wa_l8_consent_record_v2(text,uuid,text,text
 
 -- Zero-friction transactional consent: the same explicit affirmative that confirms a
 -- booking may grant Utility messaging only when a versioned disclosure was shown.
--- This function does not infer consent from merely having a booking.
+-- This function never infers consent merely from the existence of an appointment.
 create or replace function public.aos_wa_l8_record_booking_utility_optin_v1(
   p_conversation_id uuid,
   p_confirmation_provider_message_id text,
@@ -157,7 +161,6 @@ begin
     return pg_catalog.jsonb_build_object('ok',false,'error','WA_L8_UTILITY_EVIDENCE_REQUIRED');
   end if;
 
-  -- Prove the affirmative came from this customer/conversation and was accepted by L5.
   select e.created_at into v_confirmed_at
   from public.aos_wa_l5_booking_events_v1 e
   where e.conversation_id=p_conversation_id
@@ -174,7 +177,6 @@ begin
     return pg_catalog.jsonb_build_object('ok',false,'error','WA_L8_UTILITY_CUSTOMER_CONFIRMATION_REQUIRED');
   end if;
 
-  -- Prove the confirmed flow actually committed a WhatsApp BOOK/REBOOK.
   select o.id into v_operation_id
   from public.aos_booking_operations_v2 o
   join public.aos_wa_l5_booking_events_v1 e
@@ -191,7 +193,12 @@ begin
   end if;
 
   v_key:='l8:utility:booking:'||p_conversation_id::text||':'||
-    pg_catalog.substring(pg_catalog.encode(extensions.digest(pg_catalog.convert_to(v_provider||'|'||v_disclosure,'UTF8'),'sha256'),'hex') from 1 for 24);
+    pg_catalog.substr(
+      pg_catalog.encode(
+        extensions.digest(pg_catalog.convert_to(v_provider||'|'||v_disclosure,'UTF8'),'sha256'),
+        'hex'
+      ),1,24
+    );
   v_result:=public.aos_wa_marketing_eligibility_record_v1(pg_catalog.jsonb_build_object(
     'event_key',v_key,
     'conversation_id',p_conversation_id,
@@ -219,154 +226,7 @@ $$;
 revoke all on function public.aos_wa_l8_record_booking_utility_optin_v1(uuid,text,text,text) from public,anon,authenticated;
 grant execute on function public.aos_wa_l8_record_booking_utility_optin_v1(uuid,text,text,text) to service_role;
 
--- Final scoped preflight. Customer service responses inside 24h remain natural.
--- Outside 24h a template is mandatory and its category-specific eligibility must pass.
-create or replace function public.aos_wa_l8_autonomous_preflight_v1(
-  p_conversation_id uuid,
-  p_recipient_kind text,
-  p_recipient_address text,
-  p_message_type text,
-  p_template_name text,
-  p_idempotency_key text
-) returns jsonb
-language plpgsql
-security definer
-set search_path=''
-as $$
-declare
-  v_conv public.aos_wa_conversations_v1%rowtype;
-  v_kind text:=pg_catalog.upper(pg_catalog.btrim(coalesce(p_recipient_kind,'')));
-  v_address text:=public.aos_wa_l4_normalize_subject_v1(v_kind,p_recipient_address);
-  v_type text:=pg_catalog.lower(pg_catalog.btrim(coalesce(p_message_type,'')));
-  v_template text:=nullif(pg_catalog.btrim(coalesce(p_template_name,'')),'');
-  v_hash text;
-  v_existing public.aos_wa_l8_preflight_decisions_v1%rowtype;
-  v_last_inbound timestamptz;
-  v_stop_at timestamptz;
-  v_reconsent_at timestamptz;
-  v_window boolean:=false;
-  v_scope text;
-  v_elig jsonb:='{}'::jsonb;
-  v_elig_status text;
-  v_elig_reason text;
-  v_decision text:='PASS';
-  v_reason text:='WA_L8_SERVICE_WINDOW_OK';
-  v_id uuid;
-begin
-  if coalesce(p_idempotency_key,'') !~ '^[A-Za-z0-9._:-]{16,120}$' then
-    return pg_catalog.jsonb_build_object('ok',false,'decision','BLOCK','reason','WA_L8_INVALID_IDEMPOTENCY_KEY');
-  end if;
-  select * into v_existing from public.aos_wa_l8_preflight_decisions_v1 where idempotency_key=p_idempotency_key;
-  if v_existing.id is not null then
-    return pg_catalog.jsonb_build_object(
-      'ok',v_existing.decision='PASS','replay',true,'preflight_id',v_existing.id,
-      'decision',v_existing.decision,'reason',v_existing.reason_code,
-      'service_window_open',v_existing.service_window_open,
-      'eligibility_scope',v_existing.eligibility_scope,
-      'eligibility_status',v_existing.eligibility_status,
-      'eligibility_reason',v_existing.eligibility_reason
-    );
-  end if;
-  if v_kind not in ('PHONE','BSUID') or v_address is null then
-    return pg_catalog.jsonb_build_object('ok',false,'decision','BLOCK','reason','WA_L8_INVALID_RECIPIENT');
-  end if;
-  select * into v_conv from public.aos_wa_conversations_v1 where id=p_conversation_id;
-  if v_conv.id is null then return pg_catalog.jsonb_build_object('ok',false,'decision','BLOCK','reason','WA_L8_CONVERSATION_NOT_FOUND'); end if;
-  v_hash:=pg_catalog.encode(extensions.digest(pg_catalog.convert_to(v_kind||':'||v_address,'UTF8'),'sha256'),'hex');
-  v_scope:=public.aos_wa_l8_scope_for_send_v1(v_type,v_template);
-
-  select coalesce(m.provider_timestamp,m.received_at,m.created_at)
-    into v_last_inbound
-  from public.aos_wa_messages_v1 m
-  where m.conversation_id=p_conversation_id and m.direction='INBOUND'
-  order by m.created_at desc
-  limit 1;
-
-  -- Uses WA-L8 partial STOP index; later ordinary messages do not erase opt-out.
-  select coalesce(m.provider_timestamp,m.received_at,m.created_at)
-    into v_stop_at
-  from public.aos_wa_messages_v1 m
-  where m.conversation_id=p_conversation_id
-    and m.direction='INBOUND'
-    and pg_catalog.regexp_replace(
-          pg_catalog.regexp_replace(
-            pg_catalog.translate(pg_catalog.lower(pg_catalog.btrim(coalesce(m.message_body,''))),'áéíóúüñ','aeiouun'),
-            '[[:punct:]]',' ','g'),
-          '[[:space:]]+',' ','g')
-        ~ '^(stop|baja|cancelar suscripcion|no quiero mensajes|no me escriban|no mas mensajes)$'
-  order by m.created_at desc
-  limit 1;
-
-  if v_stop_at is not null then
-    select pg_catalog.max(e.observed_at) into v_reconsent_at
-    from public.aos_wa_marketing_eligibility_events_v1 e
-    where e.conversation_id=p_conversation_id
-      and e.consent_status='ALLOWED'
-      and e.suppression_status='CLEAR'
-      and coalesce((e.evidence->>'explicit_reconsent')::boolean,false) is true
-      and e.observed_at>v_stop_at
-      and (
-        e.eligibility_scope='GLOBAL'
-        or (v_scope='SERVICE_WINDOW' and e.eligibility_scope in ('UTILITY','MARKETING','AUTHENTICATION'))
-        or e.eligibility_scope=v_scope
-      );
-  end if;
-
-  v_window:=(v_last_inbound is not null and v_last_inbound>=pg_catalog.now()-interval '24 hours');
-
-  if v_conv.contact_address_type<>v_kind or v_conv.contact_address<>v_address then
-    v_decision:='HANDOFF';v_reason:='WA_L8_RECIPIENT_CONVERSATION_MISMATCH';
-  elsif v_stop_at is not null and v_reconsent_at is null then
-    v_decision:='BLOCK';v_reason:='WA_L8_OPT_OUT_ACTIVE';
-  elsif v_window then
-    v_decision:='PASS';v_reason:='WA_L8_SERVICE_WINDOW_OK';
-  elsif v_type<>'template' or v_template is null then
-    v_decision:='BLOCK';v_reason:='WA_L8_TEMPLATE_REQUIRED_OUTSIDE_24H';
-  else
-    v_elig:=public.aos_wa_marketing_eligibility_check_v1(p_conversation_id,v_scope);
-    v_elig_status:=v_elig->>'eligibility_status';
-    v_elig_reason:=v_elig->>'reason_code';
-    if coalesce((v_elig->>'send_allowed')::boolean,false) then
-      v_decision:='PASS';v_reason:='WA_L8_SCOPED_ELIGIBILITY_OK';
-    else
-      v_decision:='BLOCK';v_reason:='WA_L8_SCOPED_ELIGIBILITY_REQUIRED';
-    end if;
-  end if;
-
-  begin
-    insert into public.aos_wa_l8_preflight_decisions_v1(
-      idempotency_key,conversation_id,recipient_hash,message_type,template_name,decision,reason_code,
-      service_window_open,last_inbound_at,latest_stop_at,consent_action,consent_at,
-      eligibility_scope,eligibility_status,eligibility_reason
-    ) values(
-      p_idempotency_key,p_conversation_id,v_hash,v_type,v_template,v_decision,v_reason,
-      v_window,v_last_inbound,v_stop_at,null,v_reconsent_at,
-      v_scope,v_elig_status,v_elig_reason
-    ) returning id into v_id;
-  exception when unique_violation then
-    select * into v_existing from public.aos_wa_l8_preflight_decisions_v1 where idempotency_key=p_idempotency_key;
-    return pg_catalog.jsonb_build_object(
-      'ok',v_existing.decision='PASS','replay',true,'preflight_id',v_existing.id,
-      'decision',v_existing.decision,'reason',v_existing.reason_code,
-      'service_window_open',v_existing.service_window_open,
-      'eligibility_scope',v_existing.eligibility_scope,
-      'eligibility_status',v_existing.eligibility_status,
-      'eligibility_reason',v_existing.eligibility_reason
-    );
-  end;
-
-  return pg_catalog.jsonb_build_object(
-    'ok',v_decision='PASS','replay',false,'preflight_id',v_id,'decision',v_decision,'reason',v_reason,
-    'service_window_open',v_window,'last_inbound_at',v_last_inbound,'latest_stop_at',v_stop_at,
-    'explicit_reconsent_at',v_reconsent_at,'eligibility_scope',v_scope,
-    'eligibility_status',v_elig_status,'eligibility_reason',v_elig_reason
-  );
-end
-$$;
-
-revoke all on function public.aos_wa_l8_autonomous_preflight_v1(uuid,text,text,text,text,text) from public,anon,authenticated;
-grant execute on function public.aos_wa_l8_autonomous_preflight_v1(uuid,text,text,text,text,text) to service_role;
-
+-- Security/readback surface; no raw PII or message bodies are returned.
 create or replace function public.aos_wa_l8_security_status_v1()
 returns jsonb
 language sql
