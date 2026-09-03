@@ -1,94 +1,89 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-03 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `WA-L6 — Meta Campaign Context & Attribution`  
-**GitHub authority:** Issue `#447`  
-**Entry main:** `e790153523c4cc0d842b57cd57544dadc1a0c85a`  
-**Branch:** `wa-l6-meta-ctwa-attribution-20260903`  
-**Last closed lane:** `WA-L5 — Conversational BOOK/REBOOK Wiring`  
+**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
+**Last closed lane:** `WA-L6 — Meta Campaign Context & Attribution`  
+**WA-L6 status:** `CLOSED · PRODUCTION CERTIFIED · DORMANT / SAFE-OFF`  
+**GitHub authority:** Issue `#447` = `CLOSED / completed`  
+**Certified exact-head:** `2af4f8a45d5a53179f9133ede90777d14c2be9d3`  
+**Merge SHA:** `4d29c019a46b0b624039586f37cce2356a3fc960`  
+**Supabase migration:** `wa_l6_meta_attribution_v1` · LIVE version `20260903171338`  
+**NEXT ELIGIBLE:** `WA-L7 — NOT STARTED`  
 **Effective production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF`  
-**CANARY:** `NOT AUTHORIZED` — separate explicit owner authorization required for autonomous send.
+**CANARY:** `NOT AUTHORIZED` — separate explicit owner authorization required.
 
-## WA-L6 objective
+## WA-L6 certified closeout
 
-Expand explicit Meta Click-to-WhatsApp acquisition evidence into governed campaign context and explainable downstream attribution:
+L6 extended provider-supplied Meta/CTWA evidence into governed and explainable attribution without guessing customer acquisition provenance:
 
-`Meta/CTWA evidence → conversation → explicit campaign context → BOOK/REBOOK → appointment → attendance → sale/revenue`.
+`provider touchpoint → conversation_id → AGV2 BOOK/REBOOK → appointment_id → attendance → explicit venta_id_match → canonical venta_id`.
 
-Attribution must remain evidence-driven. Phone, name, username, BSUID or canonical patient identity alone never establish acquisition provenance.
+Certified guarantees:
 
-## LIVE entry snapshot
+- provider evidence only; no fabricated CTWA/ad/campaign/adset/lead IDs;
+- paid CTWA, provider referral and no-provider-attribution remain explicit;
+- `ad_id/campaign_id → treatment/promotion/booking_goal` requires governed evidence + admin 2FA;
+- mapping audit is append-only;
+- no phone/name/username/BSUID attribution joins for revenue;
+- provider/mapping campaign conflicts fail closed;
+- multiple provider touchpoints remain `MULTIPLE_TOUCHPOINTS_REVIEW`; no silent first/last-touch selection;
+- no synthetic PROD attribution was inserted during certification;
+- Marketing Attribution V2 remains authoritative for its existing model and was not rewritten.
 
-Read immediately before acquiring L6:
+## Certification evidence
 
-- WA-L5 = `CLOSED · PRODUCTION CERTIFIED · DORMANT`;
-- L4 mode = `AUTO_OFF`;
+- PR `#448` merged with expected-head protection;
+- exact-head CI = `10/10 SUCCESS` including dedicated L6, WA-7A.3/7A.2/7A.0, WA-1, WA4C FULL LOCAL, Performance Guard, Audit 360, PHASE S WA3 and Ascenda CI;
+- anti-drift = PASS;
+- Railway = SUCCESS on merge SHA;
+- LIVE objects present: `aos_wa_l6_campaign_context_audit_v1`, `aos_wa_l6_conversation_acquisition_v1`, `aos_wa_l6_attribution_journey_v1`;
+- governed RPC present: `aos_wa_l6_campaign_context_upsert_v1(text,jsonb)`;
+- L6 audit rows after deploy = `0`;
+- active governed campaign mappings after deploy = `0`;
+- no L6-specific security/performance WARN/ERROR blocker; global advisor backlog remains separate.
+
+## LIVE dormant safety readback
+
+- mode = `AUTO_OFF`;
 - kill switch = `ENGAGED`;
-- `copilot_enabled=true`;
-- `auto_reply_enabled=false`;
-- `ai_send_enabled=false`;
-- `auto_routing_enabled=false`;
-- `human_send_enabled=true`;
-- WhatsApp conversations = `2`;
-- WhatsApp messages = `21`;
-- WA events = `39`;
-- `aos_wa_attribution_touchpoints_v1 = 0`;
-- `aos_wa4_campaign_context_map_v1 = 0`;
-- `aos_wa4_booking_actions_v1 = 0`;
-- `aos_booking_operations_v2 = 0`;
-- `aos_agenda_events_v2 = 0`;
-- Agenda total = `3,205`;
-- Ventas = `1,393` at entry readback.
+- effective autonomous send = `false`;
+- active allowlist = `0`;
+- `auto_reply=false`;
+- `ai_send=false`;
+- `auto_routing=false`;
+- `human_send=true`;
+- autonomous decisions = `0`;
+- AUTO outbound requests = `0`;
+- authority-bound outbound = `0`;
+- WA4 booking actions = `0`;
+- Booking Ops V2 = `0`;
+- Agenda Events V2 = `0`.
 
-The existing WA-7A.3 ingress already stores provider-supplied referral/CTWA evidence in append-only `aos_wa_events_v1` and exposes private `aos_wa_attribution_touchpoints_v1`. L6 must reuse that authority rather than create a parallel customer/touchpoint master.
+## Cross-module readback at closeout
 
-## Frozen L6 behavior
+- Agenda = `3,206`;
+- Call Center = `37,100`;
+- Marketing leads = `6,694`;
+- Ventas = `1,393`;
+- Commissions rows = `0`;
+- Pacientes = `7,758`.
 
-- preserve explicit provider referral/CTWA/source evidence only;
-- `ctwa_clid`, `ad_id`, `campaign_id`, `adset_id` and provider lead identifiers may exist only when directly supplied by trusted provider evidence;
-- organic WhatsApp must remain explicitly separate from paid Meta/CTWA;
-- `ad_id/campaign_id → treatment/promotion/booking_goal` requires explicit evidence-backed governed mapping;
-- no inference from ad/campaign names, headlines, URLs, phone, identity or treatment text;
-- mapping writes are server-governed and auditable; browser/runtime direct writes remain denied;
-- revenue stitching uses explicit keys: touchpoint/conversation → AGV2 booking operation → appointment → explicit `venta_id_match` → canonical sale;
-- attendance derives from the appointment state, not from phone/name similarity;
-- multiple valid touchpoints may coexist and must remain visible rather than silently collapsed;
-- no `aos_leads`, `aos_pacientes`, canonical Agenda or canonical Sales mutation merely to certify L6;
-- Marketing Attribution V2 remains authoritative for its existing lead/call/cita/sale model and is not rewritten;
-- a fresh real provider CTWA click is a separate LIVE evidence gate and may remain `LIVE_PENDING` if no real referral arrives during certification.
+These are current LIVE counts and may evolve with normal production activity. L6 deployment was DDL/read-only attribution authority and did not perform certification DML against Agenda, Leads, Sales or Patients.
 
-## L6 exit gates
+## Next boundary
 
-1. deterministic provider referral/campaign parser contract;
-2. explicit paid Meta/CTWA vs organic classification;
-3. governed evidence-backed campaign-context authority;
-4. deterministic conversation → BOOK/REBOOK → attendance → sale stitch using explicit IDs only;
-5. ambiguity/fabrication/phone-only attribution fail closed;
-6. dedicated L6 CI + WA-7A.3 ingress + WA4C/L4/L5 + AGV2 regressions GREEN;
-7. cross-module regression: Agenda, Call Center, Marketing, Sales/Commissions, Patients/Identity, shared DB pressure;
-8. anti-drift;
-9. expected-head merge;
-10. DDL/runtime deployment from merged lineage;
-11. LIVE readback while `AUTO_OFF + kill switch ON`;
-12. no synthetic production touchpoint/campaign/revenue attribution inserted for certification;
-13. issue closeout + Notion/CURRENT sync.
+`WA-L7` is **eligible but NOT STARTED**. No HIGH/CRITICAL lane is currently acquired.
 
-## Frozen prerequisite
+Still forbidden without separate owner authorization:
 
-WA-L4 and WA-L5 remain `CLOSED · PRODUCTION CERTIFIED`. L6 does not weaken L4 authority controls, does not bypass AGV2 transactional booking authority, and does not authorize autonomous outbound.
+- `AUTO_OFF → CANARY`;
+- disengaging the kill switch;
+- enabling `auto_reply`, `ai_send` or autonomous routing;
+- autonomous provider dispatch;
+- bulk sends/broadcasts;
+- synthetic production attribution;
+- phone/name-only attribution.
 
-The cross-module reliability doctrine remains binding:
-`docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`.
+A fresh real CTWA provider proof remains a later LIVE evidence gate and does not block the dormant L6 production certification.
 
-## Still forbidden without separate authorization
-
-- `AUTO_OFF → CANARY` for autonomous WhatsApp;
-- disengaging the L4 kill switch;
-- `auto_reply_enabled=true`;
-- `ai_send_enabled=true`;
-- autonomous `auto_routing_enabled=true`;
-- autonomous Meta dispatch;
-- bulk sends/broadcasts/campaign activation;
-- Meta Ads bulk sync or campaign creation;
-- synthetic production attribution evidence;
-- phone/name-only revenue attribution.
+The cross-module reliability doctrine remains binding: `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`.
