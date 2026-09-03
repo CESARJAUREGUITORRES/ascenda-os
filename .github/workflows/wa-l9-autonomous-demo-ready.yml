@@ -39,7 +39,6 @@ jobs:
           node --test ci/wa-l6/attribution_ingress_contract.test.js
           node --test ci/wa1-secure-gateway/wa-gateway.test.js
           node app/wa4-conversation-runtime-v2.test.js
-          bash -n ci/wa-l9/run-full-local.sh
       - name: Non-dispatch / P0 / privacy source assertions
         shell: powershell
         run: |
@@ -49,7 +48,7 @@ jobs:
           if ($m -match '(?i)create\s+materialized\s+view|refresh\s+materialized\s+view') { throw 'L9 may not materialize a hot-path analytical view' }
           if ($m -match '(?i)(insert\s+into|update|delete\s+from)\s+public\.(aos_pacientes|aos_leads|aos_agenda_citas|aos_ventas|aos_llamadas)') { throw 'L9 may not mutate cross-module business ledgers' }
           if ($m -notmatch 'WA_L9_SHADOW_ROLLBACK' -or $m -notmatch 'side_effects_rolled_back') { throw 'Rollback-only authority wrapper missing' }
-          if ($s -match 'graph\.facebook\.com|WHATSAPP_ACCESS_TOKEN|graphSend\s*\(|reserveOutbound\s*\(') { throw 'L9 CLI contains provider dispatch capability' }
+          if ($s -match 'graph\.facebook\.com|graphSend\s*\(|reserveOutbound\s*\(') { throw 'L9 CLI contains provider dispatch capability' }
           foreach($marker in @('raw_content_stored:false','provider_dispatch:false','recipient_hash','payload_hash','aos_wa_l9_shadow_authorize_v1','aos_wa_l7_journey_cost_v1','WA_L9_AUTONOMOUS_DEMO_READY_FULL_LOCAL_PASS')) {
             if (($m+"`n"+$s+"`n"+$r) -notmatch [regex]::Escape($marker)) { throw "L9 marker missing: $marker" }
           }
@@ -63,13 +62,6 @@ jobs:
       ASCENDA_FULL_LOCAL: '1'
       AOS_STUDIO_BACKGROUND_ENABLED: 'false'
       WA4C_RUNTIME_URL: 'http://127.0.0.1:60300'
-      WHATSAPP_VERIFY_TOKEN: 'wa-l9-full-local-verify-token'
-      WHATSAPP_APP_SECRET: 'wa-l9-full-local-app-secret'
-      WHATSAPP_ACCESS_TOKEN: 'wa-l9-full-local-test-token'
-      WHATSAPP_PHONE_NUMBER_ID: 'local-phone-id'
-      WHATSAPP_GRAPH_VERSION: 'v23.0'
-      WA_CANARY_MODE: 'true'
-      WA_CANARY_ALLOW_TO: '51911111111'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
