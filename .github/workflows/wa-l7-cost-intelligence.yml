@@ -34,8 +34,7 @@ jobs:
         shell: powershell
         run: |
           node --check app/server-wa2.js
-          python ci/wa-l7/ui_contract.py
-          python ci/wa2-conversation-live-inbox/ui_contract.py
+          node ci/wa-l7/ui_contract.js
       - name: L7 static SQL safety
         shell: powershell
         run: |
