@@ -138,6 +138,9 @@ begin
     return pg_catalog.jsonb_build_object('ok',false,'error','WA_L6_BOOKING_GOAL_INVALID');
   end if;
 
+  if nullif(pg_catalog.btrim(p_payload->>'treatment_entity_id'),'') is null then
+    return pg_catalog.jsonb_build_object('ok',false,'error','WA_L6_TREATMENT_ID_REQUIRED');
+  end if;
   begin
     v_treatment:=(p_payload->>'treatment_entity_id')::uuid;
   exception when others then
