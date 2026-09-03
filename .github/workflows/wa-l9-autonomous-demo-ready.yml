@@ -1,0 +1,238 @@
+name: ASCENDA WA-L9 AUTONOMOUS DEMO READY
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/wa-l9-shadow-demo.js'
+      - 'supabase/migrations/*wa_l9*'
+      - 'supabase/rollbacks/*wa_l9*'
+      - 'ci/wa-l9/**'
+      - 'docs/control/WA_L9_*'
+      - '.github/workflows/wa-l9-autonomous-demo-ready.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-l9-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  static-demo-contract:
+    name: L9 static shadow / privacy / SAFE-OFF contract
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax and deterministic shadow unit tests
+        shell: powershell
+        run: |
+          node --check scripts/wa-l9-shadow-demo.js
+          node --test ci/wa-l9/shadow_demo_contract.test.js
+          node --test ci/wa-l4/runtime_contract.js
+          node --test app/wa-l5-booking.test.js
+          node --test ci/wa-l6/attribution_ingress_contract.test.js
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          node app/wa4-conversation-runtime-v2.test.js
+      - name: Static non-dispatch / P0 / privacy assertions
+        shell: powershell
+        run: |
+          $m=Get-Content 'supabase/migrations/20260903223000_wa_l9_shadow_demo_v1.sql' -Raw
+          $s=Get-Content 'scripts/wa-l9-shadow-demo.js' -Raw
+          if ($m -match '(?i)create\s+materialized\s+view|refresh\s+materialized\s+view') { throw 'L9 may not materialize a hot-path analytical view' }
+          if ($m -match '(?i)(insert\s+into|update|delete\s+from)\s+public\.(aos_pacientes|aos_leads|aos_agenda_citas|aos_ventas|aos_llamadas)') { throw 'L9 may not mutate cross-module business ledgers' }
+          if ($m -notmatch 'WA_L9_SHADOW_ROLLBACK' -or $m -notmatch 'side_effects_rolled_back') { throw 'L9 rollback-only authority wrapper missing' }
+          if ($m -match '(?i)provider_dispatch\s+boolean\s+not\s+null\s+default\s+true') { throw 'L9 provider dispatch may never default true' }
+          if ($s -match 'graph\.facebook\.com|WHATSAPP_ACCESS_TOKEN|graphSend\s*\(|reserveOutbound\s*\(') { throw 'L9 CLI contains provider dispatch capability' }
+          foreach($marker in @('raw_content_stored:false','provider_dispatch:false','recipient_hash','payload_hash','aos_wa_l9_shadow_authorize_v1','aos_wa_l7_journey_cost_v1')) {
+            if (($m+"`n"+$s) -notmatch [regex]::Escape($marker)) { throw "L9 marker missing: $marker" }
+          }
+
+  full-local-demo:
+    name: L9 FULL LOCAL autonomous shadow + cross-module certification
+    needs: static-demo-contract
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 85
+    env:
+      ASCENDA_FULL_LOCAL: '1'
+      AOS_STUDIO_BACKGROUND_ENABLED: 'false'
+      WA4C_RUNTIME_URL: 'http://127.0.0.1:60300'
+      WHATSAPP_VERIFY_TOKEN: 'wa-l9-full-local-verify-token'
+      WHATSAPP_APP_SECRET: 'wa-l9-full-local-app-secret'
+      WHATSAPP_ACCESS_TOKEN: 'wa-l9-full-local-test-token'
+      WHATSAPP_PHONE_NUMBER_ID: 'local-phone-id'
+      WHATSAPP_GRAPH_VERSION: 'v23.0'
+      WA_CANARY_MODE: 'true'
+      WA_CANARY_ALLOW_TO: '51911111111'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+
+      - name: Zero-cost boundary and isolated port gate
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = 'self-hosted'
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          ports='60300 4198 4200 4196 4197 4178 4189 4190 60200 60201 60202'
+          for i in $(seq 1 90); do
+            busy=''
+            for p in $ports; do
+              if ss -ltn "sport = :$p" 2>/dev/null | grep -q LISTEN; then busy="$busy $p"; fi
+            done
+            if [ -z "$busy" ]; then exit 0; fi
+            echo "Waiting for ports:$busy"
+            sleep 2
+          done
+          echo 'WA_L9_FULL_LOCAL_PORT_CONTENTION' >&2
+          exit 1
+
+      - name: Build WA-4C certified local substrate
+        run: |
+          set -euo pipefail
+          bash ci/wa4c-full-local/bootstrap.sh
+          DB="$WA4C_LOCAL_DB_URL"
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/rev_identity_stub.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825213500_wa7a1_identity_resolution_bridge_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825222500_wa7a2_identity_verification_continuity_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827133000_wa7a3_attribution_ingress_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa7a4-marketing-eligibility/cia_recipient_controls_stub.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827141500_wa7a4_marketing_eligibility_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831224500_wa4c_booking_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901193000_agv2_l3_delivery_outbox_v3.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235600_wa_l4_authority_hardening_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005500_wa_l5_conversational_booking_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005600_wa_l5_treatment_resolver_uuid_fix_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l6/prereq.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903073000_wa_l6_meta_attribution_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903183000_wa_l7_cost_intelligence_v1.sql
+          for f in 20260903194500_wa_l8_security_gate_v1.sql 20260903194600_wa_l8_bounded_preflight_fix_v1.sql 20260903194700_wa_l8_persistent_stop_index_v1.sql 20260903194800_wa_l8_scoped_eligibility_v1.sql 20260903194900_wa_l8_bounded_scoped_eligibility_v1.sql 20260903195000_wa_l8_bounded_eligibility_null_guard_v1.sql; do
+            psql "$DB" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
+          done
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
+
+      - name: L8 scoped consent/cost regression before L9
+        run: |
+          set -euo pipefail
+          DB="$WA4C_LOCAL_DB_URL"
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa7a4-marketing-eligibility/tests/001_marketing_eligibility.sql 2>&1 | tee /tmp/l9-wa7a4.txt
+          grep -q 'WA7A4_MARKETING_ELIGIBILITY_PASS' /tmp/l9-wa7a4.txt
+          python3 ci/wa-l8/render_v3_chronology_canary.py > /tmp/l9-l8.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f /tmp/l9-l8.sql 2>&1 | tee /tmp/l9-l8.txt
+          grep -q 'WA_L8_SCOPED_CONSENT_COST_CLOSEOUT_PASS' /tmp/l9-l8.txt
+
+      - name: Start real WA-4→WA-1 runtime with local provider shims
+        working-directory: app
+        run: |
+          set -euo pipefail
+          export PORT=60300
+          export NODE_OPTIONS="--require $GITHUB_WORKSPACE/ci/wa4c-full-local/local-network-preload.cjs --require $GITHUB_WORKSPACE/ci/wa4c-full-local/local-supabase-auth-preload.cjs"
+          nohup node server-wa4.js >/tmp/wa-l9-runtime.log 2>&1 &
+          echo $! >/tmp/wa-l9-runtime.pid
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:60300/api/wa4/health >/tmp/wa-l9-health.json 2>/dev/null; then cat /tmp/wa-l9-health.json; exit 0; fi
+            if ! kill -0 "$(cat /tmp/wa-l9-runtime.pid)" 2>/dev/null; then cat /tmp/wa-l9-runtime.log >&2; exit 1; fi
+            sleep 1
+          done
+          cat /tmp/wa-l9-runtime.log >&2
+          exit 1
+
+      - name: WA-4C governed conversation / knowledge / price / safety / booking regressions
+        run: |
+          set -euo pipefail
+          node ci/wa4c-full-local/run-canaries.js 2>&1 | tee /tmp/l9-wa4c-canaries.txt
+          node ci/wa4c-full-local/run-booking-canary.js 2>&1 | tee /tmp/l9-booking.txt
+          node ci/wa4c-full-local/run-conversation-beta.js 2>&1 | tee /tmp/l9-conversation.txt
+          grep -q 'WA4C_FULL_LOCAL_CANARIES_PASS' /tmp/l9-wa4c-canaries.txt
+          grep -q 'WA4C_GOVERNED_BOOKING_CANARY_PASS' /tmp/l9-booking.txt
+          grep -q 'WA4C_FULL_LOCAL_CONVERSATION_BETA_PASS' /tmp/l9-conversation.txt
+
+      - name: Freeze cross-module PRE fingerprint
+        run: |
+          set -euo pipefail
+          DB="$WA4C_LOCAL_DB_URL"
+          psql "$DB" -X -qAt -c "select jsonb_build_object('agenda',(select count(*) from public.aos_agenda_citas),'calls',(select count(*) from public.aos_llamadas),'leads',(select count(*) from public.aos_leads),'sales',(select count(*) from public.aos_ventas),'patients',(select count(*) from public.aos_pacientes));" > /tmp/l9-pre.json
+          cat /tmp/l9-pre.json
+
+      - name: L9 structural apply / recovery / reapply before audit history
+        run: |
+          set -euo pipefail
+          DB="$WA4C_LOCAL_DB_URL"
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903223000_wa_l9_shadow_demo_v1.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l9_shadow_authorize_v1(uuid,text,text,text,text,text,text,text,text,boolean,text)') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_l9_demo_runs_v1")" = '0'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903223000_wa_l9_shadow_demo_v1.rollback.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l9_demo_runs_v1') is null")" = 't'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903223000_wa_l9_shadow_demo_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
+
+      - name: L9 exact authority shadow positive + negative matrix
+        run: |
+          set -euo pipefail
+          DB="$WA4C_LOCAL_DB_URL"
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l9/tests/001_shadow_authority_contract.sql 2>&1 | tee /tmp/l9-shadow.txt
+          grep -q 'WA_L9_SHADOW_AUTHORITY_CONTRACT_PASS' /tmp/l9-shadow.txt
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_l9_demo_runs_v1 where provider_dispatch is true or raw_content_stored is true")" = '0'
+
+      - name: P0 bounded-read / no-hot-path regression
+        run: |
+          set -euo pipefail
+          DB="$WA4C_LOCAL_DB_URL"
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "set statement_timeout='3000ms'; select public.aos_wa_l9_status_v1(); select public.aos_wa_l7_conversation_cost_v1('99999999-9999-4999-8999-999999999901'::uuid); select public.aos_wa_l7_journey_cost_v1('99999999-9999-4999-8999-999999999901'::uuid);"
+          test "$(psql "$DB" -X -qAt -c "select count(*) from pg_trigger t join pg_class c on c.oid=t.tgrelid where not t.tgisinternal and c.relname in ('aos_wa_messages_v1','aos_agenda_citas','aos_llamadas','aos_ventas') and pg_get_triggerdef(t.oid) ilike '%wa_l9%'")" = '0'
+          ! grep -Eiq 'create[[:space:]]+materialized[[:space:]]+view|refresh[[:space:]]+materialized[[:space:]]+view' supabase/migrations/20260903223000_wa_l9_shadow_demo_v1.sql
+
+      - name: Cross-module POST fingerprint and SAFE-OFF
+        run: |
+          set -euo pipefail
+          DB="$WA4C_LOCAL_DB_URL"
+          psql "$DB" -X -qAt -c "select jsonb_build_object('agenda',(select count(*) from public.aos_agenda_citas),'calls',(select count(*) from public.aos_llamadas),'leads',(select count(*) from public.aos_leads),'sales',(select count(*) from public.aos_ventas),'patients',(select count(*) from public.aos_pacientes));" > /tmp/l9-post.json
+          diff -u /tmp/l9-pre.json /tmp/l9-post.json
+          test "$(psql "$DB" -X -qAt -c "select mode||':'||kill_switch_engaged from public.aos_wa_auto_authority_v1 where id=1")" = 'AUTO_OFF:true'
+          test "$(psql "$DB" -X -qAt -c "select auto_reply_enabled::text||':'||ai_send_enabled::text||':'||auto_routing_enabled::text||':'||human_send_enabled::text from public.aos_wa_ai_control_v1 cross join public.aos_wa_routing_control_v1 where aos_wa_ai_control_v1.id=1 and aos_wa_routing_control_v1.id=1")" = 'false:false:false:true'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where direction='OUTBOUND' and send_origin='AUTO'")" = '0'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_outbound_requests_v1 where send_origin='AUTO'")" = '0'
+
+      - name: L9 recovery fails closed after demo audit history
+        run: |
+          set -euo pipefail
+          DB="$WA4C_LOCAL_DB_URL"
+          set +e
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903223000_wa_l9_shadow_demo_v1.rollback.sql >/tmp/l9-recovery.txt 2>&1
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -q 'WA_L9_RECOVERY_BLOCKED_AUDIT_HISTORY' /tmp/l9-recovery.txt
+
+      - name: Database lint
+        working-directory: ci/wa4c-full-local
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error 2>&1 | tee /tmp/l9-lint.txt
+          if grep -q '\[ERROR\]' /tmp/l9-lint.txt; then exit 1; fi
+
+      - name: L9 certification summary
+        run: |
+          echo 'WA-L9 AUTONOMOUS DEMO READY candidate passed FULL LOCAL: WA-4C knowledge/price/safety + transactional booking + full conversation + WA7A4 consent + L8 security + L4 shadow would-send + L7 cost/journey + P0/cross-module parity. Provider autonomous dispatch remained zero.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This certification does NOT authorize AUTO_OFF→CANARY or WA-L10.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Cleanup local runtime and Supabase
+        if: always()
+        run: |
+          set +e
+          if [ -f /tmp/wa-l9-runtime.pid ]; then kill -TERM "$(cat /tmp/wa-l9-runtime.pid)" 2>/dev/null || true; sleep 2; fi
+          cd ci/wa4c-full-local
+          supabase stop --no-backup || true
