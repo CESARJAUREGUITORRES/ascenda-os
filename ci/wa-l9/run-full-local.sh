@@ -18,8 +18,6 @@ python3 scripts/ci/enforce-zero-cost-policy.py
 
 bash ci/wa4c-full-local/bootstrap.sh
 
-# bootstrap.sh intentionally exports GitHub Actions variables for later steps. This
-# standalone L9 runner also sources the generated local Supabase env for this process.
 set -a
 # shellcheck disable=SC1091
 source /tmp/ascenda-wa4c-full-local.env
@@ -61,15 +59,9 @@ for f in \
 done
 psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
 
-# Existing consent/cost/security authority must stay green before L9 adds anything.
-psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa7a4-marketing-eligibility/tests/001_marketing_eligibility.sql 2>&1 | tee /tmp/l9-wa7a4.txt
-grep -q 'WA7A4_MARKETING_ELIGIBILITY_PASS' /tmp/l9-wa7a4.txt
-python3 ci/wa-l8/render_v3_chronology_canary.py > /tmp/l9-l8.sql
-psql "$DB" -X -v ON_ERROR_STOP=1 -f /tmp/l9-l8.sql 2>&1 | tee /tmp/l9-l8.txt
-grep -q 'WA_L8_SCOPED_CONSENT_COST_CLOSEOUT_PASS' /tmp/l9-l8.txt
-
-# Real WA-4→WA-1 local chain with deterministic transport/model shims. No external
-# provider mutation: the preload explicitly intercepts network calls in FULL LOCAL.
+# Run the certified WA-4C booking/conversation corpus BEFORE the L8 chronology corpus.
+# Both are valid independently, but the L8 fixture intentionally books synthetic slots;
+# running it first can make the independent WA-4C booking canary correctly return 409.
 export PORT=60300
 export NODE_OPTIONS="--require $ROOT/ci/wa4c-full-local/local-network-preload.cjs --require $ROOT/ci/wa4c-full-local/local-supabase-auth-preload.cjs"
 export WHATSAPP_VERIFY_TOKEN="${WHATSAPP_VERIFY_TOKEN:-wa-l9-full-local-verify-token}"
@@ -98,10 +90,18 @@ grep -q 'WA4C_FULL_LOCAL_CANARIES_PASS' /tmp/l9-wa4c-canaries.txt
 grep -q 'WA4C_GOVERNED_BOOKING_CANARY_PASS' /tmp/l9-booking.txt
 grep -q 'WA4C_FULL_LOCAL_CONVERSATION_BETA_PASS' /tmp/l9-conversation.txt
 
-# L9 itself must not mutate the five protected business ledgers.
+# Existing consent/cost/security authority stays green after the booking corpus and
+# still runs before L9 itself is installed.
+psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa7a4-marketing-eligibility/tests/001_marketing_eligibility.sql 2>&1 | tee /tmp/l9-wa7a4.txt
+grep -q 'WA7A4_MARKETING_ELIGIBILITY_PASS' /tmp/l9-wa7a4.txt
+python3 ci/wa-l8/render_v3_chronology_canary.py > /tmp/l9-l8.sql
+psql "$DB" -X -v ON_ERROR_STOP=1 -f /tmp/l9-l8.sql 2>&1 | tee /tmp/l9-l8.txt
+grep -q 'WA_L8_SCOPED_CONSENT_COST_CLOSEOUT_PASS' /tmp/l9-l8.txt
+
+# Freeze after all prerequisite fixture suites. From here forward only L9 may run;
+# therefore PRE→POST exact equality proves L9 does not mutate protected ledgers.
 psql "$DB" -X -qAt -c "select jsonb_build_object('agenda',(select count(*) from public.aos_agenda_citas),'calls',(select count(*) from public.aos_llamadas),'leads',(select count(*) from public.aos_leads),'sales',(select count(*) from public.aos_ventas),'patients',(select count(*) from public.aos_pacientes));" > /tmp/l9-pre.json
 
-# Structural apply -> clean recovery -> reapply before any L9 audit history.
 psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903223000_wa_l9_shadow_demo_v1.sql
 test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l9_shadow_authorize_v1(uuid,text,text,text,text,text,text,text,text,boolean,text)') is not null")" = 't'
 test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_l9_demo_runs_v1")" = '0'
