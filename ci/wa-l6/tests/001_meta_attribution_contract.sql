@@ -92,6 +92,10 @@ begin
   select treatment_entity_id into v_tid from public.aos_wa4_campaign_context_map_v1 where ad_id='ad-l6-1';
   select nombre into v_name from public.aos_catalogo_servicios where id=v_tid;
 
+  -- Fixture-only transaction-local setup, matching existing WA CI fixtures. This does
+  -- not alter or disable trg_001_aos_wa4_governed_booking_v1; production direct writes
+  -- remain blocked. The behavior under test is the downstream L6 strong-key stitch.
+  perform set_config('aos.wa4_governed_booking_write','1',true);
   insert into public.aos_agenda_citas(
     id,fecha_cita,tratamiento,tipo_cita,sede,numero,nombre,apellido,estado_cita,venta_id_match,
     ts_creado,ts_actualizado,hora_cita,etiqueta_campana,origen_cita,numero_limpio,origen
