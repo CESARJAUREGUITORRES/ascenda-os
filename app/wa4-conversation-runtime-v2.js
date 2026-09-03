@@ -66,6 +66,8 @@ function detectIntents(text){
   if(/doctora.*atiende|quien atiende|quien lo hace|quien realiza|profesional/.test(t))add('WHO_PERFORMS');
   if(/que productos|con que productos|que marcas|cuales marcas|marca usan/.test(t))add('PRODUCT_OR_BRAND_OPTIONS');
   if(/forma de pago|como pago|tarjeta|yape|plin|efectivo|cuotas|adelanto/.test(t))add('PAYMENT');
+  if(/reprogram|reagendar|re agendar|cambiar.{0,20}(mi )?cita|cambiar.{0,20}(fecha|hora|horario)|mover.{0,20}(mi )?cita|otra fecha.{0,20}(mi )?cita|otro horario.{0,20}(mi )?cita/.test(t))add('RESCHEDULE_INTENT');
+  if(/^(si|confirmo|confirmar|confirmado|confirmar cita|confirmo la cita|si confirmo|de acuerdo|de acuerdo confirmo|ok|okay|dale|correcto|esta bien)([\s\p{P}]*)$/u.test(t))add('CONFIRM_BOOKING');
   if(/agendar|agenda|reservar|reserva|una cita|quiero cita|cita por favor|separar cita/.test(t))add('BOOKING');
   if(/horario|disponibilidad|puedo ir|mañana|manana|lunes|martes|miercoles|jueves|viernes|sabado|domingo|\b\d{1,2}(:\d{2})?\s*(am|pm)\b/.test(t))add('SCHEDULE');
   if(/solo puedo|unicamente puedo|únicamente puedo|solo tengo disponibilidad|esa hora nada mas/.test(t))add('HARD_TIME_CONSTRAINT');
@@ -121,13 +123,15 @@ function mergeState(messages,conversation){
 
 function bookingReadiness(intents,state){
   if(intents.includes('DEFER_OR_FOLLOW_UP_LATER'))return 'PAUSED';
-  if(intents.includes('BOOKING')||intents.includes('SCHEDULE')||state.requested_day||state.requested_time)return 'HIGH';
+  if(intents.includes('RESCHEDULE_INTENT')||intents.includes('CONFIRM_BOOKING')||intents.includes('BOOKING')||intents.includes('SCHEDULE')||state.requested_day||state.requested_time)return 'HIGH';
   if(intents.some(x=>['TREATMENT_PRICE','CONSULTATION_PRICE','PRICE_PER_SESSION','PROMOTION_REQUEST','MEDIA_REQUEST'].includes(x)))return 'MEDIUM';
   return 'LOW';
 }
 
 function nextBestAction(intents,state){
   if(intents.includes('DEFER_OR_FOLLOW_UP_LATER'))return 'ACKNOWLEDGE_DEFER';
+  if(intents.includes('CONFIRM_BOOKING'))return 'CONFIRM_SELECTED_BOOKING';
+  if(intents.includes('RESCHEDULE_INTENT'))return 'START_REBOOK_VERIFICATION';
   const explicitPriority=['CONSULTATION_PRICE','PRICE_PER_SESSION','TREATMENT_PRICE','PROMOTION_REQUEST','LOCATION','WHO_PERFORMS','PRODUCT_OR_BRAND_OPTIONS','SESSION_COUNT','EXPECTED_RESULT','EFFECT_DURATION','PROCEDURE_DURATION','RESULT_ONSET','MAINTENANCE_INTERVAL','PAYMENT','MEDIA_REQUEST'];
   const explicit=explicitPriority.filter(x=>intents.includes(x));
   if(explicit.length)return 'ANSWER_EXPLICIT_QUESTIONS';
@@ -162,6 +166,8 @@ function promptPolicy(runtime){
       'Free text is the default. Use interactive buttons only when they reduce friction for a concrete decision.',
       'If booking readiness is HIGH, stop generic selling and execute the next booking step.',
       'If the customer provides a hard time constraint, check that exact slot first and only then nearest alternatives.',
+      'A reprogramming request is patient-specific: verify identity before exposing or changing an appointment.',
+      'A booking or rebooking write requires a fresh explicit customer confirmation tied to the prepared selection.',
       'If the customer defers, acknowledge without pressure and do not pretend a follow-up was scheduled.',
       'Never invent prices, promotions, treatment facts, professional roles, addresses or availability; use governed authorities.',
       'Never diagnose from text, audio, image or video. Personalized clinical risk requires human clinical escalation.'
@@ -205,6 +211,9 @@ function buildRuntimeContext(input){
       auto_send:false,
       human_only:true,
       slot_must_be_revalidated_before_confirmation:true,
+      explicit_booking_confirmation_required:true,
+      rebook_identity_verification_required:true,
+      autonomous_commit_requires_l4:true,
       sunday_closed:true,
       multimodal_diagnosis_forbidden:true
     }

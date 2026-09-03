@@ -104,4 +104,30 @@ function has(r,intent){assert(r.intents.includes(intent),'missing intent '+inten
   assert.strictEqual(r2.next_best_action,'ANSWER_EXPLICIT_QUESTIONS');
 }
 
+// L5: natural-language rescheduling must enter the stronger verification path before appointment disclosure.
+{
+  const r=rt.buildRuntimeContext({messages:[m('INBOUND','Quiero cambiar la hora de mi cita para otro día',0)],conversation:{}});
+  has(r,'RESCHEDULE_INTENT');
+  assert.strictEqual(r.booking_readiness,'HIGH');
+  assert.strictEqual(r.next_best_action,'START_REBOOK_VERIFICATION');
+  assert.strictEqual(r.guards.rebook_identity_verification_required,true);
+}
+
+// L5: a conservative standalone affirmative is an explicit booking confirmation intent.
+{
+  const r=rt.buildRuntimeContext({messages:[m('INBOUND','Sí confirmo',0)],conversation:{}});
+  has(r,'CONFIRM_BOOKING');
+  assert.strictEqual(r.booking_readiness,'HIGH');
+  assert.strictEqual(r.next_best_action,'CONFIRM_SELECTED_BOOKING');
+  assert.strictEqual(r.guards.explicit_booking_confirmation_required,true);
+  assert.strictEqual(r.guards.autonomous_commit_requires_l4,true);
+}
+
+// L5: narrative use of 'confirmar' must not be treated as an affirmative confirmation.
+{
+  const r=rt.buildRuntimeContext({messages:[m('INBOUND','¿Me puedes confirmar si mañana hay horario?',0)],conversation:{}});
+  assert.strictEqual(r.intents.includes('CONFIRM_BOOKING'),false);
+  has(r,'SCHEDULE');
+}
+
 console.log('WA4C Conversation Runtime V2 deterministic tests: PASS');

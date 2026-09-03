@@ -47,10 +47,22 @@ function rankSlots(slots,requestedTime){
   if(req==null)return xs.sort((a,b)=>timeMinutes(a.hora)-timeMinutes(b.hora)||clean(a.role).localeCompare(clean(b.role)));
   return xs.sort((a,b)=>Math.abs(timeMinutes(a.hora)-req)-Math.abs(timeMinutes(b.hora)-req)||timeMinutes(a.hora)-timeMinutes(b.hora)||clean(a.role).localeCompare(clean(b.role)));
 }
+function publicSlot(s,date,site){
+  return {
+    date:date||null,
+    time:clean(s&&s.hora).slice(0,5)||null,
+    site:site||clean(s&&s.sede)||null,
+    role:clean(s&&s.role)||null,
+    professional_id:clean(s&&s.professional_id)||null,
+    professional_name:clean(s&&s.professional_name)||null,
+    booking_mode:clean(s&&s.mode)||null
+  };
+}
 function safePrompt(result){
   return {
     version:VERSION,
     status:result.status,
+    treatment_id:result.treatment_id||null,
     target_date:result.target_date||null,
     site:result.site||null,
     required_roles:result.required_roles||[],
@@ -62,9 +74,13 @@ function safePrompt(result){
     time_constraint:result.time_constraint||null,
     exact_requested_time_available:result.exact_requested_time_available===true,
     candidate_slot_count:Number(result.candidate_slot_count||0),
+    candidate_slots:asArray(result.candidate_slots).slice(0,5).map(s=>publicSlot(s,result.target_date,result.site)),
+    free_text_allowed:true,
     confirmation_allowed:false,
+    explicit_confirmation_required:true,
     human_commit_required:true,
     write_boundary:WRITE_BOUNDARY,
+    l5_autonomous_commit_boundary:'L4_EFFECTIVE_AUTHORITY_REQUIRED',
     slot_must_be_revalidated:true,
     limitations:result.limitations||[]
   };
@@ -96,7 +112,7 @@ function createBookingResolver(deps){
     input=input||{};
     const runtime=input.runtime||{},state=runtime.state||{};
     const result={version:VERSION,status:'NOT_REQUESTED',target_date:null,site:null,treatment_id:null,required_roles:[],booking_mode:null,capability:null,schedule_source_fresh:false,schedule_source_max_date:null,schedule_sources:{},requested_time:clean(state.requested_time)||null,time_constraint:clean(state.time_constraint)||null,candidate_slots:[],candidate_slot_count:0,exact_requested_time_available:false,confirmation_allowed:false,human_commit_required:true,write_boundary:WRITE_BOUNDARY,limitations:[]};
-    const wantsBooking=runtime.booking_readiness==='HIGH'||asArray(runtime.intents).some(x=>['BOOKING','SCHEDULE','HARD_TIME_CONSTRAINT'].includes(String(x)));
+    const wantsBooking=runtime.booking_readiness==='HIGH'||asArray(runtime.intents).some(x=>['BOOKING','SCHEDULE','HARD_TIME_CONSTRAINT','RESCHEDULE_INTENT','CONFIRM_BOOKING'].includes(String(x)));
     if(!wantsBooking){result.prompt_context=safePrompt(result);return result;}
     if(clean(state.requested_day).toUpperCase()==='DOMINGO'){
       result.status='CLOSED_DAY';result.limitations.push('SUNDAY_CLOSED');result.prompt_context=safePrompt(result);return result;
@@ -190,4 +206,4 @@ function createBookingResolver(deps){
   return {resolve,revalidateSlot,version:VERSION};
 }
 
-module.exports={VERSION,WRITE_BOUNDARY,DAY_NUM,SITE_DB,createBookingResolver,limaDate,resolveRequestedDate,dbDayForIso,siteDb,roleFromRows,rankSlots,safePrompt};
+module.exports={VERSION,WRITE_BOUNDARY,DAY_NUM,SITE_DB,createBookingResolver,limaDate,resolveRequestedDate,dbDayForIso,siteDb,roleFromRows,rankSlots,safePrompt,publicSlot};
