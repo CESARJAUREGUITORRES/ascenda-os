@@ -1,5 +1,5 @@
 -- WA-L8 recovery. Audit/consent history is immutable: structural recovery is
--- allowed only before any L8 consent/preflight evidence exists.
+-- allowed only before any L8 preflight or scoped-consent evidence exists.
 
 begin;
 
@@ -12,6 +12,13 @@ begin
   if to_regclass('public.aos_wa_l8_preflight_decisions_v1') is not null
      and exists(select 1 from public.aos_wa_l8_preflight_decisions_v1) then
     raise exception 'WA_L8_RECOVERY_BLOCKED_AUDIT_HISTORY';
+  end if;
+  if to_regclass('public.aos_wa_marketing_eligibility_events_v1') is not null
+     and exists(
+       select 1 from public.aos_wa_marketing_eligibility_events_v1
+       where policy_version='WA_L8_SCOPED_CONSENT_V1'
+     ) then
+    raise exception 'WA_L8_RECOVERY_BLOCKED_SCOPED_CONSENT_HISTORY';
   end if;
 end $$;
 
@@ -89,9 +96,16 @@ end $$;
 revoke all on function public.aos_wa_l4_authorize_autonomous_send_v1(uuid,text,text,text,text,text,text,text,text,boolean,text) from public,anon,authenticated;
 grant execute on function public.aos_wa_l4_authorize_autonomous_send_v1(uuid,text,text,text,text,text,text,text,text,boolean,text) to service_role;
 
+-- Final scoped L8 helpers/adapters.
+drop function if exists public.aos_wa_l8_consent_record_v2(text,uuid,text,text,text,text);
+drop function if exists public.aos_wa_l8_record_booking_utility_optin_v1(uuid,text,text,text);
+drop function if exists public.aos_wa_l8_scope_for_send_v1(text,text);
+
 drop function if exists public.aos_wa_l8_security_status_v1();
 drop function if exists public.aos_wa_l8_autonomous_preflight_v1(uuid,text,text,text,text,text);
 drop function if exists public.aos_wa_l8_consent_record_v1(text,uuid,text,text,text);
+
+drop index if exists public.aos_wa_l8_message_stop_idx;
 
 drop trigger if exists trg_aos_wa_l8_preflight_append_guard_v1 on public.aos_wa_l8_preflight_decisions_v1;
 drop table if exists public.aos_wa_l8_preflight_decisions_v1;
