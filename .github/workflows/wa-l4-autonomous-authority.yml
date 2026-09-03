@@ -97,8 +97,11 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('service_role','public.aos_wa_auto_allowlist_v1','INSERT')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('service_role','public.aos_wa_auto_decisions_v1','INSERT')")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('service_role','public.aos_wa_l4_set_control_v1(uuid,text,boolean,integer,integer,integer,integer,integer,integer,text)','EXECUTE')")" = "t"
-      - name: Behavioral authority contract
-        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa-l4/tests/001_authority_contract.sql
+      - name: Behavioral authority / replay / limits contract
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa-l4/tests/001_authority_contract.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa-l4/tests/002_rate_limits.sql
       - name: Recovery must fail closed if AUTO provider lineage exists
         run: |
           set -euo pipefail
