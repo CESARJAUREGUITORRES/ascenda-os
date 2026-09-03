@@ -1,19 +1,43 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-02 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
-**WA-L4:** `CLOSED · PRODUCTION CERTIFIED · AUTO_OFF · SAFE-OFF`  
-**L4 implementation/deploy main:** `1402361923977db9ffdcaa047f21e8775b595e10`  
-**GitHub authority:** Issue `#443` · PR `#444`  
-**NEXT ELIGIBLE:** `WA-L5 — Conversational BOOK/REBOOK Wiring`  
-**CANARY:** `NOT AUTHORIZED` — requires a separate explicit owner authorization.
+**ACTIVE HIGH/CRITICAL LOCK:** `WA-L5 — Conversational BOOK/REBOOK Wiring`  
+**GitHub authority:** Issue `#445`  
+**Entry main:** `bc604d69e9ec8f759ad644fc4161055f69865e86`  
+**Branch:** `wa-l5-conversational-booking-20260902`  
+**Effective production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF`  
+**CANARY:** `NOT AUTHORIZED` — separate explicit owner authorization required.
 
-## WA-L4 production certificate
+## WA-L5 entry objective
 
-L4 autonomous authority is installed in production but remains completely dormant:
+Wire the certified WA4C conversational runtime to the certified AGV2 BOOK/REBOOK transactional authority so a conversation can deterministically progress through:
 
-- authority mode = `AUTO_OFF`;
-- global kill switch = `ENGAGED`;
+`booking intent → site → date/window → real availability → slot → explicit confirmation → BOOK/REBOOK V2 → post-commit side effects`
+
+The LLM may interpret language and draft copy, but it does not receive direct SQL/Agenda authority. Every write must pass deterministic server policy, identity/privacy gates and the AGV2 transactional core.
+
+## Frozen L5 behavior
+
+- `booking_readiness=HIGH` advances toward real slots rather than generic selling;
+- buttons/lists are optional accelerators; free text remains valid;
+- trusted inbound WhatsApp phone is reused instead of re-requested;
+- canonical patient data may fill name/contact only through governed identity authority;
+- for unresolved/new contacts, sufficient name + surname is required before commit;
+- email and DNI remain optional unless a future explicit canonical rule changes that contract;
+- explicit confirmation state/token is mandatory before BOOK or REBOOK;
+- `RESCHEDULE_INTENT` must be detected in natural language;
+- active appointment read must obey identity/privacy and ambiguity gates;
+- REBOOK preserves the same logical `aos_agenda_citas.id` and appends event history;
+- selected slots are revalidated transactionally immediately before commit;
+- side effects happen post-commit and remain provider-verified-template gated;
+- conversation memory is bounded and must not become a parallel patient/clinical record.
+
+## LIVE entry snapshot
+
+Read immediately before acquiring L5:
+
+- L4 mode = `AUTO_OFF`;
+- kill switch = `ENGAGED`;
 - effective autonomous send = `false`;
 - `copilot_enabled=true`;
 - `auto_reply_enabled=false`;
@@ -21,86 +45,63 @@ L4 autonomous authority is installed in production but remains completely dorman
 - `auto_routing_enabled=false`;
 - `human_send_enabled=true`;
 - active L4 allowlist = `0`;
-- autonomous decisions = `0`;
-- autonomous outbound requests = `0`;
-- autonomous messages = `0`;
-- no autonomous provider dispatch authorized.
+- `aos_booking_operations_v2 = 0`;
+- `aos_agenda_events_v2 = 0`;
+- `aos_wa4_booking_actions_v1 = 0`;
+- Agenda total = `3,205`;
+- future active Agenda = `36`;
+- WhatsApp conversations = `2` / active `2`;
+- WhatsApp messages = `21`;
+- provider-verified active WhatsApp templates = `0`.
 
-Frozen L4 safety budgets:
-- daily messages = `20`;
-- max turns/conversation = `8`;
-- global rate/min = `6`;
-- conversation rate/min = `2`;
-- cooldown = `15s`;
-- duplicate window = `120s`.
+No production BOOK/REBOOK mutation is authorized merely to certify L5 deployment. Local/synthetic canaries own the write-path proof until a separately authorized live canary exists.
 
-## Certified architecture
+## L5 exit gates
 
-WA-L4 provides:
-- centralized DB-first `AUTO_OFF | CANARY | PROD` authority;
-- global kill switch;
-- server-only allowlist for PHONE / BSUID / CONVERSATION / CAMPAIGN;
-- daily/turn/rate/cooldown/duplicate budgets;
-- provider idempotency authority before dispatch;
-- provider-verified template gate;
-- clinical/safety/identity/human-ownership handoff;
-- append-only hashed authority/control audit without raw model prompt/reply;
-- HUMAN/AUTO outbound lineage;
-- internal-only autonomous send route;
-- fail-closed recovery that preserves provider/audit history.
+1. deterministic conversational booking state machine;
+2. bounded per-conversation memory + explicit confirmation lifecycle;
+3. real slot selection with 3-date / 5-slot conversational UX contract and free-text parity;
+4. natural-language REBOOK intent + governed active-appointment resolution;
+5. BOOK and REBOOK route through AGV2 V2 only;
+6. identity conflict / appointment ambiguity / stale slot / duplicate confirmation fail closed;
+7. same-appointment REBOOK + append-only event proof;
+8. exact-head dedicated L5 CI;
+9. WA4C FULL LOCAL + AGV2 + WA-L4 + existing cross-module CI GREEN;
+10. anti-drift;
+11. expected-head merge;
+12. DDL/runtime deploy from merged lineage;
+13. LIVE tables/RPC/runtime readback while `AUTO_OFF + kill switch ON`;
+14. zero autonomous outbound/provider traffic;
+15. final regression: Agenda, Call Center, Marketing, Ventas/Comisiones, Pacientes/Identity, shared DB pressure;
+16. close #445 and sync Notion/CURRENT.
 
-Direct browser control is prohibited. `anon` and `authenticated` cannot read or execute L4 control authority. `service_role` has read access to L4 state but no direct UPDATE/INSERT on authority/allowlist ledgers; state mutation is through governed SECURITY DEFINER RPCs.
+## L4 frozen prerequisite
 
-## CI / anti-drift certificate
+WA-L4 remains `CLOSED · PRODUCTION CERTIFIED`. Its central state machine, kill switch, allowlist, budgets, duplicate/cooldown guards, provider-template gate, human/clinical/identity handoff and append-only authority audit remain mandatory upstream safety controls.
 
-Exact certified PR head: `113d636d9bc7180f9f37b421a8b3c46f8af9473d`.
+L4 implementation/deploy lineage: `1402361923977db9ffdcaa047f21e8775b595e10` via PR `#444` / issue `#443`.
 
-10/10 exact-head workflows PASS:
-- Ascenda CI;
-- ASCENDA ASC-PERF Audit 360;
-- ASCENDA Phase 4 Revenue Operations;
-- ASCENDA WA-L4 Autonomous Authority;
-- Sentinel F6 Business Health Certificate;
-- ASCENDA WA-1 Secure WhatsApp Gateway;
-- ASCENDA WA-4C FULL LOCAL Integration;
-- ASCENDA Cartera Phase 2 Hardening;
-- ASCENDA PHASE S WA3 Stabilization;
-- ASCENDA Performance Guard CI.
+## Mandatory reliability boundary
 
-Anti-drift before merge: branch `ahead 14 / behind 0` over `main@ee05aee59af5e145d62228a7cab27aaf597bd8f8`.
-PR #444 merged with expected-head lock. Railway status for `1402361923977db9ffdcaa047f21e8775b595e10` = SUCCESS.
+Every L5 exit gate must preserve:
 
-The WA4C red gate was a calendar-dependent test defect: the stale-schedule fixture landed on Sunday and correctly hit `WA4_BOOKING_SUNDAY_CLOSED` before schedule-staleness. The test was made calendar-stable by choosing a non-Sunday stale date; production booking logic was not weakened or reordered.
+- Agenda governed create/edit/status and AGV2 transactional booking;
+- Call Center next-lead + prepare + commit/confirm hot paths;
+- Marketing monthly load without legacy/new duplication or annual fan-out;
+- Sales/Commissions exact totals, filters, ownership and responsive reads;
+- Patients/Patient 360 canonical search/core rendering and identity fail-closed semantics;
+- historical aliases without overwrite of canonical contacts;
+- shared Supabase/background pressure without new timeout/lock amplification.
 
-## LIVE DDL / readback
+Binding doctrine: `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`.
 
-Applied to Supabase PROD `ituyqwstonmhnfshnaqz`:
-- `wa_l4_autonomous_authority_v1`;
-- `wa_l4_authority_hardening_v1`.
+## Forbidden during this lane without separate authorization
 
-L4 tables and governed RPCs exist. LIVE ACL/readback verifies:
-- `anon` authority SELECT = false;
-- `authenticated` authority SELECT = false;
-- `service_role` authority SELECT = true;
-- `service_role` direct authority UPDATE = false;
-- `service_role` direct allowlist INSERT = false;
-- `anon/authenticated` set-control EXECUTE = false;
-- `service_role` set-control EXECUTE = true.
-
-## Mandatory cross-module regression certificate
-
-Post-L4 LIVE baselines:
-- Agenda = `3,205` rows;
-- Call Center = `37,039` calls;
-- Marketing = `6,688` leads;
-- Ventas = `1,391`, all certified 2026; pre-2026 sales = `0`;
-- Pacientes = `7,757` total / `7,331` current / `426 FUSIONADO`.
-
-The exact-head regression matrix and LIVE readback show no L4 cross-module regression. The mandatory reliability doctrine remains binding for every WA-L5+ change:
-`docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`.
-
-## Next boundary
-
-WA-L5 may now become the next HIGH/CRITICAL workstream when explicitly started. Its purpose is conversational BOOK/REBOOK wiring over the already certified Agenda/identity/knowledge/authority layers.
-
-**Important:** L4 closure does not authorize `AUTO_OFF → CANARY`. No allowlist entry, auto-reply, AI-send, autonomous routing or autonomous Meta dispatch may be enabled until a separate explicit CANARY authorization is recorded and its own gates pass.
+- `AUTO_OFF → CANARY`;
+- disengaging the L4 kill switch for autonomous operation;
+- `auto_reply_enabled=true`;
+- `ai_send_enabled=true`;
+- autonomous `auto_routing_enabled=true`;
+- autonomous Meta dispatch;
+- real production autonomous BOOK/REBOOK;
+- bulk sends/broadcasts/campaign activation.
