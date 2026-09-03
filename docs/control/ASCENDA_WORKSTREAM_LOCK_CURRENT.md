@@ -1,75 +1,106 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-02 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `WA-L4 — Autonomous Authority + Kill Switch`  
-**GitHub authority:** Issue `#443`  
-**Entry main:** `73a4bab955fffb8a423f8ff07fa8c835df125227`  
-**Mandatory PRE-L4 doctrine:** `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md` · freeze commit `f874f9797ed65408f43b4beb3bab6c31603042a1`  
-**WA-L4 exact operational state:** `IN DEVELOPMENT · AUTO_OFF · SAFE-OFF`
+**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
+**WA-L4:** `CLOSED · PRODUCTION CERTIFIED · AUTO_OFF · SAFE-OFF`  
+**L4 implementation/deploy main:** `1402361923977db9ffdcaa047f21e8775b595e10`  
+**GitHub authority:** Issue `#443` · PR `#444`  
+**NEXT ELIGIBLE:** `WA-L5 — Conversational BOOK/REBOOK Wiring`  
+**CANARY:** `NOT AUTHORIZED` — requires a separate explicit owner authorization.
 
-## Entry safety snapshot
+## WA-L4 production certificate
 
-Production remains fail-closed while L4 is built:
+L4 autonomous authority is installed in production but remains completely dormant:
 
 - authority mode = `AUTO_OFF`;
-- global autonomous state = `SAFE-OFF`;
+- global kill switch = `ENGAGED`;
+- effective autonomous send = `false`;
 - `copilot_enabled=true`;
 - `auto_reply_enabled=false`;
-- `auto_routing_enabled=false`;
 - `ai_send_enabled=false`;
+- `auto_routing_enabled=false`;
 - `human_send_enabled=true`;
-- no autonomous provider dispatch authorized;
-- no direct LLM → Meta authority;
-- no direct LLM → SQL authority.
+- active L4 allowlist = `0`;
+- autonomous decisions = `0`;
+- autonomous outbound requests = `0`;
+- autonomous messages = `0`;
+- no autonomous provider dispatch authorized.
 
-LIVE entry evidence:
-- booking operations V2 = `0`;
-- Agenda events V2 = `0`;
-- L3 delivery outbox V3 = `0`;
-- L3 dispatchable = `0`;
-- active template registry = `10`;
-- active WhatsApp templates = `6`;
-- provider-verified WhatsApp templates = `0`;
-- existing outbound request ledger = `15` rows / `7` provider message IDs.
+Frozen L4 safety budgets:
+- daily messages = `20`;
+- max turns/conversation = `8`;
+- global rate/min = `6`;
+- conversation rate/min = `2`;
+- cooldown = `15s`;
+- duplicate window = `120s`.
 
-## Sole mutable lane
+## Certified architecture
 
-While #443 is open, no other HIGH/CRITICAL workstream may mutate ASCENDA. Other workstreams may perform read-only audit/documentation only.
-
-## L4 implementation boundary
-
-Allowed under `AUTO_OFF`:
-- implement explicit authority state machine `AUTO_OFF | CANARY | PROD`;
+WA-L4 provides:
+- centralized DB-first `AUTO_OFF | CANARY | PROD` authority;
 - global kill switch;
-- server-side allowlist;
-- daily/message/turn/rate/cooldown/duplicate budgets;
-- provider idempotency authority;
-- provider-approved-template gate;
-- clinical/safety/identity/provider-error handoff;
-- append-only authority decision audit/telemetry;
-- recovery/rollback;
-- runtime wiring that remains dormant in AUTO_OFF;
-- CI, isolated DB canaries and production read-only validation.
+- server-only allowlist for PHONE / BSUID / CONVERSATION / CAMPAIGN;
+- daily/turn/rate/cooldown/duplicate budgets;
+- provider idempotency authority before dispatch;
+- provider-verified template gate;
+- clinical/safety/identity/human-ownership handoff;
+- append-only hashed authority/control audit without raw model prompt/reply;
+- HUMAN/AUTO outbound lineage;
+- internal-only autonomous send route;
+- fail-closed recovery that preserves provider/audit history.
 
-Forbidden without a separate explicit owner authorization:
-- transition effective mode from `AUTO_OFF` to `CANARY`;
-- set `auto_reply_enabled=true`;
-- set `ai_send_enabled=true`;
-- set `auto_routing_enabled=true` for autonomous operation;
-- autonomous Meta dispatch;
-- bulk sends/broadcasts/campaign activation.
+Direct browser control is prohibited. `anon` and `authenticated` cannot read or execute L4 control authority. `service_role` has read access to L4 state but no direct UPDATE/INSERT on authority/allowlist ledgers; state mutation is through governed SECURITY DEFINER RPCs.
 
-## Mandatory regression boundary
+## CI / anti-drift certificate
 
-Every L4 exit gate must preserve:
-- Agenda governed create/edit/status and transactional booking;
-- Call Center next-lead + prepare + commit/confirm hot paths;
-- Marketing monthly load without legacy/new duplication or annual fan-out;
-- Sales/Commissions exact totals, filters, rules, ownership and responsive reads;
-- Patients/Patient 360 canonical search/core rendering and deferred-enrichment survivability;
-- current non-FUSIONADO patient master + governed historical aliases with fail-closed conflicts;
-- shared Supabase/background pressure without new timeout/lock amplification.
+Exact certified PR head: `113d636d9bc7180f9f37b421a8b3c46f8af9473d`.
 
-## Exit decision
+10/10 exact-head workflows PASS:
+- Ascenda CI;
+- ASCENDA ASC-PERF Audit 360;
+- ASCENDA Phase 4 Revenue Operations;
+- ASCENDA WA-L4 Autonomous Authority;
+- Sentinel F6 Business Health Certificate;
+- ASCENDA WA-1 Secure WhatsApp Gateway;
+- ASCENDA WA-4C FULL LOCAL Integration;
+- ASCENDA Cartera Phase 2 Hardening;
+- ASCENDA PHASE S WA3 Stabilization;
+- ASCENDA Performance Guard CI.
 
-L4 implementation may be merged/deployed in `AUTO_OFF` after exact-head CI, anti-drift, recovery, LIVE readback and cross-module regression PASS. `CANARY` remains a distinct authorization boundary and must not be inferred from implementation completion.
+Anti-drift before merge: branch `ahead 14 / behind 0` over `main@ee05aee59af5e145d62228a7cab27aaf597bd8f8`.
+PR #444 merged with expected-head lock. Railway status for `1402361923977db9ffdcaa047f21e8775b595e10` = SUCCESS.
+
+The WA4C red gate was a calendar-dependent test defect: the stale-schedule fixture landed on Sunday and correctly hit `WA4_BOOKING_SUNDAY_CLOSED` before schedule-staleness. The test was made calendar-stable by choosing a non-Sunday stale date; production booking logic was not weakened or reordered.
+
+## LIVE DDL / readback
+
+Applied to Supabase PROD `ituyqwstonmhnfshnaqz`:
+- `wa_l4_autonomous_authority_v1`;
+- `wa_l4_authority_hardening_v1`.
+
+L4 tables and governed RPCs exist. LIVE ACL/readback verifies:
+- `anon` authority SELECT = false;
+- `authenticated` authority SELECT = false;
+- `service_role` authority SELECT = true;
+- `service_role` direct authority UPDATE = false;
+- `service_role` direct allowlist INSERT = false;
+- `anon/authenticated` set-control EXECUTE = false;
+- `service_role` set-control EXECUTE = true.
+
+## Mandatory cross-module regression certificate
+
+Post-L4 LIVE baselines:
+- Agenda = `3,205` rows;
+- Call Center = `37,039` calls;
+- Marketing = `6,688` leads;
+- Ventas = `1,391`, all certified 2026; pre-2026 sales = `0`;
+- Pacientes = `7,757` total / `7,331` current / `426 FUSIONADO`.
+
+The exact-head regression matrix and LIVE readback show no L4 cross-module regression. The mandatory reliability doctrine remains binding for every WA-L5+ change:
+`docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`.
+
+## Next boundary
+
+WA-L5 may now become the next HIGH/CRITICAL workstream when explicitly started. Its purpose is conversational BOOK/REBOOK wiring over the already certified Agenda/identity/knowledge/authority layers.
+
+**Important:** L4 closure does not authorize `AUTO_OFF → CANARY`. No allowlist entry, auto-reply, AI-send, autonomous routing or autonomous Meta dispatch may be enabled until a separate explicit CANARY authorization is recorded and its own gates pass.
