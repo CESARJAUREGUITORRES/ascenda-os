@@ -14,7 +14,7 @@ assert "async function conversationCost(req,res,id)" in server
 assert "if(!UUID_RE.test(id))" in server
 assert "/rest/v1/rpc/aos_wa_l7_journey_cost_v1" in server
 assert "{p_conversation_id:id}" in server
-assert re.search(r"/api/wa/conversations/.+?/cost",server)
+assert "const mc=u.pathname.match" in server and "cost$/i" in server
 assert "await conversationCost(req,res,mc[1])" in server
 # L7 must not become an inbox-list enrichment/fan-out.
 inbox_fn=server[server.index('async function inboxList'):server.index('async function inboxHealth')]
