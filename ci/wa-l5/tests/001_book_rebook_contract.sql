@@ -43,7 +43,7 @@ do $$ declare r jsonb; n uuid; begin
 end $$;
 
 insert into public.aos_wa_messages_v1(provider_message_id,conversation_id,direction,from_number,to_number,phone_number_id,message_type,message_body,status,provider_timestamp,received_at)
-values('wamid.l5.book.yes','55555555-5555-4555-8555-555555555551'::uuid,'INBOUND','51911111111','51999999999','local-phone-id','text','Sí, confirmo','received',now(),now())
+values('wamid.l5.book.yes','55555555-5555-4555-8555-555555555551'::uuid,'INBOUND','51911111111','51999999999','local-phone-id','text','Sí confirmo','received',now(),now())
 on conflict(provider_message_id) do nothing;
 
 do $$ declare r jsonb; n uuid; begin
