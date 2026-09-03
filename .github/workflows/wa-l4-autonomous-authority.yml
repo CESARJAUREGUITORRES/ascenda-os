@@ -6,8 +6,8 @@ on:
     paths:
       - 'app/server-f4.js'
       - 'app/wa-l4-authority.js'
-      - 'supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql'
-      - 'supabase/rollbacks/20260902235500_wa_l4_autonomous_authority_v1.rollback.sql'
+      - 'supabase/migrations/*wa_l4*'
+      - 'supabase/rollbacks/*wa_l4*'
       - 'ci/wa-l4/**'
       - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
       - 'docs/control/WA_L4_*'
@@ -77,8 +77,11 @@ jobs:
           exit 1
       - name: Build synthetic PRE-L4 state
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa-l4/schema_contract.sql
-      - name: Apply exact WA-L4 migration
-        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql
+      - name: Apply exact WA-L4 migrations
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235600_wa_l4_authority_hardening_v1.sql
       - name: Schema and privilege contract
         run: |
           set -euo pipefail
@@ -88,7 +91,12 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select mode||':'||kill_switch_engaged from public.aos_wa_auto_authority_v1 where id=1")" = "AUTO_OFF:true"
           test "$(psql "$DB_URL" -X -qAt -c "select auto_reply_enabled from public.aos_wa_ai_control_v1 where id=1")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select ai_send_enabled from public.aos_wa_routing_control_v1 where id=1")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select auto_routing_enabled from public.aos_wa_routing_control_v1 where id=1")" = "f"
           test "$(psql "$DB_URL" -X -qAt -c "select human_send_enabled from public.aos_wa_routing_control_v1 where id=1")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('service_role','public.aos_wa_auto_authority_v1','UPDATE')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('service_role','public.aos_wa_auto_allowlist_v1','INSERT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_table_privilege('service_role','public.aos_wa_auto_decisions_v1','INSERT')")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select has_function_privilege('service_role','public.aos_wa_l4_set_control_v1(uuid,text,boolean,integer,integer,integer,integer,integer,integer,text)','EXECUTE')")" = "t"
       - name: Behavioral authority contract
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa-l4/tests/001_authority_contract.sql
       - name: Recovery must fail closed if AUTO provider lineage exists
@@ -111,12 +119,13 @@ jobs:
           test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa_l4_authorize_autonomous_send_v1(uuid,text,text,text,text,text,text,text,text,boolean,text)') is null")" = "t"
           test "$(psql "$DB_URL" -X -qAt -c "select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.aos_wa_ai_control_v1'::regclass and conname='aos_wa_ai_control_v1_auto_reply_enabled_check'")" = "CHECK ((auto_reply_enabled = false))"
           test "$(psql "$DB_URL" -X -qAt -c "select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.aos_wa_routing_control_v1'::regclass and conname='aos_wa_routing_control_v1_ai_send_enabled_check'")" = "CHECK ((ai_send_enabled = false))"
-      - name: Reapply after recovery is reproducible
+      - name: Reapply after recovery is reproducible and dormant
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235600_wa_l4_authority_hardening_v1.sql
           test "$(psql "$DB_URL" -X -qAt -c "select mode||':'||kill_switch_engaged from public.aos_wa_auto_authority_v1 where id=1")" = "AUTO_OFF:true"
-          test "$(psql "$DB_URL" -X -qAt -c "select auto_reply_enabled::text||':'||ai_send_enabled::text||':'||human_send_enabled::text from public.aos_wa_ai_control_v1 cross join public.aos_wa_routing_control_v1 where aos_wa_ai_control_v1.id=1 and aos_wa_routing_control_v1.id=1")" = "false:false:true"
+          test "$(psql "$DB_URL" -X -qAt -c "select auto_reply_enabled::text||':'||ai_send_enabled::text||':'||auto_routing_enabled::text||':'||human_send_enabled::text from public.aos_wa_ai_control_v1 cross join public.aos_wa_routing_control_v1 where aos_wa_ai_control_v1.id=1 and aos_wa_routing_control_v1.id=1")" = "false:false:false:true"
       - name: Stop isolated Supabase
         if: always()
         working-directory: ci/zero-cost-staging
