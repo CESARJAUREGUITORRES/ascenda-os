@@ -3,6 +3,8 @@
 const https = require('https')
 
 const DEFAULT_SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co'
+const SYNC_TIMEOUT_MS = 1500
+const RETRY_DELAY_MS = 30000
 
 function requestJson(urlString, options, body) {
   return new Promise(function(resolve, reject) {
@@ -19,7 +21,7 @@ function requestJson(urlString, options, body) {
       path: url.pathname + url.search,
       method: (options && options.method) || 'GET',
       headers: headers,
-      timeout: (options && options.timeout) || 10000
+      timeout: (options && options.timeout) || SYNC_TIMEOUT_MS
     }, function(r) {
       var chunks = []
       r.on('data', function(c) { chunks.push(c) })
@@ -45,27 +47,61 @@ function createResendVaultReconciler(config) {
   var serviceKey = String(config.serviceRoleKey != null ? config.serviceRoleKey : (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.service_role || ''))
   var resendKey = String(config.resendApiKey != null ? config.resendApiKey : (process.env.RESEND_API_KEY || ''))
   var requester = config.requestJson || requestJson
+  var retryDelayMs = Number(config.retryDelayMs || RETRY_DELAY_MS)
+  var retryTimer = null
 
   function headers() {
     var out = {
       apikey: serviceKey,
       'Content-Type': 'application/json',
-      'User-Agent': 'AscendaOS-Auth-Resend-Reconcile/1.0'
+      'User-Agent': 'AscendaOS-Auth-Resend-Reconcile/1.1'
     }
     if (!/^sb_(?:secret|publishable)_/.test(serviceKey)) out.Authorization = 'Bearer ' + serviceKey
     return out
+  }
+
+  function transientStatus(status) {
+    var n = Number(status || 0)
+    return n === 0 || n === 408 || n === 429 || n >= 500
+  }
+
+  function scheduleRetry() {
+    if (retryTimer || !Number.isFinite(retryDelayMs) || retryDelayMs <= 0) return
+    retryTimer = setTimeout(function() {
+      retryTimer = null
+      reconcile({ background: true }).catch(function() {})
+    }, retryDelayMs)
+    if (retryTimer && typeof retryTimer.unref === 'function') retryTimer.unref()
+  }
+
+  function deferred(code, upstreamStatus) {
+    scheduleRetry()
+    return {
+      ok: true,
+      status: 200,
+      code: 'AUTH_RESEND_SYNC_DEFERRED',
+      degraded: true,
+      sync_reason: code,
+      upstream_status: upstreamStatus || null
+    }
   }
 
   async function reconcile() {
     if (serviceKey.length <= 20) return { ok: false, status: 503, code: 'AUTH_SERVICE_ROLE_NOT_CONFIGURED' }
     if (resendKey.length <= 10) return { ok: false, status: 503, code: 'AUTH_RESEND_KEY_NOT_CONFIGURED' }
 
-    var lookup = await requester(
-      sbUrl + '/rest/v1/aos_integration_secrets_v1?select=integration_id&tipo=ilike.resend&limit=2',
-      { method: 'GET', headers: headers(), timeout: 10000 },
-      null
-    )
+    var lookup
+    try {
+      lookup = await requester(
+        sbUrl + '/rest/v1/aos_integration_secrets_v1?select=integration_id&tipo=ilike.resend&limit=2',
+        { method: 'GET', headers: headers(), timeout: SYNC_TIMEOUT_MS },
+        null
+      )
+    } catch (_) {
+      return deferred('AUTH_RESEND_VAULT_LOOKUP_TRANSPORT_FAILED', null)
+    }
     if (lookup.status < 200 || lookup.status >= 300) {
+      if (transientStatus(lookup.status)) return deferred('AUTH_RESEND_VAULT_LOOKUP_FAILED', lookup.status)
       return { ok: false, status: 503, code: 'AUTH_RESEND_VAULT_LOOKUP_FAILED', upstream_status: lookup.status || null }
     }
 
@@ -75,16 +111,22 @@ function createResendVaultReconciler(config) {
     }
 
     var integrationId = String(rows[0].integration_id)
-    var updated = await requester(
-      sbUrl + '/rest/v1/aos_integration_secrets_v1?integration_id=eq.' + encodeURIComponent(integrationId),
-      { method: 'PATCH', headers: headers(), timeout: 10000 },
-      { api_key: resendKey, updated_at: new Date().toISOString() }
-    )
+    var updated
+    try {
+      updated = await requester(
+        sbUrl + '/rest/v1/aos_integration_secrets_v1?integration_id=eq.' + encodeURIComponent(integrationId),
+        { method: 'PATCH', headers: headers(), timeout: SYNC_TIMEOUT_MS },
+        { api_key: resendKey, updated_at: new Date().toISOString() }
+      )
+    } catch (_) {
+      return deferred('AUTH_RESEND_VAULT_UPDATE_TRANSPORT_FAILED', null)
+    }
     if (updated.status < 200 || updated.status >= 300) {
+      if (transientStatus(updated.status)) return deferred('AUTH_RESEND_VAULT_UPDATE_FAILED', updated.status)
       return { ok: false, status: 503, code: 'AUTH_RESEND_VAULT_UPDATE_FAILED', upstream_status: updated.status || null }
     }
 
-    return { ok: true, status: 200, code: 'AUTH_RESEND_VAULT_RECONCILED' }
+    return { ok: true, status: 200, code: 'AUTH_RESEND_VAULT_RECONCILED', degraded: false }
   }
 
   return {
