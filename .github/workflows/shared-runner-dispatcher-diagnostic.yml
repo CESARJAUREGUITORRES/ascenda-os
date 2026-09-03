@@ -1,0 +1,48 @@
+name: Shared Runner Dispatcher Diagnostic
+
+on:
+  push:
+    branches: ['infra/shared-runner-dispatcher-v1']
+    paths:
+      - '.github/workflows/shared-runner-dispatcher-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shared-runner-dispatcher-diagnostic
+  cancel-in-progress: false
+
+jobs:
+  diagnostic:
+    name: Diagnose local runner arbitration capability
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - name: Local capability diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "CURRENT_USER=$(id -un)"
+          echo "MACHINE=$(hostname)"
+          echo "ASCENDA_RUNNER_DIR_EXISTS=$([ -x /home/ascenda-runner/actions-runner/actions-runner/run.sh ] && echo yes || echo no)"
+          echo "ROO7_HOME_VISIBLE=$([ -d /home/cesar ] && echo yes || echo no)"
+          echo "ROO7_RUNNER_DIR_VISIBLE=$([ -x /home/cesar/actions-runner/run.sh ] && echo yes || echo no)"
+          if sudo -n -u cesar -g docker /usr/bin/id >/dev/null 2>&1; then
+            echo 'PASSWORDLESS_SUDO_TO_CESAR=yes'
+          else
+            echo 'PASSWORDLESS_SUDO_TO_CESAR=no'
+          fi
+          if sudo -n /bin/true >/dev/null 2>&1; then
+            echo 'PASSWORDLESS_ROOT_SUDO=yes'
+          else
+            echo 'PASSWORDLESS_ROOT_SUDO=no'
+          fi
+          echo "DOCKER_GROUP=$(getent group docker | cut -d: -f4 || true)"
+          if pgrep -u "$(id -u)" -f '/home/ascenda-runner/ascenda-runner-autoboot.sh' >/dev/null 2>&1; then
+            echo 'ASCENDA_OLD_AUTOBOOT_SUPERVISOR=running'
+          else
+            echo 'ASCENDA_OLD_AUTOBOOT_SUPERVISOR=not_detected'
+          fi
+          echo 'SHARED_RUNNER_DISPATCHER_DIAGNOSTIC=PASS'
