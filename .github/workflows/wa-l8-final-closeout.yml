@@ -43,14 +43,17 @@ jobs:
           $bounded=Get-Content 'supabase/migrations/20260903194600_wa_l8_bounded_preflight_fix_v1.sql' -Raw
           $stop=Get-Content 'supabase/migrations/20260903194700_wa_l8_persistent_stop_index_v1.sql' -Raw
           $scope=Get-Content 'supabase/migrations/20260903194800_wa_l8_scoped_eligibility_v1.sql' -Raw
-          $all=$base+"`n"+$bounded+"`n"+$stop+"`n"+$scope
+          $p0=Get-Content 'supabase/migrations/20260903194900_wa_l8_bounded_scoped_eligibility_v1.sql' -Raw
+          $null=Get-Content 'supabase/migrations/20260903195000_wa_l8_bounded_eligibility_null_guard_v1.sql' -Raw
+          $all=$base+"`n"+$bounded+"`n"+$stop+"`n"+$scope+"`n"+$p0+"`n"+$null
           if ($all -match '(?i)auto_reply_enabled\s*=\s*true|ai_send_enabled\s*=\s*true|auto_routing_enabled\s*=\s*true|kill_switch_engaged\s*=\s*false') { throw 'L8 final may not activate autonomy' }
           if ($all -match '(?i)create\s+materialized\s+view|refresh\s+materialized\s+view') { throw 'L8 final may not create global materialization' }
           if ($all -match '(?i)(insert\s+into|update|delete\s+from)\s+public\.(aos_pacientes|aos_leads|aos_agenda_citas|aos_ventas|aos_llamadas)') { throw 'L8 final may not mutate cross-module ledgers' }
-          foreach($marker in @('WA_L8_SCOPED_ELIGIBILITY_REQUIRED','WA_L8_OPT_OUT_ACTIVE','WA_L8_BOOKING_UTILITY_V1','aos_wa_marketing_eligibility_check_v1','aos_wa_l8_meta_monthly_usage_v1','pricing_type')) {
+          foreach($marker in @('WA_L8_SCOPED_ELIGIBILITY_REQUIRED','WA_L8_OPT_OUT_ACTIVE','WA_L8_BOOKING_UTILITY_V1','aos_wa_l8_scoped_eligibility_check_v1','aos_wa_l8_meta_monthly_usage_v1','pricing_type')) {
             if ($all -notmatch [regex]::Escape($marker)) { throw "L8 final marker missing: $marker" }
           }
           if ($scope -match 'grant\s+insert\s+on\s+table\s+public\.aos_wa_l8_consent_events_v1') { throw 'Deprecated L8 consent ledger must stay inert' }
+          if ($p0 -match 'aos_wa_marketing_eligibility_check_v1') { throw 'Final preflight may not use global WA7A4 projection' }
 
   db-final:
     name: L8 final real-DB scoped consent / cost / P0 gate
@@ -109,18 +112,16 @@ jobs:
         run: |
           set -euo pipefail
           DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
-          for f in 20260903194500_wa_l8_security_gate_v1.sql 20260903194600_wa_l8_bounded_preflight_fix_v1.sql 20260903194700_wa_l8_persistent_stop_index_v1.sql 20260903194800_wa_l8_scoped_eligibility_v1.sql; do
-            psql "$DB" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
-          done
+          L8_FILES='20260903194500_wa_l8_security_gate_v1.sql 20260903194600_wa_l8_bounded_preflight_fix_v1.sql 20260903194700_wa_l8_persistent_stop_index_v1.sql 20260903194800_wa_l8_scoped_eligibility_v1.sql 20260903194900_wa_l8_bounded_scoped_eligibility_v1.sql 20260903195000_wa_l8_bounded_eligibility_null_guard_v1.sql'
+          for f in $L8_FILES; do psql "$DB" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"; done
           test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l8_consent_record_v2(text,uuid,text,text,text,text)') is not null")" = 't'
           test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l8_record_booking_utility_optin_v1(uuid,text,text,text)') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l8_scoped_eligibility_check_v1(uuid,text)') is not null")" = 't'
           test "$(psql "$DB" -X -qAt -c "select has_table_privilege('service_role','public.aos_wa_l8_consent_events_v1','INSERT')")" = 'f'
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903194500_wa_l8_security_gate_v1.rollback.sql
           test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l8_autonomous_preflight_v1(uuid,text,text,text,text,text)') is null")" = 't'
           test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_marketing_eligibility_events_v1') is not null")" = 't'
-          for f in 20260903194500_wa_l8_security_gate_v1.sql 20260903194600_wa_l8_bounded_preflight_fix_v1.sql 20260903194700_wa_l8_persistent_stop_index_v1.sql 20260903194800_wa_l8_scoped_eligibility_v1.sql; do
-            psql "$DB" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"
-          done
+          for f in $L8_FILES; do psql "$DB" -X -v ON_ERROR_STOP=1 -f "supabase/migrations/$f"; done
           psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
       - name: WA-7A.4 regression then L8 final closeout canary
         run: |
@@ -130,14 +131,16 @@ jobs:
           grep -q 'WA7A4_MARKETING_ELIGIBILITY_PASS' /tmp/wa7a4.txt
           psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l8/tests/002_scoped_consent_cost_closeout.sql 2>&1 | tee /tmp/wa-l8-final.txt
           grep -q 'WA_L8_SCOPED_CONSENT_COST_CLOSEOUT_PASS' /tmp/wa-l8-final.txt
+          test "$(psql "$DB" -X -qAt -c "select position('aos_wa_marketing_eligibility_check_v1' in pg_get_functiondef('public.aos_wa_l8_autonomous_preflight_v1(uuid,text,text,text,text,text)'::regprocedure))")" = '0'
       - name: P0 bounded-read and stop-index matrix
         run: |
           set -euo pipefail
           DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
           test "$(psql "$DB" -X -qAt -c "select indexname from pg_indexes where schemaname='public' and indexname='aos_wa_l8_message_stop_idx'")" = 'aos_wa_l8_message_stop_idx'
-          psql "$DB" -X -v ON_ERROR_STOP=1 -c "set statement_timeout='3000ms'; select public.aos_wa_l8_autonomous_preflight_v1('89888888-8888-4888-8888-888888888801'::uuid,'PHONE','51971000001','text',null,'l8v2:perf:preflight:000001'); select count(*) from public.aos_wa_l8_meta_monthly_usage_v1 where business_phone_number_id='pn-l8v2';"
-          psql "$DB" -X -qAt -c "set enable_seqscan=off; explain (costs off) select created_at from public.aos_wa_messages_v1 where conversation_id='89888888-8888-4888-8888-888888888802'::uuid and direction='INBOUND' and pg_catalog.regexp_replace(pg_catalog.regexp_replace(pg_catalog.translate(pg_catalog.lower(pg_catalog.btrim(coalesce(message_body,''))),'áéíóúüñ','aeiouun'),'[[:punct:]]',' ','g'),'[[:space:]]+',' ','g') ~ '^(stop|baja|cancelar suscripcion|no quiero mensajes|no me escriban|no mas mensajes)$' order by created_at desc limit 1" | tee /tmp/l8-stop-plan.txt
-          grep -q 'aos_wa_l8_message_stop_idx' /tmp/l8-stop-plan.txt
+          test "$(psql "$DB" -X -qAt -c "select indexname from pg_indexes where schemaname='public' and indexname='aos_wa_marketing_eligibility_events_conversation_idx'")" = 'aos_wa_marketing_eligibility_events_conversation_idx'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "set statement_timeout='3000ms'; select public.aos_wa_l8_scoped_eligibility_check_v1('89888888-8888-4888-8888-888888888802'::uuid,'UTILITY'); select public.aos_wa_l8_autonomous_preflight_v1('89888888-8888-4888-8888-888888888801'::uuid,'PHONE','51971000001','text',null,'l8v2:perf:preflight:000001'); select count(*) from public.aos_wa_l8_meta_monthly_usage_v1 where business_phone_number_id='pn-l8v2';"
+          psql "$DB" -X -qAt -c "set enable_seqscan=off; explain (costs off) select consent_status from public.aos_wa_marketing_eligibility_events_v1 where conversation_id='89888888-8888-4888-8888-888888888802'::uuid and eligibility_scope='UTILITY' order by observed_at desc,created_at desc limit 1" | tee /tmp/l8-elig-plan.txt
+          grep -q 'aos_wa_marketing_eligibility_events_conversation_idx' /tmp/l8-elig-plan.txt
       - name: Cross-module read-only regression and SAFE-OFF
         run: |
           set -euo pipefail
