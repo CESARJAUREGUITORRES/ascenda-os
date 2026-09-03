@@ -47,14 +47,16 @@ jobs:
         shell: powershell
         run: |
           $sql=Get-Content 'supabase/migrations/20260903005500_wa_l5_conversational_booking_v1.sql' -Raw
-          if ($sql -match '(?i)auto_reply_enabled\s*=\s*true') { throw 'L5 migration may not enable auto reply' }
-          if ($sql -match '(?i)ai_send_enabled\s*=\s*true') { throw 'L5 migration may not enable AI send' }
-          if ($sql -match '(?i)auto_routing_enabled\s*=\s*true') { throw 'L5 migration may not enable auto routing' }
-          if ($sql -match '(?i)update\s+public\.aos_agenda_citas') { throw 'L5 migration may not directly mutate Agenda' }
-          if ($sql -match '(?i)insert\s+into\s+public\.aos_agenda_citas') { throw 'L5 migration may not directly insert Agenda' }
+          $fix=Get-Content 'supabase/migrations/20260903005600_wa_l5_treatment_resolver_uuid_fix_v1.sql' -Raw
+          if ($sql -match '(?i)auto_reply_enabled\s*=\s*true' -or $fix -match '(?i)auto_reply_enabled\s*=\s*true') { throw 'L5 migrations may not enable auto reply' }
+          if ($sql -match '(?i)ai_send_enabled\s*=\s*true' -or $fix -match '(?i)ai_send_enabled\s*=\s*true') { throw 'L5 migrations may not enable AI send' }
+          if ($sql -match '(?i)auto_routing_enabled\s*=\s*true' -or $fix -match '(?i)auto_routing_enabled\s*=\s*true') { throw 'L5 migrations may not enable auto routing' }
+          if ($sql -match '(?i)update\s+public\.aos_agenda_citas' -or $fix -match '(?i)update\s+public\.aos_agenda_citas') { throw 'L5 migrations may not directly mutate Agenda' }
+          if ($sql -match '(?i)insert\s+into\s+public\.aos_agenda_citas' -or $fix -match '(?i)insert\s+into\s+public\.aos_agenda_citas') { throw 'L5 migrations may not directly insert Agenda' }
           if ($sql -notmatch 'WA_L5_AUTO_OFF') { throw 'AUTO_OFF fail-closed gate missing' }
           if ($sql -notmatch 'WA_L5_CANARY_NOT_ALLOWLISTED') { throw 'CANARY allowlist gate missing' }
           if ($sql -notmatch 'aos_booking_commit_core_v2' -or $sql -notmatch 'aos_booking_rebook_core_v2') { throw 'AGV2 BOOK/REBOOK authority missing' }
+          if ($fix -match '(?i)min\s*\(\s*s\.id\s*\)') { throw 'UUID resolver must not depend on min(uuid)' }
 
   db-contract:
     name: L5 BOOK REBOOK local canary and recovery
@@ -105,10 +107,12 @@ jobs:
           set -euo pipefail
           DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005500_wa_l5_conversational_booking_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005600_wa_l5_treatment_resolver_uuid_fix_v1.sql
           test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l5_booking_memory_v1') is not null")" = 't'
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903005500_wa_l5_conversational_booking_v1.rollback.sql
           test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l5_booking_memory_v1') is null")" = 't'
           psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005500_wa_l5_conversational_booking_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005600_wa_l5_treatment_resolver_uuid_fix_v1.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l5/fixture.sql
           psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
       - name: L5 BOOK REBOOK and negative-path canary
