@@ -1,106 +1,169 @@
 # ASCENDA OS — AGENT BOOTSTRAP CURRENT
 
-**Captured:** 2026-08-22 America/Lima  
-**Entry baseline:** `main@26171abe38bb4bb6f6364aff6624ddc3d0d39580`  
-**ACTIVE WORKSTREAM:** `WHATSAPP-REVENUE-HUB-V2`  
-**ACTIVE GATE:** `WA-V2-0 — BASELINE & GOVERNANCE`
+**Captured:** 2026-09-03 America/Lima  
+**Canonical baseline at capture:** `main@bab9f0865f779217aadc7c88af4ebf0e1fb0b3ee`  
+**ACTIVE PROGRAM:** `WHATSAPP-REVENUE-HUB-V2`  
+**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
+**LAST CLOSED:** `WA-L9 — AUTONOMOUS DEMO READY`  
+**NEXT ELIGIBLE:** `WA-L10 — AUTONOMOUS PRODUCTION CANARY · NOT STARTED`  
+**CANARY:** `NOT AUTHORIZED`
 
 ## Mandatory bootstrap before any write
+
+Read in this order:
 
 1. root `AGENTS.md`;
 2. root `SECURITY.md`;
 3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
 4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
 5. `docs/MEMORY_CURRENT.md`;
-6. `docs/adn/AGENTS_CURRENT.md`;
+6. `docs/control/WA_AUTO_L9_TO_L11_CONTINUITY_CURRENT.md`;
 7. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
 8. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
 9. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
-10. exact GitHub `main`, Railway exact deploy/runtime and live Supabase WA state;
-11. WhatsApp Control Maestro / Roadmap Maestro V2 in Notion only after technical truth is read.
+10. relevant latest WA phase contract/certificate/migrations/CI;
+11. exact GitHub `main` and current PR/head;
+12. Railway exact deploy status;
+13. live Supabase safety + scoped boundary readbacks;
+14. Notion Control Maestro / Roadmap Maestro / Master Closeout / WA-AUTO continuity last.
 
-Historical docs/chat checkpoints never override CURRENT + live persisted state.
+Historical docs, chat snapshots or stale Notion callouts never override exact CURRENT + persisted runtime evidence.
 
-## Reliability / performance gate
+## Non-negotiable execution governance
 
-For every HIGH/CRITICAL mutation, the reliability doctrine is a transversal exit gate. Preserve operational critical paths, keep analytics/background work out of synchronous revenue writes, do not mask slow SQL by raising browser timeouts, and require realistic LIVE readback when the defect or risk is user-, browser-, load- or concurrency-dependent.
+- exactly one mutable HIGH/CRITICAL lane at a time;
+- do not start the next lane because the previous one closed unless the owner authorized continuation;
+- every `main` advance requires exact-head revalidation for the active lane;
+- merge only after exact-head gates and anti-drift; use `expected_head_sha`;
+- `CODE PASS != DEPLOY PASS != PROD PASS`;
+- Railway SUCCESS does not prove Supabase PROD correctness;
+- migration presence does not prove runtime behavior;
+- no production evidence may be fabricated with synthetic rows;
+- Notion is synchronized after technical truth, never used to override it.
 
-A WhatsApp phase is not complete if it regresses Agenda, Call Center, Marketing, Sales/Commissions or shared Supabase pressure.
+## P0 #432 reliability/performance gate
 
-## Portfolio ownership
+Every HIGH/CRITICAL phase must preserve:
 
-`WHATSAPP-REVENUE-HUB-V2` owns the single HIGH/CRITICAL mutable lane by explicit owner directive dated 2026-08-22.
+- Agenda;
+- Call Center;
+- Marketing/Leads;
+- Sales/Commissions;
+- Patients/Identity;
+- shared Supabase/background pressure.
 
-Previous `MKT-INTEGRITY-HOTFIX-V3 / LOOP 6 V2.3` is PAUSED / recoverable at 0/5 genuine post-cutover operations. It is not terminally certified and must not mutate while WA owns the lane.
+Forbidden patterns:
 
-REV-F5 and REV-F6 are production-certified upstream inputs. REV-F7, CIA feature mutation, KronIA and unrelated work remain paused/read-only.
+- heavy global analytics on synchronous hot paths;
+- synchronous materialized-view refresh/rebuild on message/call/booking/sales writes;
+- timeout inflation;
+- duplicate legacy/new execution;
+- unbounded browser fan-out;
+- expensive enrichment inside transactional paths.
 
-## Exact-current runtime
+Required patterns:
 
-Railway production chain:
+- bounded/indexed reads;
+- single-flight/bounded concurrency where browser fan-out exists;
+- cold-path enrichment/analytics;
+- fail-closed provider/identity/pricing/consent decisions;
+- exact-head + deploy + LIVE readbacks.
 
-`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core`
+## Current product architecture
 
-`app/railway.json` preloads Sentry and backend-only email compatibility before the outer runtime. Current source still mounts `wa-shell-integration.js`, and that bootstrap still mounts `notification-push-s14.js` S15.5.
+The governed Revenue Agent loop is:
 
-## Certified WA evidence — regression only
+`Meta lead/referral -> WhatsApp conversation -> campaign context -> canonical identity -> governed knowledge/pricing -> intent/readiness -> real availability -> BOOK/REBOOK -> follow-up/handoff -> attendance -> sale -> attribution -> WhatsApp/AI cost`.
 
-Do not re-open without a demonstrated regression:
+Consume canonical sources; do not create parallel CRM, patient, sales, agenda, marketing-attribution, pricing or identity masters.
 
-- signed Meta inbound;
-- canonical WA message/event ledger;
-- WA-2 live inbox/conversation store;
-- WA-3 ownership/human-send boundary;
-- native shell integration;
-- Web Push subscription self-heal;
-- closed-PWA Windows notification;
-- notification click opens installed PWA and respects Auth;
-- final notification ACL cutover.
+Hard separations retained:
 
-## Live WA entry baseline
+- channel alias != canonical patient identity;
+- acquisition touchpoint != consent;
+- identity != reachability != marketing eligibility;
+- attribution evidence != consent;
+- provider delivery/billing evidence != inferred invoice;
+- generic LLM knowledge != governed business fact authority.
 
-- 15 messages: 11 inbound / 4 outbound;
-- 2 conversations;
-- 25 events;
-- 9 outbound requests;
-- 11 routing events;
-- 2 active boxes (`VENTAS_GENERAL`, `WA_TEST`);
-- 2 active memberships for the current single operational actor;
-- 1 active assignment;
-- 0 AI runs;
-- human send ON;
-- auto routing OFF;
-- AI send OFF;
-- Copilot OFF;
-- auto reply OFF.
+## Production safety at WA-L9 closeout
 
-Historical outbound outcomes include 4 ACCEPTED, 4 `META_190` failures and 1 `META_SEND_REJECTED`. Provider credential health must be re-certified before selling.
+Binding until a separately authorized transition:
 
-## Upstream ecosystem now available to WA
+- `mode=AUTO_OFF`;
+- kill switch engaged;
+- `auto_reply=false`;
+- `ai_send=false`;
+- `auto_routing=false`;
+- `human_send=true`;
+- autonomous provider dispatch = 0;
+- active canary allowlist required for `AUTO_OFF -> CANARY`.
 
-- patients: 7,702;
-- sales: 1,331;
-- leads: 5,880;
-- CIA contact/email facts: 11,911;
-- F5 provenance: 15,498 rows / 15,498 memberships / 8,716 clusters / 8,716 previews;
-- catalog: 221 active services.
+The L4 authority structurally forbids direct `AUTO_OFF -> PROD`; general production must follow demonstrated CANARY.
 
-Consume canonical sources; do not create parallel CRM, identity, sales, agenda, email or attribution truth.
+## Closed WA autonomy layers
 
-## WA-V2-0 rule
+Treat as regression dependencies unless evidence proves a defect:
 
-WA-V2-0 is control/docs/baseline only. No runtime, schema, routing, AI or Meta mutation belongs in this gate.
+- L4 Autonomous Authority + Kill Switch;
+- L5 Conversational BOOK/REBOOK;
+- L6 Meta campaign context + strong-key attribution;
+- L7 WhatsApp/AI Cost Intelligence;
+- L8 Security Gate + Meta 2026 hardening;
+- L9 Autonomous Demo Ready shadow certification.
 
-Exit only after exact-head GitHub merge, Railway SUCCESS/readback, live Supabase baseline reconciliation, `aos_memory` update and Notion-last reconciliation.
+WA-L9 exact evidence:
 
-## Next functional gate
+- certified head `b0a65d5b340896263a3f75cb66ab7850fdb3c5fa`;
+- PR #454 merge/deploy `f909e972aab243af954fc8e2fb15e5a37c68d1b6`;
+- Supabase PROD `20260903225152 · wa_l9_shadow_demo_v1`;
+- issue #453 CLOSED/completed;
+- final closeout main `bab9f0865f779217aadc7c88af4ebf0e1fb0b3ee`;
+- lock NONE;
+- PROD L9 demo/would-send/provider-dispatch/raw-content rows all 0;
+- autonomous outbound 0.
 
-After WA-V2-0 PASS, run `WA-3 — HUMAN OPERATIONS MULTIAGENT` in discover-first mode.
+## Meta / AI business rules agents must remember
 
-Preserve fail-closed defaults during the first canary:
+- Meta charging is based on delivered messages and recipient market/category.
+- Do not seed unverified future Meta rates as VERIFIED pricing authority.
+- Confirm actual WABA billing currency/rate card in Meta Billing Hub before invoice-grade certification.
+- Recheck Meta terms before live canary; an announced terms update is effective 2026-09-23.
+- Business-initiated sends require approved template/eligibility evidence.
+- Respect explicit consent, STOP/opt-out and human escalation.
+- Keep the AI business-specific; do not turn WhatsApp into a generic ask-anything AI service.
+- Do not use WhatsApp Business Solution Data to train/improve a general-purpose AI model.
+- Prefer one useful outbound provider message per turn where UX permits; unnecessary bubble splitting increases provider cost and duplicate/fan-out risk.
 
-- `auto_routing_enabled=false`;
-- `ai_send_enabled=false`;
-- `auto_reply_enabled=false`.
+## Current execution boundary — WA-L10
 
-`WA-3.5 Revenue Inbox UX` remains planned but must not contaminate ownership/security contracts before WA-3 closes.
+`WA-L10 — AUTONOMOUS PRODUCTION CANARY` is **NEXT ELIGIBLE / NOT STARTED / CANARY NOT AUTHORIZED**.
+
+An agent may, under SAFE-OFF and explicit work authorization, audit/build/certify the L10 preflight package, observability, rollback, allowlist tooling and CI. It must stop before any real autonomous Meta dispatch unless the owner separately authorizes the CANARY transition.
+
+L10 real activation requires at minimum:
+
+- exact-current anti-drift;
+- live authority/kill-switch readback;
+- explicitly selected minimal allowlisted conversation/cohort;
+- L8 consent/STOP/security preflight PASS;
+- provider credential/template readiness;
+- cost/budget/rate/duplicate/idempotency boundaries;
+- human handoff and emergency kill path;
+- PRE fingerprints for cross-module regressions;
+- owner authorization for `AUTO_OFF -> CANARY`;
+- real provider delivery/outcome evidence;
+- immediate rollback criteria;
+- POST fingerprints and no unrelated mutation.
+
+## WA-L11 — General Production
+
+L11 remains blocked until L10 closes with real canary evidence. Do not shortcut CANARY.
+
+L11 must prove controlled ramp, stable provider delivery, customer safety, conversation quality, attribution/cost integrity, P0 performance, operating ownership, rollback and production runbook before general autonomy is certified.
+
+## Post-L11 customer experience validation
+
+After L11 technical/production certification, execute a separate real-customer validation program covering conversation naturalness, intent/context quality, latency, duplicate/repetition rate, booking/REBOOK usability, human handoff, STOP behavior, privacy/identity, drop-off, cost per qualified conversation/booking/attendance/sale and customer/operator feedback.
+
+Real customer-experience evidence must come from consented real pilots; never manufacture it in PROD.
