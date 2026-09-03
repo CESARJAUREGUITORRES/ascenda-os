@@ -4,7 +4,6 @@ const https = require('https')
 
 const DEFAULT_SB_URL = 'https://ituyqwstonmhnfshnaqz.supabase.co'
 const SYNC_TIMEOUT_MS = 1500
-const RETRY_DELAY_MS = 30000
 
 function requestJson(urlString, options, body) {
   return new Promise(function(resolve, reject) {
@@ -47,8 +46,6 @@ function createResendVaultReconciler(config) {
   var serviceKey = String(config.serviceRoleKey != null ? config.serviceRoleKey : (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.service_role || ''))
   var resendKey = String(config.resendApiKey != null ? config.resendApiKey : (process.env.RESEND_API_KEY || ''))
   var requester = config.requestJson || requestJson
-  var retryDelayMs = Number(config.retryDelayMs || RETRY_DELAY_MS)
-  var retryTimer = null
 
   function headers() {
     var out = {
@@ -65,17 +62,7 @@ function createResendVaultReconciler(config) {
     return n === 0 || n === 408 || n === 429 || n >= 500
   }
 
-  function scheduleRetry() {
-    if (retryTimer || !Number.isFinite(retryDelayMs) || retryDelayMs <= 0) return
-    retryTimer = setTimeout(function() {
-      retryTimer = null
-      reconcile({ background: true }).catch(function() {})
-    }, retryDelayMs)
-    if (retryTimer && typeof retryTimer.unref === 'function') retryTimer.unref()
-  }
-
   function deferred(code, upstreamStatus) {
-    scheduleRetry()
     return {
       ok: true,
       status: 200,
