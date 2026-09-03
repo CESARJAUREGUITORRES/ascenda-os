@@ -1,5 +1,7 @@
 -- WA-L8 bounded eligibility null guard.
 -- Absence of a CIA recipient-control row is neutral, not SQL NULL propagation.
+-- The historical WA-7A.4 check API is retained as a compatibility surface but,
+-- once L8 is present, delegates to the bounded conversation+scope resolver.
 
 begin;
 
@@ -98,6 +100,7 @@ begin
     and not (v_cia_supp='SUPPRESSED' or v_cia_consent='DENIED')
     and ((v_s_consent='ALLOWED' and v_s_supp='CLEAR')
       or (v_s_consent='UNKNOWN' and v_g_consent='ALLOWED' and v_g_supp='CLEAR'));
+  v_send:=coalesce(v_send,false);
 
   v_reason:=case
     when v_alias_count=0 then 'UNREACHABLE'
@@ -129,6 +132,29 @@ $$;
 
 revoke all on function public.aos_wa_l8_scoped_eligibility_check_v1(uuid,text) from public,anon,authenticated;
 grant execute on function public.aos_wa_l8_scoped_eligibility_check_v1(uuid,text) to service_role;
+
+-- Compatibility hardening: callers of the historical WA-7A.4 check API now get
+-- the same bounded, non-null decision semantics as L8. The global projection remains
+-- available for cold-path/admin use but is no longer required for point checks.
+create or replace function public.aos_wa_marketing_eligibility_check_v1(
+  p_conversation_id uuid,
+  p_scope text default 'MARKETING'
+) returns jsonb
+language plpgsql
+stable
+security definer
+set search_path=''
+as $$
+begin
+  return public.aos_wa_l8_scoped_eligibility_check_v1(p_conversation_id,p_scope);
+end
+$$;
+
+revoke all on function public.aos_wa_marketing_eligibility_check_v1(uuid,text) from public,anon,authenticated;
+grant execute on function public.aos_wa_marketing_eligibility_check_v1(uuid,text) to service_role;
+
+comment on function public.aos_wa_marketing_eligibility_check_v1(uuid,text) is
+  'WA-L8 compatibility surface: bounded conversation/scope eligibility check; no global projection on synchronous decision paths.';
 
 select pg_catalog.pg_notify('pgrst','reload schema');
 commit;
