@@ -1,0 +1,185 @@
+name: ASCENDA WA-L7 Cost Intelligence
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-wa2.js'
+      - 'app/public/admin-whatsapp.html'
+      - 'supabase/migrations/*wa_l7*'
+      - 'supabase/rollbacks/*wa_l7*'
+      - 'ci/wa-l7/**'
+      - 'docs/control/WA_L7_*'
+      - '.github/workflows/wa-l7-cost-intelligence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-l7-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  static-contract:
+    name: L7 UI / safety / performance isolation
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Runtime and UI static contracts
+        shell: powershell
+        run: |
+          node --check app/server-wa2.js
+          python ci/wa-l7/ui_contract.py
+          python ci/wa2-conversation-live-inbox/ui_contract.py
+      - name: L7 static SQL safety
+        shell: powershell
+        run: |
+          $sql=Get-Content 'supabase/migrations/20260903183000_wa_l7_cost_intelligence_v1.sql' -Raw
+          if ($sql -match '(?i)auto_reply_enabled\s*=\s*true') { throw 'L7 may not enable auto reply' }
+          if ($sql -match '(?i)ai_send_enabled\s*=\s*true') { throw 'L7 may not enable AI send' }
+          if ($sql -match '(?i)auto_routing_enabled\s*=\s*true') { throw 'L7 may not enable auto routing' }
+          if ($sql -match '(?i)(insert\s+into|update|delete\s+from)\s+public\.(aos_pacientes|aos_leads|aos_agenda_citas|aos_ventas)') { throw 'L7 migration may not mutate patient/lead/Agenda/Sales ledgers' }
+          if ($sql -match '(?i)create\s+materialized\s+view|refresh\s+materialized\s+view') { throw 'L7 may not introduce synchronous/global materialization' }
+          if ($sql -notmatch 'KNOWN' -or $sql -notmatch 'PARTIAL' -or $sql -notmatch 'UNKNOWN') { throw 'Cost completeness states missing' }
+          if ($sql -notmatch 'p_conversation_id' -or $sql -notmatch 'aos_wa_l6_attribution_journey_v1') { throw 'Conversation-scoped strong-key journey missing' }
+          if ($sql -notmatch 'REVENUE_COST_CURRENCY_MISMATCH_REQUIRES_FX') { throw 'FX fail-closed guard missing' }
+      - name: L6 / L5 / L4 / ingress runtime regressions
+        shell: powershell
+        run: |
+          node --test ci/wa-l6/attribution_ingress_contract.test.js
+          node --test ci/wa7a3-attribution-ingress/attribution_webhook_contract.test.js
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          node --test app/wa-l5-booking.test.js
+          node --test ci/wa-l4/runtime_contract.js
+          node app/wa4-conversation-runtime-v2.test.js
+
+  db-contract:
+    name: L7 reconciliation / strong-key / bounded-read canary
+    needs: static-contract
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce zero-cost runner
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Wait for isolated full-local ports
+        run: |
+          set -euo pipefail
+          ports='60200 60201 60202'
+          for i in $(seq 1 90); do
+            busy=''
+            for p in $ports; do
+              if ss -ltn "sport = :$p" 2>/dev/null | grep -q LISTEN; then busy="$busy $p"; fi
+            done
+            if [ -z "$busy" ]; then exit 0; fi
+            echo "Waiting for ports:$busy"
+            sleep 2
+          done
+          echo 'WA_L7_LOCAL_PORT_CONTENTION' >&2
+          exit 1
+      - name: Build certified WA / identity / booking substrate
+        run: |
+          set -euo pipefail
+          bash ci/wa4c-full-local/bootstrap.sh
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/rev_identity_stub.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825213500_wa7a1_identity_resolution_bridge_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825222500_wa7a2_identity_verification_continuity_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827133000_wa7a3_attribution_ingress_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831224500_wa4c_booking_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235600_wa_l4_authority_hardening_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005500_wa_l5_conversational_booking_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005600_wa_l5_treatment_resolver_uuid_fix_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l6/prereq.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903073000_wa_l6_meta_attribution_v1.sql
+      - name: L7 structural apply / recovery / reapply before governed history
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903183000_wa_l7_cost_intelligence_v1.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l7_pricing_authority_v1') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l7_conversation_cost_v1(uuid)') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l7_journey_cost_v1(uuid)') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_l7_pricing_authority_v1")" = '0'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903183000_wa_l7_cost_intelligence_v1.rollback.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l7_pricing_authority_v1') is null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_ai_runs_v1') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l6_campaign_context_audit_v1') is not null")" = 't'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903183000_wa_l7_cost_intelligence_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
+      - name: L6 certified strong-key regression fixture
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l6/tests/001_meta_attribution_contract.sql 2>&1 | tee /tmp/wa-l7-l6.txt
+          grep -q 'WA_L6_META_ATTRIBUTION_CONTRACT_PASS' /tmp/wa-l7-l6.txt
+      - name: L7 cost reconciliation canary
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l7/tests/001_cost_intelligence_contract.sql 2>&1 | tee /tmp/wa-l7-cost.txt
+          grep -q 'WA_L7_COST_INTELLIGENCE_CONTRACT_PASS' /tmp/wa-l7-cost.txt
+      - name: Bounded read / index / browser-budget matrix
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          test "$(psql "$DB" -X -qAt -c "select indexname from pg_indexes where schemaname='public' and indexname='aos_wa_messages_v1_conversation_idx'")" = 'aos_wa_messages_v1_conversation_idx'
+          test "$(psql "$DB" -X -qAt -c "select indexname from pg_indexes where schemaname='public' and indexname='aos_wa_ai_runs_v1_conv_idx'")" = 'aos_wa_ai_runs_v1_conv_idx'
+          test "$(psql "$DB" -X -qAt -c "select indexname from pg_indexes where schemaname='public' and indexname='idx_aos_booking_operations_v2_conversation'")" = 'idx_aos_booking_operations_v2_conversation'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "set statement_timeout='3000ms'; select (public.aos_wa_l7_conversation_cost_v1('77777777-7777-4777-8777-777777777761'::uuid)->>'ok')::boolean; select (public.aos_wa_l7_journey_cost_v1('77777777-7777-4777-8777-777777777761'::uuid)->>'ok')::boolean;"
+          psql "$DB" -X -qAt -c "set enable_seqscan=off; explain (costs off) select id from public.aos_wa_messages_v1 where conversation_id='77777777-7777-4777-8777-777777777761'::uuid order by created_at desc limit 50" | tee /tmp/l7-msg-plan.txt
+          grep -q 'aos_wa_messages_v1_conversation_idx' /tmp/l7-msg-plan.txt
+          psql "$DB" -X -qAt -c "set enable_seqscan=off; explain (costs off) select id from public.aos_wa_ai_runs_v1 where conversation_id='77777777-7777-4777-8777-777777777761'::uuid order by created_at desc limit 50" | tee /tmp/l7-ai-plan.txt
+          grep -q 'aos_wa_ai_runs_v1_conv_idx' /tmp/l7-ai-plan.txt
+          psql "$DB" -X -qAt -c "set enable_seqscan=off; explain (costs off) select id from public.aos_booking_operations_v2 where conversation_id='77777777-7777-4777-8777-777777777761'::uuid order by created_at desc limit 50" | tee /tmp/l7-book-plan.txt
+          grep -q 'idx_aos_booking_operations_v2_conversation' /tmp/l7-book-plan.txt
+      - name: Post-canary SAFE-OFF and privilege assertions
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          test "$(psql "$DB" -X -qAt -c "select mode||':'||kill_switch_engaged from public.aos_wa_auto_authority_v1 where id=1")" = 'AUTO_OFF:true'
+          test "$(psql "$DB" -X -qAt -c "select auto_reply_enabled::text||':'||ai_send_enabled::text||':'||auto_routing_enabled::text||':'||human_send_enabled::text from public.aos_wa_ai_control_v1 cross join public.aos_wa_routing_control_v1 where aos_wa_ai_control_v1.id=1 and aos_wa_routing_control_v1.id=1")" = 'false:false:false:true'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where send_origin='AUTO' and direction='OUTBOUND'")" = '0'
+          test "$(psql "$DB" -X -qAt -c "select has_table_privilege('anon','public.aos_wa_l7_pricing_authority_v1','SELECT') or has_table_privilege('authenticated','public.aos_wa_l7_pricing_authority_v1','SELECT')")" = 'f'
+          test "$(psql "$DB" -X -qAt -c "select has_function_privilege('anon','public.aos_wa_l7_journey_cost_v1(uuid)','EXECUTE') or has_function_privilege('authenticated','public.aos_wa_l7_journey_cost_v1(uuid)','EXECUTE')")" = 'f'
+      - name: Recovery must fail closed after governed pricing history
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          set +e
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903183000_wa_l7_cost_intelligence_v1.rollback.sql >/tmp/wa-l7-recovery.log 2>&1
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -q 'WA_L7_RECOVERY_BLOCKED_PRICING_HISTORY' /tmp/wa-l7-recovery.log
+          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l7_journey_cost_v1(uuid)') is not null")" = 't'
+      - name: Database lint
+        working-directory: ci/wa4c-full-local
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error 2>&1 | tee /tmp/wa-l7-lint.txt
+          if grep -q '\[ERROR\]' /tmp/wa-l7-lint.txt; then exit 1; fi
+      - name: Cleanup local Supabase
+        if: always()
+        run: |
+          set +e
+          cd ci/wa4c-full-local
+          supabase stop --no-backup || true
