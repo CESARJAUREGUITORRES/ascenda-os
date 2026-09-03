@@ -44,20 +44,21 @@ jobs:
         run: |
           $m=Get-Content 'supabase/migrations/20260903223000_wa_l9_shadow_demo_v1.sql' -Raw
           $s=Get-Content 'scripts/wa-l9-shadow-demo.js' -Raw
-          $r=Get-Content 'ci/wa-l9/run-full-local.sh' -Raw
+          $a=Get-Content 'ci/wa-l9/run-wa4c-regression.sh' -Raw
+          $b=Get-Content 'ci/wa-l9/run-current-authority.sh' -Raw
           if ($m -match '(?i)create\s+materialized\s+view|refresh\s+materialized\s+view') { throw 'L9 may not materialize a hot-path analytical view' }
           if ($m -match '(?i)(insert\s+into|update|delete\s+from)\s+public\.(aos_pacientes|aos_leads|aos_agenda_citas|aos_ventas|aos_llamadas)') { throw 'L9 may not mutate cross-module business ledgers' }
           if ($m -notmatch 'WA_L9_SHADOW_ROLLBACK' -or $m -notmatch 'side_effects_rolled_back') { throw 'Rollback-only authority wrapper missing' }
           if ($s -match 'graph\.facebook\.com|graphSend\s*\(|reserveOutbound\s*\(') { throw 'L9 CLI contains provider dispatch capability' }
-          foreach($marker in @('raw_content_stored:false','provider_dispatch:false','recipient_hash','payload_hash','aos_wa_l9_shadow_authorize_v1','aos_wa_l7_journey_cost_v1','WA_L9_AUTONOMOUS_DEMO_READY_FULL_LOCAL_PASS')) {
-            if (($m+"`n"+$s+"`n"+$r) -notmatch [regex]::Escape($marker)) { throw "L9 marker missing: $marker" }
+          foreach($marker in @('raw_content_stored:false','provider_dispatch:false','recipient_hash','payload_hash','aos_wa_l9_shadow_authorize_v1','aos_wa_l7_journey_cost_v1','WA_L9_WA4C_CANONICAL_REGRESSION_PASS','WA_L9_CURRENT_AUTHORITY_FULL_LOCAL_PASS')) {
+            if (($m+"`n"+$s+"`n"+$a+"`n"+$b) -notmatch [regex]::Escape($marker)) { throw "L9 marker missing: $marker" }
           }
 
-  full-local-demo:
-    name: L9 FULL LOCAL autonomous shadow + cross-module certification
+  wa4c-canonical-regression:
+    name: L9 canonical WA-4C conversation + beta booking regression
     needs: static-demo-contract
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
-    timeout-minutes: 90
+    timeout-minutes: 60
     env:
       ASCENDA_FULL_LOCAL: '1'
       AOS_STUDIO_BACKGROUND_ENABLED: 'false'
@@ -70,27 +71,47 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: 2.101.0
-      - name: Enforce zero-cost runner and wait for isolated ports
+      - name: Wait for isolated ports
         run: |
           set -euo pipefail
-          test "${{ runner.environment }}" = 'self-hosted'
           python3 scripts/ci/enforce-zero-cost-policy.py
-          ports='60300 4198 4200 4196 4197 4178 4189 4190 60200 60201 60202'
           for i in $(seq 1 90); do
-            busy=''
-            for p in $ports; do
-              if ss -ltn "sport = :$p" 2>/dev/null | grep -q LISTEN; then busy="$busy $p"; fi
-            done
-            if [ -z "$busy" ]; then exit 0; fi
-            echo "Waiting for ports:$busy"
+            if ! ss -ltn | grep -Eq ':(60300|60200|60201|60202)\b'; then exit 0; fi
             sleep 2
           done
-          echo 'WA_L9_FULL_LOCAL_PORT_CONTENTION' >&2
           exit 1
-      - name: Run complete L9 FULL LOCAL certification
-        run: bash ci/wa-l9/run-full-local.sh
+      - name: Run canonical WA-4C regression
+        run: bash ci/wa-l9/run-wa4c-regression.sh
+
+  current-authority-certification:
+    name: L9 CURRENT L5-L9 authority / P0 / parity certification
+    needs: wa4c-canonical-regression
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 75
+    env:
+      ASCENDA_FULL_LOCAL: '1'
+      AOS_STUDIO_BACKGROUND_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Wait for isolated ports
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          for i in $(seq 1 90); do
+            if ! ss -ltn | grep -Eq ':(60200|60201|60202)\b'; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Run CURRENT authority certification
+        run: bash ci/wa-l9/run-current-authority.sh
       - name: Certification summary
         if: success()
         run: |
-          echo 'WA-L9 candidate passed WA-4C conversation/knowledge/price/safety + booking + WA7A4/L8 security + L4 rollback-shadow would-send + L7 cost/journey + P0 and cross-module parity.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'WA-L9 candidate passed canonical WA-4C separately from the CURRENT AGV2/L5/L8/L4 authority chain, plus rollback-shadow would-send, L7 cost/journey, P0 and protected-ledger parity.' >> "$GITHUB_STEP_SUMMARY"
           echo 'Autonomous provider dispatch remained zero. This does NOT authorize AUTO_OFF→CANARY or WA-L10.' >> "$GITHUB_STEP_SUMMARY"
