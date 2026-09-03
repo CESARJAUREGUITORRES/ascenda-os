@@ -44,7 +44,7 @@ jobs:
         run: |
           $m=Get-Content 'supabase/migrations/20260903223000_wa_l9_shadow_demo_v1.sql' -Raw
           $s=Get-Content 'scripts/wa-l9-shadow-demo.js' -Raw
-          $a=Get-Content 'ci/wa-l9/run-wa4c-regression.sh' -Raw
+          $a=Get-Content 'ci/wa-l9/run-wa4c-regression-v2.sh' -Raw
           $b=Get-Content 'ci/wa-l9/run-current-authority.sh' -Raw
           if ($m -match '(?i)create\s+materialized\s+view|refresh\s+materialized\s+view') { throw 'L9 may not materialize a hot-path analytical view' }
           if ($m -match '(?i)(insert\s+into|update|delete\s+from)\s+public\.(aos_pacientes|aos_leads|aos_agenda_citas|aos_ventas|aos_llamadas)') { throw 'L9 may not mutate cross-module business ledgers' }
@@ -80,8 +80,8 @@ jobs:
             sleep 2
           done
           exit 1
-      - name: Run canonical WA-4C regression
-        run: bash ci/wa-l9/run-wa4c-regression.sh
+      - name: Run canonical WA-4C regression V2
+        run: bash ci/wa-l9/run-wa4c-regression-v2.sh
 
   current-authority-certification:
     name: L9 CURRENT L5-L9 authority / P0 / parity certification
