@@ -4,6 +4,7 @@ const http=require('http');
 const https=require('https');
 const {spawn}=require('child_process');
 const wa=require('./wa-gateway');
+const l4=require('./wa-l4-authority');
 const {createEmailGateway}=require('./email-gateway');
 const EMAIL_GATEWAY=createEmailGateway();
 
@@ -19,8 +20,9 @@ const WA_PHONE_NUMBER_ID=process.env.WHATSAPP_PHONE_NUMBER_ID||'';
 const WA_GRAPH_VERSION=process.env.WHATSAPP_GRAPH_VERSION||'';
 const WA_CANARY_MODE=process.env.WA_CANARY_MODE||'true';
 const WA_CANARY_ALLOW_TO=process.env.WA_CANARY_ALLOW_TO||'';
+const WA_L4_INTERNAL_TOKEN=process.env.WA_L4_INTERNAL_TOKEN||'';
 
-// Least privilege: WA/service-role secrets belong only to this front proxy.
+// Least privilege: WA/service-role/provider/L4 authority secrets belong only to this front proxy.
 // The legacy/product child does not need them and must never inherit them.
 const childEnv=Object.assign({},process.env,{PORT:String(INNER_PORT)});
 delete childEnv.SUPABASE_SERVICE_ROLE_KEY;
@@ -31,6 +33,7 @@ delete childEnv.WHATSAPP_PHONE_NUMBER_ID;
 delete childEnv.WHATSAPP_GRAPH_VERSION;
 delete childEnv.WA_CANARY_MODE;
 delete childEnv.WA_CANARY_ALLOW_TO;
+delete childEnv.WA_L4_INTERNAL_TOKEN;
 const child=spawn(process.execPath,['server-phase2.js'],{cwd:__dirname,env:childEnv,stdio:['ignore','inherit','inherit']});
 child.on('exit',(code,signal)=>{console.error('[F4-PROXY] backend exited',{code,signal});process.exit(code==null?1:code);});
 
@@ -58,8 +61,10 @@ function sbService(method,endpoint,body,prefer){
     q.on('timeout',()=>q.destroy(new Error('WA_DB_TIMEOUT')));q.on('error',reject);if(data)q.write(data);q.end();
   });
 }
+function sbServiceRpc(name,payload){return sbService('POST','/rest/v1/rpc/'+name,payload||{});}
 function strongToken(req){const t=String(req.headers['x-aos-app-token']||'').trim();return t.length>=32?t:'';}
 async function authorizeWaSender(req){const token=strongToken(req);if(!token)return null;const out=await sbRpc('aos_app_actor_v3',{p_token:token,p_required_panel:'admin-chats',p_require_2fa:true});if(out.status<200||out.status>=300)return null;const actor=out.data;return typeof actor==='string'&&/^[0-9a-f-]{36}$/i.test(actor)?actor:null;}
+function authorizeWaAutoRuntime(req){return l4.internalTokenValid(req.headers['x-aos-wa-auto-token'],WA_L4_INTERNAL_TOKEN);}
 
 async function handleKroniaSaleEdit(req,res,body){
   const appToken=strongToken(req);
@@ -128,12 +133,15 @@ function graphSend(payload){
     q.write(data);q.end();
   });
 }
-async function reserveOutbound(idempotencyKey,actor,payload){
+async function reserveOutbound(idempotencyKey,actor,payload,meta){
+  const m=meta||{};const recipientKind=wa.recipientKind(payload);const recipientAddress=wa.recipientAddress(payload);
   const created=await sbService('POST','/rest/v1/aos_wa_outbound_requests_v1?on_conflict=idempotency_key',{
-    idempotency_key:String(idempotencyKey),actor_id:actor,to_number:payload.to,message_type:payload.type,state:'PENDING',updated_at:new Date().toISOString()
+    idempotency_key:String(idempotencyKey),actor_id:actor,to_number:recipientKind==='PHONE'?recipientAddress:null,
+    recipient_kind:recipientKind,recipient_address:recipientAddress,message_type:payload.type,state:'PENDING',
+    send_origin:m.send_origin||'HUMAN',conversation_id:m.conversation_id||null,authority_decision_id:m.authority_decision_id||null,updated_at:new Date().toISOString()
   },'resolution=ignore-duplicates,return=representation');
   if(Array.isArray(created.data)&&created.data.length===1)return {owner:true,row:created.data[0]};
-  const existing=await sbService('GET','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(idempotencyKey)+'&select=idempotency_key,state,provider_message_id,error_code&limit=1',null);
+  const existing=await sbService('GET','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(idempotencyKey)+'&select=idempotency_key,state,provider_message_id,error_code,send_origin,conversation_id,authority_decision_id&limit=1',null);
   return {owner:false,row:Array.isArray(existing.data)?existing.data[0]||null:null};
 }
 async function handleWaSend(req,res,body){
@@ -144,7 +152,7 @@ async function handleWaSend(req,res,body){
   if(!wa.canaryAllows(payload.to,WA_CANARY_MODE,WA_CANARY_ALLOW_TO)){writeJson(res,403,{ok:false,error:'WA_CANARY_RECIPIENT_BLOCKED'});return;}
   let reservation;
   try{
-    reservation=await reserveOutbound(body.idempotency_key,actor,payload);
+    reservation=await reserveOutbound(body.idempotency_key,actor,payload,{send_origin:'HUMAN'});
     if(!reservation.owner){
       const row=reservation.row||{};
       writeJson(res,row.state==='FAILED'?409:200,{ok:row.state!=='FAILED',idempotent:true,message_id:row.provider_message_id||null,status:row.state||'PENDING',error:row.state==='FAILED'?(row.error_code||'PREVIOUS_SEND_FAILED'):undefined});return;
@@ -153,9 +161,9 @@ async function handleWaSend(req,res,body){
     if(!messageId)throw Object.assign(new Error('META_MESSAGE_ID_MISSING'),{status:502,ambiguous:true});
     await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'ACCEPTED',provider_message_id:String(messageId),error_code:null,updated_at:new Date().toISOString()},'return=minimal');
     await sbService('POST','/rest/v1/aos_wa_messages_v1?on_conflict=provider_message_id',{
-      provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),direction:'OUTBOUND',from_number:null,to_number:payload.to,phone_number_id:WA_PHONE_NUMBER_ID,contact_name:null,message_type:payload.type,message_body:payload.type==='text'?payload.text.body:null,media_id:null,status:'accepted',actor_id:actor,received_at:new Date().toISOString(),updated_at:new Date().toISOString()
+      provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),direction:'OUTBOUND',from_number:null,to_number:wa.recipientKind(payload)==='PHONE'?wa.recipientAddress(payload):null,to_user_id:wa.recipientKind(payload)==='BSUID'?wa.recipientAddress(payload):null,phone_number_id:WA_PHONE_NUMBER_ID,contact_name:null,message_type:payload.type,message_body:payload.type==='text'?payload.text.body:null,media_id:null,status:'accepted',actor_id:actor,send_origin:'HUMAN',received_at:new Date().toISOString(),updated_at:new Date().toISOString()
     },'resolution=merge-duplicates,return=minimal');
-    await sbService('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{event_key:'outbound:'+String(messageId),event_type:'message.accepted',provider_message_id:String(messageId),status:'accepted',payload:{actor_id:actor,message_type:payload.type}},'resolution=ignore-duplicates,return=minimal');
+    await sbService('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{event_key:'outbound:'+String(messageId),event_type:'message.accepted',provider_message_id:String(messageId),status:'accepted',payload:{actor_id:actor,message_type:payload.type,send_origin:'HUMAN'}},'resolution=ignore-duplicates,return=minimal');
     writeJson(res,200,{ok:true,idempotent:false,message_id:String(messageId),status:'ACCEPTED',canary:String(WA_CANARY_MODE).toLowerCase()==='true'});
   }catch(e){
     if(reservation&&reservation.owner&&e.definite===true){try{await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'FAILED',error_code:String(e.message||'WA_SEND_FAILED').slice(0,128),updated_at:new Date().toISOString()},'return=minimal');}catch(_e){}}
@@ -164,8 +172,64 @@ async function handleWaSend(req,res,body){
     writeJson(res,e.status||502,{ok:false,error:e.message||'WA_SEND_FAILED',status:ambiguous?'PENDING':'FAILED',retry_safe:false});
   }
 }
+async function requestL4Handoff(conversationId,reason){
+  try{return await sbServiceRpc('aos_wa3_handoff_request_v1',{p_conversation_id:conversationId,p_box_id:null,p_actor_id:null,p_reason:l4.sanitizeReason(reason)});}catch(e){console.error('[WA-L4] handoff',e.message);return null;}
+}
+async function recordL4ProviderError(conversationId,decisionId,errorCode,ambiguous){
+  try{await sbService('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{
+    event_key:'auto-provider-error:'+String(decisionId),event_type:'auto.provider_error',provider_message_id:null,status:'handoff',
+    payload:{conversation_id:conversationId,authority_decision_id:decisionId,error_code:l4.sanitizeReason(errorCode),ambiguous:!!ambiguous,raw_content_stored:false}
+  },'resolution=ignore-duplicates,return=minimal');}catch(e){console.error('[WA-L4] provider audit',e.message);}
+}
+async function handleWaAutoSend(req,res,body){
+  if(!WA_L4_INTERNAL_TOKEN||WA_L4_INTERNAL_TOKEN.length<32){writeJson(res,503,{ok:false,error:'WA_L4_INTERNAL_AUTH_NOT_CONFIGURED'});return;}
+  if(!authorizeWaAutoRuntime(req)){writeJson(res,403,{ok:false,error:'WA_L4_INTERNAL_AUTH_REQUIRED'});return;}
+  if(!wa.validIdempotencyKey(body&&body.idempotency_key)){writeJson(res,400,{ok:false,error:'IDEMPOTENCY_KEY_REQUIRED'});return;}
+  let payload,authorityRequest;
+  try{payload=wa.buildOutboundPayload(body);authorityRequest=l4.authorityPayload(body,payload);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'WA_L4_INVALID_REQUEST'});return;}
+  let authority;
+  try{
+    const authOut=await sbServiceRpc('aos_wa_l4_authorize_autonomous_send_v1',authorityRequest);
+    authority=authOut.data||{};
+  }catch(e){console.error('[WA-L4] authority unavailable',e.message);writeJson(res,503,{ok:false,error:'WA_L4_AUTHORITY_UNAVAILABLE'});return;}
+  if(authority.decision!=='ALLOW'){
+    if(authority.decision==='HANDOFF')await requestL4Handoff(authorityRequest.p_conversation_id,authority.reason||'WA_L4_HANDOFF');
+    writeJson(res,l4.decisionHttpStatus(authority),{ok:false,decision:authority.decision||'BLOCK',reason:authority.reason||'WA_L4_BLOCKED',decision_id:authority.decision_id||null,replay:!!authority.replay,handoff:authority.decision==='HANDOFF'});return;
+  }
+  if(!waConfigReadyOutbound()){await requestL4Handoff(authorityRequest.p_conversation_id,'WA_OUTBOUND_NOT_CONFIGURED');writeJson(res,503,{ok:false,error:'WA_OUTBOUND_NOT_CONFIGURED',decision_id:authority.decision_id,handoff:true});return;}
+  const actor=String(authority.autonomous_actor_id||'00000000-0000-4000-8000-000000000004');
+  let reservation;
+  try{
+    reservation=await reserveOutbound(body.idempotency_key,actor,payload,{send_origin:'AUTO',conversation_id:authorityRequest.p_conversation_id,authority_decision_id:authority.decision_id});
+    if(!reservation.owner){
+      const row=reservation.row||{};
+      writeJson(res,row.state==='FAILED'?409:200,{ok:row.state!=='FAILED',idempotent:true,decision_id:authority.decision_id,message_id:row.provider_message_id||null,status:row.state||'PENDING',send_origin:'AUTO',error:row.state==='FAILED'?(row.error_code||'PREVIOUS_SEND_FAILED'):undefined});return;
+    }
+    const meta=await graphSend(payload);const messageId=meta&&meta.messages&&meta.messages[0]&&meta.messages[0].id;
+    if(!messageId)throw Object.assign(new Error('META_MESSAGE_ID_MISSING'),{status:502,ambiguous:true});
+    await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'ACCEPTED',provider_message_id:String(messageId),error_code:null,updated_at:new Date().toISOString()},'return=minimal');
+    const rk=wa.recipientKind(payload),ra=wa.recipientAddress(payload);
+    await sbService('POST','/rest/v1/aos_wa_messages_v1?on_conflict=provider_message_id',{
+      provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),direction:'OUTBOUND',from_number:null,to_number:rk==='PHONE'?ra:null,to_user_id:rk==='BSUID'?ra:null,phone_number_id:WA_PHONE_NUMBER_ID,contact_name:null,message_type:payload.type,message_body:payload.type==='text'?payload.text.body:null,media_id:null,status:'accepted',actor_id:actor,conversation_id:authorityRequest.p_conversation_id,send_origin:'AUTO',authority_decision_id:authority.decision_id,received_at:new Date().toISOString(),updated_at:new Date().toISOString()
+    },'resolution=merge-duplicates,return=minimal');
+    await sbService('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{event_key:'auto-outbound:'+String(messageId),event_type:'auto.message.accepted',provider_message_id:String(messageId),status:'accepted',payload:{conversation_id:authorityRequest.p_conversation_id,authority_decision_id:authority.decision_id,message_type:payload.type,send_origin:'AUTO',raw_content_stored:false}},'resolution=ignore-duplicates,return=minimal');
+    writeJson(res,200,{ok:true,idempotent:false,decision_id:authority.decision_id,message_id:String(messageId),status:'ACCEPTED',send_origin:'AUTO',mode:authority.mode});
+  }catch(e){
+    if(reservation&&reservation.owner&&e.definite===true){try{await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'FAILED',error_code:l4.sanitizeReason(e.message||'WA_SEND_FAILED'),updated_at:new Date().toISOString()},'return=minimal');}catch(_e){}}
+    const ambiguous=!!(reservation&&reservation.owner&&e.definite!==true);
+    await recordL4ProviderError(authorityRequest.p_conversation_id,authority.decision_id,e.message||'WA_SEND_FAILED',ambiguous);
+    await requestL4Handoff(authorityRequest.p_conversation_id,e.message||'WA_SEND_FAILED');
+    console.error('[WA-L4] provider outbound',e.message,ambiguous?'ambiguous_pending':'definite_failure');
+    writeJson(res,e.status||502,{ok:false,error:e.message||'WA_SEND_FAILED',decision_id:authority.decision_id,status:ambiguous?'PENDING':'FAILED',retry_safe:false,handoff:true});
+  }
+}
 async function handleWaStatus(req,res){
-  try{const actor=await authorizeWaSender(req);if(!actor){writeJson(res,403,{ok:false,error:'WA_ADMIN_2FA_REQUIRED'});return;}writeJson(res,200,{ok:true,gateway:'v1',inbound_configured:waConfigReadyInbound(),outbound_configured:waConfigReadyOutbound(),canary:String(WA_CANARY_MODE).toLowerCase()==='true',allowlist_count:String(WA_CANARY_ALLOW_TO).split(',').filter(Boolean).length});}catch(e){writeJson(res,503,{ok:false,error:'WA_STATUS_UNAVAILABLE'});}
+  try{
+    const actor=await authorizeWaSender(req);if(!actor){writeJson(res,403,{ok:false,error:'WA_ADMIN_2FA_REQUIRED'});return;}
+    let l4Status={available:false};
+    try{const r=await sbServiceRpc('aos_wa_l4_status_v1',{});l4Status=Object.assign({available:true},r.data||{});}catch(e){l4Status={available:false,error:'WA_L4_STATUS_UNAVAILABLE'};}
+    writeJson(res,200,{ok:true,gateway:'v1+l4',inbound_configured:waConfigReadyInbound(),outbound_configured:waConfigReadyOutbound(),legacy_human_canary:String(WA_CANARY_MODE).toLowerCase()==='true',legacy_human_allowlist_count:String(WA_CANARY_ALLOW_TO).split(',').filter(Boolean).length,l4_internal_auth_configured:WA_L4_INTERNAL_TOKEN.length>=32,l4:l4Status});
+  }catch(e){writeJson(res,503,{ok:false,error:'WA_STATUS_UNAVAILABLE'});}
 }
 
 const server=http.createServer(async(req,res)=>{
@@ -175,8 +239,10 @@ const server=http.createServer(async(req,res)=>{
   if((pathname==='/webhook'||pathname==='/webhook/')&&req.method==='GET'){handleWaVerify(req,res);return;}
   if((pathname==='/webhook'||pathname==='/webhook/')&&req.method==='POST'){await handleWaWebhook(req,res);return;}
   if(pathname==='/api/wa/send'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleWaSend(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
+  if(pathname==='/api/wa/auto-send'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleWaAutoSend(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/wa/status'&&req.method==='GET'){await handleWaStatus(req,res);return;}
   if(pathname==='/api/wa/send'&&req.method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type,X-AOS-App-Token','Cache-Control':'no-store'});res.end();return;}
+  if(pathname==='/api/wa/auto-send'){writeJson(res,405,{ok:false,error:'WA_L4_INTERNAL_POST_ONLY'});return;}
   if(pathname==='/api/f4/cartera-read'&&req.method==='POST'){try{const parsed=await readJson(req,64*1024);await handleRevenueRead(req,res,parsed.body,'cartera');}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/f4/sales-intelligence-read'&&req.method==='POST'){try{const parsed=await readJson(req,64*1024);await handleRevenueRead(req,res,parsed.body,'sales-intelligence');}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/f4/cartera-candidates'&&req.method==='POST'){
@@ -191,4 +257,4 @@ function proxyBuffered(req,res,raw){const headers=Object.assign({},req.headers,{
 function proxyStream(req,res){const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});const up=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{res.writeHead(r.statusCode||502,r.headers);r.pipe(res);});up.on('error',e=>{if(!res.headersSent)writeJson(res,502,{ok:false,error:'UPSTREAM_UNAVAILABLE'});else res.end();console.error('[F4-PROXY] stream',e.message);});req.pipe(up);}
 function shutdown(sig){console.log('[F4-PROXY] shutdown',sig);server.close(()=>process.exit(0));if(!child.killed)child.kill(sig);setTimeout(()=>process.exit(1),5000).unref();}
 process.on('SIGTERM',()=>shutdown('SIGTERM'));process.on('SIGINT',()=>shutdown('SIGINT'));
-server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[F4-PROXY] listening on :'+EXTERNAL_PORT+' -> :'+INNER_PORT+' | WA gateway v1'));
+server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[F4-PROXY] listening on :'+EXTERNAL_PORT+' -> :'+INNER_PORT+' | WA gateway v1 + L4 authority AUTO_OFF-by-default'));

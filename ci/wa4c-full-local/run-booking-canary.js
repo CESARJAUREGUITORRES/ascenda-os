@@ -71,7 +71,9 @@ async function main(){
   assert.strictEqual(notOwner.status,409,'non-owner booking should fail');
   assert.strictEqual(notOwner.data.error,'WA4_BOOKING_NOT_CONVERSATION_OWNER');
 
-  const staleDate=new Date(String(f.target_date)+'T12:00:00Z');staleDate.setUTCDate(staleDate.getUTCDate()+30);
+  const staleDate=new Date(String(f.target_date)+'T12:00:00Z');
+  staleDate.setUTCDate(staleDate.getUTCDate()+30);
+  if(staleDate.getUTCDay()===0) staleDate.setUTCDate(staleDate.getUTCDate()+1);
   const stalePayload=Object.assign({},payload,{date:staleDate.toISOString().slice(0,10)});
   const stale=await runtime('/api/wa4/conversations/'+cid+'/book',{idempotency_key:'wa4c-full-local-booking-stale',payload:stalePayload},AGENT);
   assert.strictEqual(stale.status,409,'stale schedule should fail');
