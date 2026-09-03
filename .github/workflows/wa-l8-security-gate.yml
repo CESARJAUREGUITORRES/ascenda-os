@@ -1,0 +1,195 @@
+name: ASCENDA WA-L8 Security Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/wa-gateway.js'
+      - 'app/server-f4.js'
+      - 'app/ai-router.js'
+      - 'app/wa4-copilot.js'
+      - 'supabase/migrations/*wa_l8*'
+      - 'supabase/rollbacks/*wa_l8*'
+      - 'ci/wa-l8/**'
+      - 'ci/wa1-secure-gateway/wa-gateway.test.js'
+      - 'docs/control/WA_L8_*'
+      - '.github/workflows/wa-l8-security-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-l8-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  static-security:
+    name: L8 static security / ingress / regressions
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax and security contract
+        shell: powershell
+        run: |
+          node --check app/wa-gateway.js
+          node --check app/server-f4.js
+          node --check app/ai-router.js
+          node --check app/wa4-copilot.js
+          node ci/wa-l8/security_contract.js
+      - name: Signed ingress and L6/L5/L4 regressions
+        shell: powershell
+        run: |
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          node --test ci/wa-l6/attribution_ingress_contract.test.js
+          node --test ci/wa7a3-attribution-ingress/attribution_webhook_contract.test.js
+          node --test app/wa-l5-booking.test.js
+          node --test ci/wa-l4/runtime_contract.js
+          node app/wa4-conversation-runtime-v2.test.js
+      - name: Static SAFE-OFF / P0 assertions
+        shell: powershell
+        run: |
+          $base=Get-Content 'supabase/migrations/20260903194500_wa_l8_security_gate_v1.sql' -Raw
+          $fix=Get-Content 'supabase/migrations/20260903194600_wa_l8_bounded_preflight_fix_v1.sql' -Raw
+          $all=$base+"`n"+$fix
+          if ($all -match '(?i)auto_reply_enabled\s*=\s*true|ai_send_enabled\s*=\s*true|auto_routing_enabled\s*=\s*true|kill_switch_engaged\s*=\s*false') { throw 'L8 may not activate autonomy' }
+          if ($all -match '(?i)create\s+materialized\s+view|refresh\s+materialized\s+view') { throw 'L8 may not materialize hot-path analytics' }
+          if ($all -match '(?i)(insert\s+into|update|delete\s+from)\s+public\.(aos_pacientes|aos_leads|aos_agenda_citas|aos_ventas|aos_llamadas)') { throw 'L8 migration may not mutate cross-module business ledgers' }
+          if ($all -notmatch 'WA_L8_OPT_OUT_ACTIVE' -or $all -notmatch 'WA_L8_BUSINESS_INITIATED_OPT_IN_REQUIRED') { throw 'L8 consent gate missing' }
+          if ($all -notmatch 'aos_wa_l4_authorize_autonomous_send_pre_l8_v1') { throw 'L8 must wrap certified L4 rather than replace its semantics' }
+
+  db-security:
+    name: L8 DB policy / least privilege / bounded-read canary
+    needs: static-security
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce zero-cost runner
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Wait for isolated full-local ports
+        run: |
+          set -euo pipefail
+          ports='60200 60201 60202'
+          for i in $(seq 1 90); do
+            busy=''
+            for p in $ports; do
+              if ss -ltn "sport = :$p" 2>/dev/null | grep -q LISTEN; then busy="$busy $p"; fi
+            done
+            if [ -z "$busy" ]; then exit 0; fi
+            echo "Waiting for ports:$busy"
+            sleep 2
+          done
+          echo 'WA_L8_LOCAL_PORT_CONTENTION' >&2
+          exit 1
+      - name: Build certified WA / identity / booking substrate
+        run: |
+          set -euo pipefail
+          bash ci/wa4c-full-local/bootstrap.sh
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/rev_identity_stub.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825213500_wa7a1_identity_resolution_bridge_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825222500_wa7a2_identity_verification_continuity_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827133000_wa7a3_attribution_ingress_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831224500_wa4c_booking_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235600_wa_l4_authority_hardening_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005500_wa_l5_conversational_booking_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005600_wa_l5_treatment_resolver_uuid_fix_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l6/prereq.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903073000_wa_l6_meta_attribution_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903183000_wa_l7_cost_intelligence_v1.sql
+      - name: L8 structural apply / recovery / reapply before audit history
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903194500_wa_l8_security_gate_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903194600_wa_l8_bounded_preflight_fix_v1.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l8_consent_events_v1') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l8_autonomous_preflight_v1(uuid,text,text,text,text,text)') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_l8_consent_events_v1")" = '0'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_l8_preflight_decisions_v1")" = '0'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903194500_wa_l8_security_gate_v1.rollback.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l8_consent_events_v1') is null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l4_authorize_autonomous_send_v1(uuid,text,text,text,text,text,text,text,text,boolean,text)') is not null")" = 't'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903194500_wa_l8_security_gate_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903194600_wa_l8_bounded_preflight_fix_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
+      - name: L6 strong-key regression
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l6/tests/001_meta_attribution_contract.sql 2>&1 | tee /tmp/wa-l8-l6.txt
+          grep -q 'WA_L6_META_ATTRIBUTION_CONTRACT_PASS' /tmp/wa-l8-l6.txt
+      - name: L8 consent / pricing / least-privilege canary
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l8/tests/001_security_gate_contract.sql 2>&1 | tee /tmp/wa-l8-security.txt
+          grep -q 'WA_L8_SECURITY_GATE_CONTRACT_PASS' /tmp/wa-l8-security.txt
+      - name: L7 read-model and L5/L4 authority regressions after L8
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          test "$(psql "$DB" -X -qAt -c "select cost_state||':'||cost_amount::text||':'||billing_market_code from public.aos_wa_l7_meta_cost_events_v1 where provider_message_id='wamid.l8.meta.free'")" = 'KNOWN:0:PE'
+          test "$(psql "$DB" -X -qAt -c "select cost_state||':'||cost_amount::text||':'||billing_market_code from public.aos_wa_l7_meta_cost_events_v1 where provider_message_id='wamid.l8.meta.paid'")" = 'KNOWN:0.03000000:PE'
+          test "$(psql "$DB" -X -qAt -c "select mode||':'||kill_switch_engaged from public.aos_wa_auto_authority_v1 where id=1")" = 'AUTO_OFF:true'
+          test "$(psql "$DB" -X -qAt -c "select auto_reply_enabled::text||':'||ai_send_enabled::text||':'||auto_routing_enabled::text||':'||human_send_enabled::text from public.aos_wa_ai_control_v1 cross join public.aos_wa_routing_control_v1 where aos_wa_ai_control_v1.id=1 and aos_wa_routing_control_v1.id=1")" = 'false:false:false:true'
+          test "$(psql "$DB" -X -qAt -c "select to_regproc('public.aos_wa_l5_commit_confirmed_v1') is not null and to_regproc('public.aos_wa_l5_availability_v1') is not null")" = 't'
+      - name: Bounded-read / index / 3s fail-fast matrix
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "set statement_timeout='3000ms'; select (public.aos_wa_l8_autonomous_preflight_v1('88888888-8888-4888-8888-888888888801'::uuid,'PHONE','51970000001','text',null,'l8:perf:preflight:0000001')->>'decision')='PASS'; select (public.aos_wa_l7_conversation_cost_v1('88888888-8888-4888-8888-888888888801'::uuid)->>'ok')::boolean;"
+          psql "$DB" -X -qAt -c "set enable_seqscan=off; explain (costs off) select message_body from public.aos_wa_messages_v1 where conversation_id='88888888-8888-4888-8888-888888888801'::uuid and direction='INBOUND' order by created_at desc limit 1" | tee /tmp/l8-inbound-plan.txt
+          grep -q 'aos_wa_messages_v1_conversation_idx' /tmp/l8-inbound-plan.txt
+          test "$(psql "$DB" -X -qAt -c "select indexname from pg_indexes where schemaname='public' and indexname='aos_wa_l8_consent_recipient_idx'")" = 'aos_wa_l8_consent_recipient_idx'
+          test "$(psql "$DB" -X -qAt -c "select indexname from pg_indexes where schemaname='public' and indexname='aos_wa_l8_preflight_conversation_idx'")" = 'aos_wa_l8_preflight_conversation_idx'
+      - name: Post-canary privilege and SAFE-OFF assertions
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          test "$(psql "$DB" -X -qAt -c "select (public.aos_wa_l8_security_status_v1()->>'browser_message_write')::boolean")" = 'f'
+          test "$(psql "$DB" -X -qAt -c "select (public.aos_wa_l8_security_status_v1()->>'browser_booking_write')::boolean")" = 'f'
+          test "$(psql "$DB" -X -qAt -c "select has_table_privilege('service_role','public.aos_booking_operations_v2','INSERT')")" = 'f'
+          test "$(psql "$DB" -X -qAt -c "select has_table_privilege('service_role','public.aos_wa_ai_runs_v1','UPDATE')")" = 'f'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where send_origin='AUTO' and direction='OUTBOUND'")" = '0'
+      - name: Recovery must fail closed after L8 audit history
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          set +e
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903194500_wa_l8_security_gate_v1.rollback.sql >/tmp/wa-l8-recovery.log 2>&1
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -q 'WA_L8_RECOVERY_BLOCKED_AUDIT_HISTORY' /tmp/wa-l8-recovery.log
+          test "$(psql "$DB" -X -qAt -c "select to_regprocedure('public.aos_wa_l8_autonomous_preflight_v1(uuid,text,text,text,text,text)') is not null")" = 't'
+      - name: Database lint
+        working-directory: ci/wa4c-full-local
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error 2>&1 | tee /tmp/wa-l8-lint.txt
+          if grep -q '\[ERROR\]' /tmp/wa-l8-lint.txt; then exit 1; fi
+      - name: Cleanup local Supabase
+        if: always()
+        run: |
+          set +e
+          cd ci/wa4c-full-local
+          supabase stop --no-backup || true

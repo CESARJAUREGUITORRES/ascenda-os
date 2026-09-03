@@ -31,9 +31,12 @@ test('normalizes inbound click-to-whatsapp message without raw payload retention
   assert.equal(e.events[0].event_key,'message:wamid.1');
 });
 
-test('normalizes status pricing and error metadata',()=>{
-  const p={object:'whatsapp_business_account',entry:[{changes:[{field:'messages',value:{statuses:[{id:'wamid.out',status:'delivered',timestamp:'1786807100',recipient_id:'51999999999',pricing:{category:'utility',pricing_model:'PMP',billable:false}}]}}]}]};
-  const e=wa.extractWebhook(p);assert.equal(e.statuses.length,1);assert.equal(e.statuses[0].status,'delivered');assert.equal(e.statuses[0].pricing_category,'utility');assert.equal(e.statuses[0].billable,false);
+test('normalizes status pricing type/category/model/billable without adding it to hot message row',()=>{
+  const p={object:'whatsapp_business_account',entry:[{changes:[{field:'messages',value:{statuses:[{id:'wamid.out',status:'delivered',timestamp:'1786807100',recipient_id:'51999999999',pricing:{category:'service',pricing_model:'PMP',type:'free_customer_service',billable:false}}]}}]}]};
+  const e=wa.extractWebhook(p);
+  assert.equal(e.statuses.length,1);assert.equal(e.statuses[0].status,'delivered');assert.equal(e.statuses[0].pricing_category,'service');assert.equal(e.statuses[0].pricing_model,'PMP');assert.equal(e.statuses[0].pricing_type,'free_customer_service');assert.equal(e.statuses[0].billable,false);
+  const statusEvent=e.events.find(x=>x.event_type==='message.status');
+  assert.ok(statusEvent);assert.equal(statusEvent.payload.pricing_type,'free_customer_service');assert.equal(statusEvent.payload.billable,false);
 });
 
 test('builds governed text/template/media outbound payloads',()=>{
