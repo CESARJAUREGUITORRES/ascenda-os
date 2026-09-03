@@ -1,0 +1,157 @@
+name: ASCENDA WA-L6 Meta Attribution
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/wa-gateway.js'
+      - 'supabase/migrations/*wa_l6*'
+      - 'supabase/rollbacks/*wa_l6*'
+      - 'ci/wa-l6/**'
+      - 'ci/wa7a3-attribution-ingress/attribution_webhook_contract.test.js'
+      - 'docs/control/WA_L6_*'
+      - '.github/workflows/wa-l6-meta-attribution.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-l6-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  ingress-contract:
+    name: L6 provider evidence and fail-closed parser
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Static safety contract
+        shell: powershell
+        run: |
+          node --check app/wa-gateway.js
+          $sql=Get-Content 'supabase/migrations/20260903073000_wa_l6_meta_attribution_v1.sql' -Raw
+          if ($sql -match '(?i)auto_reply_enabled\s*=\s*true') { throw 'L6 may not enable auto reply' }
+          if ($sql -match '(?i)ai_send_enabled\s*=\s*true') { throw 'L6 may not enable AI send' }
+          if ($sql -match '(?i)auto_routing_enabled\s*=\s*true') { throw 'L6 may not enable auto routing' }
+          if ($sql -match '(?i)(insert\s+into|update|delete\s+from)\s+public\.(aos_pacientes|aos_leads|aos_agenda_citas|aos_ventas)') { throw 'L6 migration may not mutate patient/lead/Agenda/Sales ledgers' }
+          if ($sql -match '(?i)(from|join)\s+public\.aos_(pacientes|rev_patient_identity_alias_v2).*(numero|telefono|nombres|apellidos)') { throw 'L6 attribution may not use patient phone/name joins' }
+          if ($sql -notmatch 'venta_id_match' -or $sql -notmatch 'aos_booking_operations_v2') { throw 'Strong-key booking/sale stitch missing' }
+          if ($sql -notmatch 'MULTIPLE_TOUCHPOINTS_REVIEW' -or $sql -notmatch 'CONFLICT_FAIL_CLOSED') { throw 'Ambiguity fail-closed states missing' }
+      - name: Provider parser and historical ingress regressions
+        shell: powershell
+        run: |
+          node --test ci/wa-l6/attribution_ingress_contract.test.js
+          node --test ci/wa7a3-attribution-ingress/attribution_webhook_contract.test.js
+          node --test ci/wa7a2-identity-verification/identity_webhook_contract.test.js
+          node --test ci/wa7a0-identity-compatibility/identity_contract.test.js
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          node --test app/wa-l5-booking.test.js
+          node app/wa4-conversation-runtime-v2.test.js
+
+  db-contract:
+    name: L6 strong-key journey and governance canary
+    needs: ingress-contract
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce zero-cost runner
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Wait for isolated full-local ports
+        run: |
+          set -euo pipefail
+          ports='60200 60201 60202'
+          for i in $(seq 1 90); do
+            busy=''
+            for p in $ports; do
+              if ss -ltn "sport = :$p" 2>/dev/null | grep -q LISTEN; then busy="$busy $p"; fi
+            done
+            if [ -z "$busy" ]; then exit 0; fi
+            echo "Waiting for ports:$busy"
+            sleep 2
+          done
+          echo 'WA_L6_LOCAL_PORT_CONTENTION' >&2
+          exit 1
+      - name: Build certified WA/identity/booking substrate
+        run: |
+          set -euo pipefail
+          bash ci/wa4c-full-local/bootstrap.sh
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa7a1-identity-resolution/rev_identity_stub.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825213500_wa7a1_identity_resolution_bridge_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260825222500_wa7a2_identity_verification_continuity_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827133000_wa7a3_attribution_ingress_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831224500_wa4c_booking_authority_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260831231500_wa4c_governed_booking_pool_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901000500_wa4c_booking_search_path_fix_v2.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260901013500_agv2_unified_transactional_booking_contract_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235600_wa_l4_authority_hardening_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005500_wa_l5_conversational_booking_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903005600_wa_l5_treatment_resolver_uuid_fix_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l6/prereq.sql
+      - name: L6 structural apply recovery reapply before history
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903073000_wa_l6_meta_attribution_v1.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l6_campaign_context_audit_v1') is not null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_l6_campaign_context_audit_v1")" = '0'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903073000_wa_l6_meta_attribution_v1.rollback.sql
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l6_campaign_context_audit_v1') is null")" = 't'
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa4_campaign_context_map_v1') is not null")" = 't'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260903073000_wa_l6_meta_attribution_v1.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -c "notify pgrst, 'reload schema';"
+      - name: L6 mapping and end-to-end synthetic strong-key canary
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l6/tests/001_meta_attribution_contract.sql 2>&1 | tee /tmp/wa-l6-canary.txt
+          grep -q 'WA_L6_META_ATTRIBUTION_CONTRACT_PASS' /tmp/wa-l6-canary.txt
+      - name: Post-canary safety and privilege assertions
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          test "$(psql "$DB" -X -qAt -c "select mode||':'||kill_switch_engaged from public.aos_wa_auto_authority_v1 where id=1")" = 'AUTO_OFF:true'
+          test "$(psql "$DB" -X -qAt -c "select auto_reply_enabled::text||':'||ai_send_enabled::text||':'||auto_routing_enabled::text||':'||human_send_enabled::text from public.aos_wa_ai_control_v1 cross join public.aos_wa_routing_control_v1 where aos_wa_ai_control_v1.id=1 and aos_wa_routing_control_v1.id=1")" = 'false:false:false:true'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_l5_booking_memory_v1")" = '0'
+          test "$(psql "$DB" -X -qAt -c "select count(*) from public.aos_wa_messages_v1 where send_origin='AUTO' and direction='OUTBOUND'")" = '0'
+          test "$(psql "$DB" -X -qAt -c "select has_table_privilege('anon','public.aos_wa4_campaign_context_map_v1','INSERT') or has_table_privilege('authenticated','public.aos_wa4_campaign_context_map_v1','INSERT')")" = 'f'
+          test "$(psql "$DB" -X -qAt -c "select has_table_privilege('anon','public.aos_wa_l6_campaign_context_audit_v1','SELECT') or has_table_privilege('authenticated','public.aos_wa_l6_campaign_context_audit_v1','SELECT')")" = 'f'
+      - name: Recovery must fail closed after governed history
+        run: |
+          set -euo pipefail
+          DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
+          set +e
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260903073000_wa_l6_meta_attribution_v1.rollback.sql >/tmp/wa-l6-recovery.log 2>&1
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -q 'WA_L6_RECOVERY_BLOCKED_HISTORY' /tmp/wa-l6-recovery.log
+          test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l6_attribution_journey_v1') is not null")" = 't'
+      - name: Database lint
+        working-directory: ci/wa4c-full-local
+        run: |
+          set -euo pipefail
+          supabase db lint --local --schema public --level error 2>&1 | tee /tmp/wa-l6-lint.txt
+          if grep -q '\[ERROR\]' /tmp/wa-l6-lint.txt; then exit 1; fi
+      - name: Cleanup local Supabase
+        if: always()
+        run: |
+          set +e
+          cd ci/wa4c-full-local
+          supabase stop --no-backup || true
