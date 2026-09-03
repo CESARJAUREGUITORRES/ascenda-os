@@ -1,0 +1,123 @@
+name: ASCENDA WA-L4 Autonomous Authority
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/server-f4.js'
+      - 'app/wa-l4-authority.js'
+      - 'supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql'
+      - 'supabase/rollbacks/20260902235500_wa_l4_autonomous_authority_v1.rollback.sql'
+      - 'ci/wa-l4/**'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+      - 'docs/control/WA_L4_*'
+      - '.github/workflows/wa-l4-autonomous-authority.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-l4-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  runtime-static:
+    name: WA-L4 runtime / mutation boundary
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node runtime authority contract
+        shell: powershell
+        run: node --test ci/wa-l4/runtime_contract.js
+      - name: Syntax-check runtime files
+        shell: powershell
+        run: |
+          node --check app/wa-l4-authority.js
+          node --check app/server-f4.js
+
+  db-contract:
+    name: WA-L4 DB authority / replay / recovery
+    needs: runtime-static
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59742/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Enforce zero-cost runner
+        run: |
+          set -euo pipefail
+          test "${{ runner.environment }}" = "self-hosted"
+          python3 scripts/ci/enforce-zero-cost-policy.py
+      - name: Configure isolated Supabase
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          sed -i 's/project_id = "ascenda-zero-cost-staging"/project_id = "ascenda-wa-l4"/' supabase/config.toml
+          sed -i 's/port = 54321/port = 59741/' supabase/config.toml
+          sed -i 's/port = 54322/port = 59742/' supabase/config.toml
+          sed -i 's/shadow_port = 54320/shadow_port = 59740/' supabase/config.toml
+      - name: Start isolated Postgres
+        working-directory: ci/zero-cost-staging
+        run: |
+          set -euo pipefail
+          supabase stop --no-backup || true
+          docker ps -aq --filter 'name=ascenda-wa-l4' | xargs -r docker rm -f || true
+          rm -rf supabase/.temp supabase/.branches
+          supabase db start
+          for i in $(seq 1 30); do
+            if pg_isready -h 127.0.0.1 -p 59742 -U postgres >/dev/null 2>&1; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Build synthetic PRE-L4 state
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa-l4/schema_contract.sql
+      - name: Apply exact WA-L4 migration
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql
+      - name: Schema and privilege contract
+        run: |
+          set -euo pipefail
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_auto_authority_v1') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_auto_decisions_v1') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa_l4_authorize_autonomous_send_v1(uuid,text,text,text,text,text,text,text,text,boolean,text)') is not null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select mode||':'||kill_switch_engaged from public.aos_wa_auto_authority_v1 where id=1")" = "AUTO_OFF:true"
+          test "$(psql "$DB_URL" -X -qAt -c "select auto_reply_enabled from public.aos_wa_ai_control_v1 where id=1")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select ai_send_enabled from public.aos_wa_routing_control_v1 where id=1")" = "f"
+          test "$(psql "$DB_URL" -X -qAt -c "select human_send_enabled from public.aos_wa_routing_control_v1 where id=1")" = "t"
+      - name: Behavioral authority contract
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa-l4/tests/001_authority_contract.sql
+      - name: Recovery must fail closed if AUTO provider lineage exists
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "insert into public.aos_wa_outbound_requests_v1(idempotency_key,actor_id,to_number,message_type,state,recipient_kind,recipient_address,send_origin) values('ci-auto-history-000001','11111111-1111-4111-8111-111111111111','999999999','text','ACCEPTED','PHONE','999999999','AUTO')"
+          set +e
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260902235500_wa_l4_autonomous_authority_v1.rollback.sql > /tmp/l4-recovery-block.log 2>&1
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -q 'WA_L4_RECOVERY_BLOCKED_AUTO_HISTORY' /tmp/l4-recovery-block.log
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_auto_authority_v1') is not null")" = "t"
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "delete from public.aos_wa_outbound_requests_v1 where idempotency_key='ci-auto-history-000001'"
+      - name: Exact recovery restores PRE-L4 structural SAFE-OFF
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260902235500_wa_l4_autonomous_authority_v1.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_wa_auto_authority_v1') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regprocedure('public.aos_wa_l4_authorize_autonomous_send_v1(uuid,text,text,text,text,text,text,text,text,boolean,text)') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.aos_wa_ai_control_v1'::regclass and conname='aos_wa_ai_control_v1_auto_reply_enabled_check'")" = "CHECK ((auto_reply_enabled = false))"
+          test "$(psql "$DB_URL" -X -qAt -c "select pg_get_constraintdef(oid) from pg_constraint where conrelid='public.aos_wa_routing_control_v1'::regclass and conname='aos_wa_routing_control_v1_ai_send_enabled_check'")" = "CHECK ((ai_send_enabled = false))"
+      - name: Reapply after recovery is reproducible
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260902235500_wa_l4_autonomous_authority_v1.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select mode||':'||kill_switch_engaged from public.aos_wa_auto_authority_v1 where id=1")" = "AUTO_OFF:true"
+          test "$(psql "$DB_URL" -X -qAt -c "select auto_reply_enabled::text||':'||ai_send_enabled::text||':'||human_send_enabled::text from public.aos_wa_ai_control_v1 cross join public.aos_wa_routing_control_v1 where aos_wa_ai_control_v1.id=1 and aos_wa_routing_control_v1.id=1")" = "false:false:true"
+      - name: Stop isolated Supabase
+        if: always()
+        working-directory: ci/zero-cost-staging
+        run: supabase stop --no-backup || true
