@@ -17,7 +17,8 @@ test('preserves explicit Meta referral provenance as a separate touchpoint event
   assert.equal(t[0].payload.source_id,'ad-77');assert.equal(t[0].payload.source_type,'ad');assert.equal(t[0].payload.ad_id,'ad-77');
   assert.equal(t[0].payload.ctwa_clid,'ctwa-click-001');assert.equal(t[0].payload.provider_lead_id,'provider-lead-8');
   assert.equal(t[0].payload.campaign_source,'META_CTWA');assert.equal(t[0].payload.channel,'WHATSAPP');
-  assert.equal(t[0].payload.provider,'META_CLOUD_API');assert.equal(t[0].payload.evidence_version,'WA_7A_3_V1');
+  assert.equal(t[0].payload.provider,'META_CLOUD_API');assert.equal(t[0].payload.evidence_version,'WA_L6_V1');
+  assert.equal(t[0].payload.campaign_id,null);assert.equal(t[0].payload.adset_id,null);
   assert.equal('phone' in t[0].payload,false);assert.equal('bsuid' in t[0].payload,false);assert.equal('username' in t[0].payload,false);
 });
 
