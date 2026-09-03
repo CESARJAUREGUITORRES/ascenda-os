@@ -129,7 +129,8 @@ jobs:
           DB='postgresql://postgres:postgres@127.0.0.1:60202/postgres'
           psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa7a4-marketing-eligibility/tests/001_marketing_eligibility.sql 2>&1 | tee /tmp/wa7a4.txt
           grep -q 'WA7A4_MARKETING_ELIGIBILITY_PASS' /tmp/wa7a4.txt
-          psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l8/tests/002_scoped_consent_cost_closeout.sql 2>&1 | tee /tmp/wa-l8-final.txt
+          python3 ci/wa-l8/render_v3_chronology_canary.py > /tmp/l8-v3-final.sql
+          psql "$DB" -X -v ON_ERROR_STOP=1 -f /tmp/l8-v3-final.sql 2>&1 | tee /tmp/wa-l8-final.txt
           grep -q 'WA_L8_SCOPED_CONSENT_COST_CLOSEOUT_PASS' /tmp/wa-l8-final.txt
           test "$(psql "$DB" -X -qAt -c "select position('aos_wa_marketing_eligibility_check_v1' in pg_get_functiondef('public.aos_wa_l8_autonomous_preflight_v1(uuid,text,text,text,text,text)'::regprocedure))")" = '0'
       - name: P0 bounded-read and stop-index matrix
