@@ -1,0 +1,62 @@
+name: Shared Runner Dispatcher Arm
+
+on:
+  push:
+    branches: ['infra/shared-runner-dispatcher-v1']
+    paths:
+      - '.shared-runner/ARM_V1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shared-runner-dispatcher-arm
+  cancel-in-progress: false
+
+jobs:
+  arm:
+    name: Arm shared dispatcher for next reboot
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - name: Replace ASCENDA-only reboot entry with shared supervisor
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(id -un)" = 'ascenda-runner'
+          STATE_DIR='/var/tmp/ascenda-shared-runner-v1'
+          SUPERVISOR='/home/ascenda-runner/shared-runner-supervisor-v1.sh'
+          OLD='/home/ascenda-runner/ascenda-runner-autoboot.sh'
+          OLD_MARKER='# ASCENDA_ZERO_COST_V2_AUTOBOOT'
+          NEW_MARKER='# ASCENDA_SHARED_RUNNER_DISPATCHER_V1'
+
+          test -x "$SUPERVISOR"
+          test -f "$STATE_DIR/roo7-installed"
+          test "$(cat "$STATE_DIR/roo7-installed")" = 'installed'
+
+          crontab -l > /home/ascenda-runner/crontab.pre-arm-shared-runner-v1 2>/dev/null || true
+          current=$(crontab -l 2>/dev/null || true)
+          cleaned=$(printf '%s\n' "$current" \
+            | grep -vF "$OLD_MARKER" \
+            | grep -vF "$OLD" \
+            | grep -vF "$NEW_MARKER" \
+            | grep -vF "$SUPERVISOR" || true)
+          {
+            printf '%s\n' "$cleaned"
+            printf '%s\n' "$NEW_MARKER"
+            printf '@reboot /usr/bin/nohup %s >/dev/null 2>&1 &\n' "$SUPERVISOR"
+          } | sed '/^[[:space:]]*$/N;/^\n$/D' | crontab -
+
+          printf '%s\n' 'ASCENDA' > "$STATE_DIR/turn"
+          printf '%s\n' 'NONE' > "$STATE_DIR/active"
+          printf '%s\n' 'armed' > "$STATE_DIR/armed"
+          chmod 666 "$STATE_DIR/turn" "$STATE_DIR/active" "$STATE_DIR/armed"
+
+          echo '=== ARMED CRONTAB ==='
+          crontab -l
+          ! grep -F "$OLD" < <(crontab -l)
+          grep -F "$NEW_MARKER" < <(crontab -l)
+          grep -F "$SUPERVISOR" < <(crontab -l)
+          test -f "$STATE_DIR/armed"
+          echo 'SHARED_RUNNER_DISPATCHER_ARMED=PASS'
+          echo 'Current foreground/legacy supervisor is intentionally not killed. New dispatcher activates on next WSL reboot.'
