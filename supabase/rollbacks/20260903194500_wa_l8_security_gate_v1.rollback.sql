@@ -17,8 +17,10 @@ end $$;
 
 drop view if exists public.aos_wa_l8_meta_monthly_usage_v1;
 
--- Restore the exact WA-L7 Meta cost semantics before removing L8 evidence view.
-create or replace view public.aos_wa_l7_meta_cost_events_v1
+-- CREATE OR REPLACE cannot remove L8's appended view columns, so drop/recreate
+-- the L7 view while no L8 audit history exists.
+drop view if exists public.aos_wa_l7_meta_cost_events_v1;
+create view public.aos_wa_l7_meta_cost_events_v1
 with (security_invoker=true,security_barrier=true)
 as
 select
