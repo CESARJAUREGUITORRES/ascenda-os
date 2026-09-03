@@ -89,9 +89,13 @@ assert(alerts.includes("r.last_message_direction==='INBOUND'"),'human alert dire
 assert(alerts.includes('body:safePreview(r)'),'human alert sanitizer missing');
 assert(s13.includes("status==='delivered'")&&s13.includes("status==='read'"),'delivery/read UX missing');
 
-// 402 containment must stay narrow and credential-agnostic.
-assert(quota.includes('Phase-S|WA2|WA3|WA3V2|WA4|WA-Gateway|F17'),'full WA quota allowlist missing');
+// 402 containment is project-host scoped and credential-agnostic. Fair Use 402 is
+// project-wide, so the current hardened preload intentionally covers every request
+// to the configured Supabase host instead of maintaining a legacy WA User-Agent list.
+assert(quota.includes('isConfiguredSupabaseRequest(args, configuredHost)'),'quota breaker must classify by configured Supabase host');
+assert(quota.includes("scope: 'ALL_CONFIGURED_SUPABASE_RUNTIME_REQUESTS'"),'project-wide 402 breaker scope must remain explicit');
 assert(quota.includes('configuredHost'),'quota breaker host scope missing');
+assert(!quota.includes('userAgentRe'),'project-wide quota breaker must not depend on legacy User-Agent allowlists');
 assert(!quota.includes('SUPABASE_SERVICE_ROLE_KEY'),'quota breaker must not inspect service-role credential');
 assert(railway.includes('--require ./supabase-quota-circuit-preload.cjs'),'Railway quota preload missing');
 
