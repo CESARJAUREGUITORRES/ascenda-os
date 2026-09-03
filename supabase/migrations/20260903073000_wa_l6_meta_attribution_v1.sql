@@ -121,10 +121,10 @@ begin
     return pg_catalog.jsonb_build_object('ok',false,'error','WA_L6_PAYLOAD_INVALID');
   end if;
 
-  v_ad:=pg_catalog.nullif(pg_catalog.btrim(p_payload->>'ad_id'),'');
-  v_campaign:=pg_catalog.nullif(pg_catalog.btrim(p_payload->>'campaign_id'),'');
-  v_goal:=pg_catalog.nullif(pg_catalog.upper(pg_catalog.btrim(p_payload->>'booking_goal')),'');
-  v_evidence:=pg_catalog.nullif(pg_catalog.btrim(p_payload->>'evidence_ref'),'');
+  v_ad:=nullif(pg_catalog.btrim(p_payload->>'ad_id'),'');
+  v_campaign:=nullif(pg_catalog.btrim(p_payload->>'campaign_id'),'');
+  v_goal:=nullif(pg_catalog.upper(pg_catalog.btrim(p_payload->>'booking_goal')),'');
+  v_evidence:=nullif(pg_catalog.btrim(p_payload->>'evidence_ref'),'');
   if v_ad is null or pg_catalog.length(v_ad)>256 then
     return pg_catalog.jsonb_build_object('ok',false,'error','WA_L6_AD_ID_REQUIRED');
   end if;
@@ -146,13 +146,13 @@ begin
   if not exists(
     select 1 from public.aos_catalogo_servicios s
     where s.id=v_treatment
-      and pg_catalog.upper(pg_catalog.coalesce(s.estado,'ACTIVO'))='ACTIVO'
-      and pg_catalog.upper(pg_catalog.coalesce(s.tipo,'SERVICIO'))='SERVICIO'
+      and pg_catalog.upper(coalesce(s.estado,'ACTIVO'))='ACTIVO'
+      and pg_catalog.upper(coalesce(s.tipo,'SERVICIO'))='SERVICIO'
   ) then
     return pg_catalog.jsonb_build_object('ok',false,'error','WA_L6_TREATMENT_NOT_ACTIVE');
   end if;
 
-  if pg_catalog.nullif(pg_catalog.btrim(p_payload->>'promotion_id'),'') is not null then
+  if nullif(pg_catalog.btrim(p_payload->>'promotion_id'),'') is not null then
     begin
       v_promotion:=(p_payload->>'promotion_id')::uuid;
     exception when others then
@@ -232,7 +232,7 @@ select
   t.touchpoint_key,
   t.provider_message_id,
   t.touchpoint_at,
-  pg_catalog.coalesce(t.acquisition_class,'NO_PROVIDER_ATTRIBUTION')::text as acquisition_class,
+  coalesce(t.acquisition_class,'NO_PROVIDER_ATTRIBUTION')::text as acquisition_class,
   t.ctwa_clid,
   t.ad_id,
   t.source_id,
@@ -245,7 +245,7 @@ select
   case
     when t.provider_campaign_id is not null and m.campaign_id is not null and t.provider_campaign_id<>m.campaign_id
       then null
-    else pg_catalog.coalesce(t.provider_campaign_id,m.campaign_id)
+    else coalesce(t.provider_campaign_id,m.campaign_id)
   end::text as effective_campaign_id,
   case
     when t.provider_campaign_id is not null and m.campaign_id is not null and t.provider_campaign_id<>m.campaign_id
@@ -327,11 +327,11 @@ select
   end as booking_ad_matches_touchpoint,
   a.estado_cita as appointment_status,
   case
-    when pg_catalog.upper(pg_catalog.coalesce(a.estado_cita,'')) in ('ASISTIO','EFECTIVA') then true
-    when pg_catalog.upper(pg_catalog.coalesce(a.estado_cita,'')) in ('NO ASISTIO','CANCELADA') then false
+    when pg_catalog.upper(coalesce(a.estado_cita,'')) in ('ASISTIO','EFECTIVA') then true
+    when pg_catalog.upper(coalesce(a.estado_cita,'')) in ('NO ASISTIO','CANCELADA') then false
     else null
   end as attended,
-  pg_catalog.nullif(pg_catalog.btrim(a.venta_id_match),'') as sale_link_venta_id,
+  nullif(pg_catalog.btrim(a.venta_id_match),'') as sale_link_venta_id,
   s.sale_row_count,
   s.sale_date,
   s.revenue_amount,
@@ -343,8 +343,8 @@ select
     when acq.campaign_resolution_status='CONFLICT_FAIL_CLOSED' then 'CAMPAIGN_ID_CONFLICT'
     when b.booking_ad_id is not null and acq.ad_id is not null and b.booking_ad_id<>acq.ad_id then 'BOOKING_AD_MISMATCH'
     when a.id is null then 'APPOINTMENT_MISSING'
-    when pg_catalog.nullif(pg_catalog.btrim(a.venta_id_match),'') is null then 'APPOINTMENT_NO_EXPLICIT_SALE_LINK'
-    when pg_catalog.coalesce(s.sale_row_count,0)=0 then 'SALE_LINK_UNRESOLVED'
+    when nullif(pg_catalog.btrim(a.venta_id_match),'') is null then 'APPOINTMENT_NO_EXPLICIT_SALE_LINK'
+    when coalesce(s.sale_row_count,0)=0 then 'SALE_LINK_UNRESOLVED'
     else 'EXPLICIT_CHAIN_COMPLETE'
   end::text as attribution_chain_status
 from acquisition acq
@@ -359,12 +359,12 @@ left join lateral (
     pg_catalog.sum(v.monto) as revenue_amount,
     case
       when pg_catalog.count(*)=0 then null
-      when pg_catalog.count(distinct pg_catalog.coalesce(pg_catalog.nullif(pg_catalog.btrim(v.moneda),''),'PEN'))=1
-        then pg_catalog.max(pg_catalog.coalesce(pg_catalog.nullif(pg_catalog.btrim(v.moneda),''),'PEN'))
+      when pg_catalog.count(distinct coalesce(nullif(pg_catalog.btrim(v.moneda),''),'PEN'))=1
+        then pg_catalog.max(coalesce(nullif(pg_catalog.btrim(v.moneda),''),'PEN'))
       else 'MIXED'
     end::text as revenue_currency
   from public.aos_ventas v
-  where v.venta_id=pg_catalog.nullif(pg_catalog.btrim(a.venta_id_match),'')
+  where v.venta_id=nullif(pg_catalog.btrim(a.venta_id_match),'')
 ) s on true;
 
 comment on view public.aos_wa_l6_attribution_journey_v1 is
