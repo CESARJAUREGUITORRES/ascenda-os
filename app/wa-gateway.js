@@ -97,15 +97,19 @@ function referralEvidence(referral,businessScope,providerMessageId,observedAt){
   const sourceUrl=safeHttpsUrl(r.source_url);
   const ctwaClid=userIdValue(r.ctwa_clid);
   const providerLeadId=userIdValue(r.lead_id);
+  const campaignId=userIdValue(r.campaign_id);
+  const adsetId=userIdValue(r.adset_id);
+  const explicitAdId=userIdValue(r.ad_id);
   const campaignSource=trimText(r.campaign_source,256).trim()||null;
   const headline=trimText(r.headline,512)||null;
   const body=trimText(r.body,1000)||null;
   const mediaType=trimText(r.media_type,64).trim().toLowerCase()||null;
-  if(![sourceId,sourceType,sourceUrl,ctwaClid,providerLeadId,campaignSource,headline,body,mediaType].some(Boolean))return null;
+  const adId=explicitAdId||(sourceType==='ad'?sourceId:null);
+  if(![sourceId,sourceType,sourceUrl,ctwaClid,providerLeadId,campaignId,adsetId,explicitAdId,campaignSource,headline,body,mediaType].some(Boolean))return null;
   return {
-    evidence_version:'WA_7A_3_V1',channel:'WHATSAPP',provider:'META_CLOUD_API',business_scope:businessScope,
+    evidence_version:'WA_L6_V1',channel:'WHATSAPP',provider:'META_CLOUD_API',business_scope:businessScope,
     provider_message_id:providerMessageId,ctwa_clid:ctwaClid,source_id:sourceId,source_type:sourceType,source_url:sourceUrl,
-    ad_id:sourceType==='ad'?sourceId:null,provider_lead_id:providerLeadId,campaign_source:campaignSource,
+    ad_id:adId,campaign_id:campaignId,adset_id:adsetId,provider_lead_id:providerLeadId,campaign_source:campaignSource,
     headline,body,media_type:mediaType,observed_at:observedAt
   };
 }
@@ -151,7 +155,7 @@ function extractWebhook(payload){
           phone_number_id:trimText(meta.phone_number_id,128)||null,
           contact_name:trimText(profile.name,256)||null,contact_username:usernameValue(profile.username),
           message_type:trimText(msg.type||'unknown',64),message_body:messageBody(msg)||null,media_id:mediaId(msg),status:'received',
-          campaign_source:trimText(referral.headline||referral.source_type||'',512)||null,ad_id:trimText(referral.source_id||'',256)||null,
+          campaign_source:trimText(referral.headline||referral.source_type||'',512)||null,ad_id:trimText(referral.ad_id||referral.source_id||'',256)||null,
           raw_referral:Object.keys(referral).length?{
             source_id:trimText(referral.source_id,256)||null,source_type:trimText(referral.source_type,64)||null,
             headline:trimText(referral.headline,512)||null,body:trimText(referral.body,1000)||null
@@ -161,7 +165,7 @@ function extractWebhook(payload){
         messages.push(row);
         events.push({event_key:'message:'+row.provider_message_id,event_type:'message.received',provider_message_id:row.provider_message_id,status:'received',payload:{message_type:row.message_type,phone_number_id:row.phone_number_id,has_referral:!!row.raw_referral,sender_kind:row.from_number?'PHONE':(row.from_user_id?'BSUID':'UNKNOWN'),has_user_id:!!row.from_user_id}});
 
-        // WA-7A.3: acquisition provenance is a separate immutable event, never an identity fact.
+        // WA-L6/WA-7A.3: acquisition provenance is a separate immutable event, never an identity fact.
         const provenance=referralEvidence(referral,businessScope,row.provider_message_id,observedAt);
         if(provenance){
           events.push({event_key:'attribution:touchpoint:'+row.provider_message_id,event_type:'attribution.touchpoint',provider_message_id:row.provider_message_id,status:'observed',payload:provenance});
