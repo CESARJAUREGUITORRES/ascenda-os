@@ -113,6 +113,17 @@ async function conversationMessages(req,res,id,u){
     writeJson(res,200,{ok:true,conversation:crow,messages:Array.isArray(out.data)?out.data:[]});
   }catch(e){console.error('[WA2] messages',e.message);writeJson(res,e.status||503,{ok:false,error:'WA2_MESSAGES_UNAVAILABLE'});}
 }
+async function conversationCost(req,res,id){
+  const actor=await authorize(req);if(!actor){writeJson(res,403,{ok:false,error:'WA2_ADMIN_2FA_REQUIRED'});return;}
+  if(!UUID_RE.test(id)){writeJson(res,400,{ok:false,error:'INVALID_CONVERSATION_ID'});return;}
+  try{
+    const out=await sbService('POST','/rest/v1/rpc/aos_wa_l7_journey_cost_v1',{p_conversation_id:id});
+    const payload=out&&out.data;
+    if(!payload||typeof payload!=='object'||Array.isArray(payload)){writeJson(res,502,{ok:false,error:'WA_L7_COST_INVALID_RESPONSE'});return;}
+    if(payload.ok===false&&payload.error==='WA_L7_CONVERSATION_NOT_FOUND'){writeJson(res,404,payload);return;}
+    writeJson(res,200,payload);
+  }catch(e){console.error('[WA-L7] conversation cost',e.message);writeJson(res,e.status||503,{ok:false,error:'WA_L7_COST_UNAVAILABLE'});}
+}
 async function markRead(req,res,id){
   const actor=await authorize(req);if(!actor){writeJson(res,403,{ok:false,error:'WA2_ADMIN_2FA_REQUIRED'});return;}
   if(!UUID_RE.test(id)){writeJson(res,400,{ok:false,error:'INVALID_CONVERSATION_ID'});return;}
@@ -148,6 +159,8 @@ const server=http.createServer(async(req,res)=>{
     if(req.method==='GET'&&u.pathname==='/api/wa/inbox/health'){await inboxHealth(req,res);return;}
     const mm=u.pathname.match(/^\/api\/wa\/conversations\/([0-9a-f-]+)\/messages$/i);
     if(req.method==='GET'&&mm){await conversationMessages(req,res,mm[1],u);return;}
+    const mc=u.pathname.match(/^\/api\/wa\/conversations\/([0-9a-f-]+)\/cost$/i);
+    if(req.method==='GET'&&mc){await conversationCost(req,res,mc[1]);return;}
     const mr=u.pathname.match(/^\/api\/wa\/conversations\/([0-9a-f-]+)\/read$/i);
     if(req.method==='POST'&&mr){await markRead(req,res,mr[1]);return;}
     writeJson(res,404,{ok:false,error:'WA2_ROUTE_NOT_FOUND'});return;
