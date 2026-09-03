@@ -27,13 +27,15 @@ jobs:
       - name: No global eligibility projection on autonomous hot path
         shell: powershell
         run: |
+          $stop=Get-Content 'supabase/migrations/20260903194700_wa_l8_persistent_stop_index_v1.sql' -Raw
           $p0=Get-Content 'supabase/migrations/20260903194900_wa_l8_bounded_scoped_eligibility_v1.sql' -Raw
           $null=Get-Content 'supabase/migrations/20260903195000_wa_l8_bounded_eligibility_null_guard_v1.sql' -Raw
+          $all=$stop+"`n"+$p0+"`n"+$null
           if ($p0 -match 'aos_wa_marketing_eligibility_check_v1') { throw 'L8 P0 may not call WA7A4 global projection from autonomous preflight' }
           foreach($marker in @('aos_wa_l8_scoped_eligibility_check_v1','conversation_id=p_conversation_id','eligibility_scope=v_scope','order by e.observed_at desc,e.created_at desc','limit 1','aos_wa_l8_message_stop_idx')) {
-            if (($p0+$null) -notmatch [regex]::Escape($marker)) { throw "L8 P0 marker missing: $marker" }
+            if ($all -notmatch [regex]::Escape($marker)) { throw "L8 P0 marker missing: $marker" }
           }
-          if (($p0+$null) -match '(?i)create\s+materialized\s+view|refresh\s+materialized\s+view') { throw 'L8 P0 may not materialize global state' }
+          if ($all -match '(?i)create\s+materialized\s+view|refresh\s+materialized\s+view') { throw 'L8 P0 may not materialize global state' }
 
   db-p0:
     name: L8 bounded authority real-DB gate
