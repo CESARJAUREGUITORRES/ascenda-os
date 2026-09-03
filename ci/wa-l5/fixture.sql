@@ -43,6 +43,15 @@ values
 ('55555555-5555-4555-8555-555555555553'::uuid,'wa-l5-conflict:51922222222','51922222222','CONFLICT TEST','local-phone-id','AI_ACTIVE','L5_SYNTHETIC','51922222222','PHONE')
 on conflict(id) do update set state='AI_ACTIVE',human_takeover_at=null,contact_number=excluded.contact_number,contact_address=excluded.contact_address,contact_address_type='PHONE';
 
+-- Align the synthetic provider with the exact governed capability selected by the
+-- canonical booking fixture. AGV2 requires treatment -> capability -> team skill ->
+-- date/site schedule intersection; this creates a real TEST-only eligible slot.
+update public.aos_perfiles_profesional p
+set servicios=array[s.nombre]::text[]
+from public.aos_wa4c_booking_test_fixture f
+join public.aos_catalogo_servicios s on s.id=f.treatment_id
+where f.id=1 and p.id=f.professional_id;
+
 -- The production WA4 trigger intentionally blocks direct WhatsApp Agenda writes.
 -- This TEST-ONLY fixture enters the same governed transaction-local boundary rather
 -- than weakening or bypassing the production trigger contract.
