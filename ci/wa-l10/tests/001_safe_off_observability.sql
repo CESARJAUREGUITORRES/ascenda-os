@@ -1,9 +1,8 @@
 \set ON_ERROR_STOP on
 
 -- WA-L10 TEST ONLY. Synthetic identities/conversations come from the isolated L5 fixture.
-\set l1 '11111111-1111-4111-8111-111111111111'
-\set l2 '22222222-2222-4222-8222-222222222222'
-\set conv '55555555-5555-4555-8555-555555555551'
+-- Use literal synthetic UUIDs inside DO blocks because psql does not substitute variables
+-- inside dollar-quoted PL/pgSQL bodies.
 
 -- Browser roles can neither read evidence nor execute server-only RPCs.
 do $$ begin
@@ -27,7 +26,7 @@ insert into l10_pre values(jsonb_build_object(
 do $$ declare r jsonb; p jsonb; begin
  select v into p from l10_pre;
  r:=public.aos_wa_l10_prepare_run_v1(
-   :'l2'::uuid,'CI-L10-SAFE-OFF-L2-0001',p,
+   '22222222-2222-4222-8222-222222222222'::uuid,'CI-L10-SAFE-OFF-L2-0001',p,
    'VERIFIED_CURRENT','GH456:A1:POLICY','STALE_EVIDENCE','GH456:A1:PROVIDER',
    'UNKNOWN','GH456:A1:TEMPLATE','UNKNOWN','GH456:A1:BILLING',
    'BLOCKED','GH456:A1:CONSENT',null);
@@ -38,7 +37,7 @@ end $$;
 do $$ declare r jsonb; p jsonb; begin
  select v||jsonb_build_object('patient_name','FORBIDDEN') into p from l10_pre;
  r:=public.aos_wa_l10_prepare_run_v1(
-   :'l1'::uuid,'CI-L10-BAD-PRE-000001',p,
+   '11111111-1111-4111-8111-111111111111'::uuid,'CI-L10-BAD-PRE-000001',p,
    'VERIFIED_CURRENT','GH456:A1:POLICY','STALE_EVIDENCE','GH456:A1:PROVIDER',
    'UNKNOWN','GH456:A1:TEMPLATE','UNKNOWN','GH456:A1:BILLING',
    'BLOCKED','GH456:A1:CONSENT',null);
@@ -49,7 +48,7 @@ end $$;
 do $$ declare r jsonb; p jsonb; begin
  select v into p from l10_pre;
  r:=public.aos_wa_l10_prepare_run_v1(
-   :'l1'::uuid,'CI-L10-SAFE-OFF-0001',p,
+   '11111111-1111-4111-8111-111111111111'::uuid,'CI-L10-SAFE-OFF-0001',p,
    'VERIFIED_CURRENT','GH456:A1:POLICY','STALE_EVIDENCE','GH456:A1:PROVIDER',
    'UNKNOWN','GH456:A1:TEMPLATE','UNKNOWN','GH456:A1:BILLING',
    'BLOCKED','GH456:A1:CONSENT',null);
@@ -62,7 +61,7 @@ end $$;
 do $$ declare r jsonb; p jsonb; begin
  select v into p from l10_pre;
  r:=public.aos_wa_l10_prepare_run_v1(
-   :'l1'::uuid,'CI-L10-SAFE-OFF-0001',p,
+   '11111111-1111-4111-8111-111111111111'::uuid,'CI-L10-SAFE-OFF-0001',p,
    'VERIFIED_CURRENT','GH456:A1:POLICY','STALE_EVIDENCE','GH456:A1:PROVIDER',
    'UNKNOWN','GH456:A1:TEMPLATE','UNKNOWN','GH456:A1:BILLING',
    'BLOCKED','GH456:A1:CONSENT',null);
@@ -74,7 +73,8 @@ end $$;
 do $$ declare r jsonb; before_n bigint; after_n bigint; begin
  select count(*) into before_n from public.aos_wa_auto_allowlist_v1 where active is true;
  r:=public.aos_wa_l10_attach_scope_v1(
-   :'l1'::uuid,'CI-L10-SAFE-OFF-0001',:'conv'::uuid,repeat('a',64),'CI_MINIMAL_SCOPE');
+   '11111111-1111-4111-8111-111111111111'::uuid,'CI-L10-SAFE-OFF-0001',
+   '55555555-5555-4555-8555-555555555551'::uuid,repeat('a',64),'CI_MINIMAL_SCOPE');
  if coalesce((r->>'ok')::boolean,false) is not true then raise exception 'L10_SCOPE_FAILED %',r; end if;
  if coalesce((r->>'activation_authorized')::boolean,true) then raise exception 'L10_SCOPE_PREMATURE_AUTH %',r; end if;
  select count(*) into after_n from public.aos_wa_auto_allowlist_v1 where active is true;
@@ -97,16 +97,20 @@ end $$;
 
 -- Active allowlist blocks preparation; L10-A cannot silently inherit or create a live cohort.
 do $$ declare r jsonb; p jsonb; begin
- r:=public.aos_wa_l4_allowlist_set_v1(:'l1'::uuid,'CONVERSATION',:'conv',true,null,'l10-ci-guard');
+ r:=public.aos_wa_l4_allowlist_set_v1(
+   '11111111-1111-4111-8111-111111111111'::uuid,'CONVERSATION',
+   '55555555-5555-4555-8555-555555555551',true,null,'l10-ci-guard');
  if coalesce((r->>'ok')::boolean,false) is not true then raise exception 'L10_CI_ALLOWLIST_FIXTURE %',r; end if;
  select v into p from l10_pre;
  r:=public.aos_wa_l10_prepare_run_v1(
-   :'l1'::uuid,'CI-L10-ACTIVE-LIST-01',p,
+   '11111111-1111-4111-8111-111111111111'::uuid,'CI-L10-ACTIVE-LIST-01',p,
    'VERIFIED_CURRENT','GH456:A1:POLICY','STALE_EVIDENCE','GH456:A1:PROVIDER',
    'UNKNOWN','GH456:A1:TEMPLATE','UNKNOWN','GH456:A1:BILLING',
    'BLOCKED','GH456:A1:CONSENT',null);
  if r->>'error'<>'WA_L10_ACTIVE_ALLOWLIST_MUST_BE_EMPTY_DURING_PREP' then raise exception 'L10_ACTIVE_ALLOWLIST_GATE %',r; end if;
- r:=public.aos_wa_l4_allowlist_set_v1(:'l1'::uuid,'CONVERSATION',:'conv',false,null,'l10-ci-cleanup');
+ r:=public.aos_wa_l4_allowlist_set_v1(
+   '11111111-1111-4111-8111-111111111111'::uuid,'CONVERSATION',
+   '55555555-5555-4555-8555-555555555551',false,null,'l10-ci-cleanup');
  if coalesce((r->>'ok')::boolean,false) is not true then raise exception 'L10_CI_ALLOWLIST_CLEANUP %',r; end if;
 end $$;
 
