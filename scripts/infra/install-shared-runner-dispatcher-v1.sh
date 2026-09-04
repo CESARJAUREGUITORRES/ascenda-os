@@ -34,6 +34,8 @@ test -x "$ASC_DIR/run.sh"
 test -x "$ROO_DIR/run.sh"
 grep -Fq 'CESARJAUREGUITORRES/ascenda-os' "$ASC_DIR/.runner"
 grep -Fq 'CESARJAUREGUITORRES/roosiete' "$ROO_DIR/.runner"
+id -nG "$ASC_USER" | grep -qw docker
+id -nG "$ROO_USER" | grep -qw docker
 
 # Never preempt a job already executing.
 if pgrep -u "$ASC_USER" -f 'Runner.Worker' >/dev/null 2>&1 || pgrep -u "$ROO_USER" -f 'Runner.Worker' >/dev/null 2>&1; then
@@ -42,9 +44,10 @@ if pgrep -u "$ASC_USER" -f 'Runner.Worker' >/dev/null 2>&1 || pgrep -u "$ROO_USE
 fi
 
 install -d -m 0755 /usr/local/libexec /usr/local/sbin
-install -d -m 1777 "$STATE_DIR"
+install -d -m 2770 -g docker "$STATE_DIR"
 touch "$STATE_DIR/runner.lock" "$STATE_DIR/turn" "$STATE_DIR/active"
-chmod 0666 "$STATE_DIR/runner.lock" "$STATE_DIR/turn" "$STATE_DIR/active"
+chgrp docker "$STATE_DIR/runner.lock" "$STATE_DIR/turn" "$STATE_DIR/active"
+chmod 0660 "$STATE_DIR/runner.lock" "$STATE_DIR/turn" "$STATE_DIR/active"
 
 cat > "$SUPERVISOR" <<'SUPERVISOR_SCRIPT'
 #!/usr/bin/env bash
@@ -62,9 +65,10 @@ SIDE_LOCK="$STATE_DIR/${SELF,,}.supervisor.lock"
 IDLE_SLICE=20
 POLL=2
 
-mkdir -p "$STATE_DIR" 2>/dev/null || true
-touch "$GLOBAL_LOCK" "$TURN" "$ACTIVE" "$SIDE_LOCK" 2>/dev/null || true
-chmod 666 "$GLOBAL_LOCK" "$TURN" "$ACTIVE" "$SIDE_LOCK" 2>/dev/null || true
+[ -d "$STATE_DIR" ] || exit 3
+touch "$SIDE_LOCK" 2>/dev/null || exit 3
+chgrp docker "$SIDE_LOCK" 2>/dev/null || true
+chmod 0660 "$SIDE_LOCK" 2>/dev/null || true
 
 # Exactly one supervisor process per side.
 exec 8>"$SIDE_LOCK"
@@ -89,7 +93,7 @@ stop_listener() {
     /bin/kill -0 "$pid" 2>/dev/null || return 0
     /bin/sleep 1
   done
-  log "listener did not stop within grace period; leaving it untouched"
+  log 'listener did not stop within grace period; retaining lock and listener'
   return 1
 }
 
@@ -146,8 +150,11 @@ while true; do
           intentional_yield=1
           printf '%s\n' "$OTHER" > "$TURN"
           printf '%s\n' 'NONE' > "$ACTIVE"
+          break
+        else
+          idle_since=$now
+          log 'yield deferred because listener is still alive'
         fi
-        break
       fi
     fi
     /bin/sleep "$POLL"
@@ -251,7 +258,8 @@ chmod 0755 "$ROLLBACK"
 printf '%s\n' installed > "$STATE_DIR/installed"
 printf '%s\n' ROO7 > "$STATE_DIR/turn"
 printf '%s\n' NONE > "$STATE_DIR/active"
-chmod 0666 "$STATE_DIR/installed" "$STATE_DIR/turn" "$STATE_DIR/active"
+chgrp docker "$STATE_DIR/installed" "$STATE_DIR/turn" "$STATE_DIR/active"
+chmod 0660 "$STATE_DIR/installed" "$STATE_DIR/turn" "$STATE_DIR/active"
 
 # Retire legacy ASCENDA-only loop. Since Worker was checked above, this does not
 # interrupt a running CI job.
@@ -275,6 +283,7 @@ echo "TURN=$(cat "$STATE_DIR/turn" 2>/dev/null || echo missing)"
 echo "ACTIVE=$(cat "$STATE_DIR/active" 2>/dev/null || echo missing)"
 echo "ASC_SUPERVISOR=$(pgrep -u "$ASC_USER" -f "$SUPERVISOR ASCENDA" >/dev/null && echo running || echo stopped)"
 echo "ROO_SUPERVISOR=$(pgrep -u "$ROO_USER" -f "$SUPERVISOR ROO7" >/dev/null && echo running || echo stopped)"
-echo "LISTENERS=$(pgrep -af 'Runner.Listener run' | wc -l)"
+listeners=$(pgrep -af 'Runner.Listener run' 2>/dev/null | wc -l || true)
+echo "LISTENERS=${listeners:-0}"
 echo "ROLLBACK=$ROLLBACK"
 echo 'SHARED_RUNNER_DISPATCHER_INSTALL=PASS'
