@@ -1,0 +1,46 @@
+name: Shared Runner Dispatcher V1 — Stage systemd repair
+
+on:
+  push:
+    branches: ['infra/shared-runner-dispatcher-v1-final']
+    paths:
+      - 'scripts/infra/repair-shared-runner-dispatcher-systemd-v1.sh'
+      - '.github/workflows/shared-runner-dispatcher-systemd-repair-stage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shared-runner-dispatcher-systemd-repair-stage
+  cancel-in-progress: true
+
+jobs:
+  stage:
+    name: Stage systemd repair on CREACTIVE
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate repair script
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/infra/repair-shared-runner-dispatcher-systemd-v1.sh
+          grep -q "Runner.Worker" scripts/infra/repair-shared-runner-dispatcher-systemd-v1.sh
+          grep -q "systemctl disable" scripts/infra/repair-shared-runner-dispatcher-systemd-v1.sh
+          grep -q "LISTENERS" scripts/infra/repair-shared-runner-dispatcher-systemd-v1.sh
+          echo 'SYSTEMD_REPAIR_STATIC_VALIDATION=PASS'
+
+      - name: Stage root-only repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          target='/home/ascenda-runner/shared-runner-dispatcher-v1/repair-systemd.sh'
+          mkdir -p "$(dirname "$target")"
+          install -m 0700 scripts/infra/repair-shared-runner-dispatcher-systemd-v1.sh "$target"
+          bash -n "$target"
+          echo "REPAIR=$target"
+          echo 'SHARED_RUNNER_SYSTEMD_REPAIR_STAGED=PASS'
