@@ -67,6 +67,14 @@ do $$ declare r jsonb; p jsonb; begin
    'BLOCKED','GH456:A1:CONSENT',null);
  if coalesce((r->>'replay')::boolean,false) is not true then raise exception 'L10_REPLAY_MISSING %',r; end if;
  if (select count(*) from public.aos_wa_l10_canary_runs_v1 where run_key='CI-L10-SAFE-OFF-0001')<>1 then raise exception 'L10_REPLAY_DUPLICATED'; end if;
+
+ -- Reusing the key with different evidence is a conflict, never a silent stale replay.
+ r:=public.aos_wa_l10_prepare_run_v1(
+   '11111111-1111-4111-8111-111111111111'::uuid,'CI-L10-SAFE-OFF-0001',p,
+   'VERIFIED_CURRENT','GH456:A1:POLICY','STALE_EVIDENCE','GH456:A1:PROVIDER-CHANGED',
+   'UNKNOWN','GH456:A1:TEMPLATE','UNKNOWN','GH456:A1:BILLING',
+   'BLOCKED','GH456:A1:CONSENT',null);
+ if r->>'error'<>'WA_L10_RUN_KEY_CONFLICT' then raise exception 'L10_REPLAY_EVIDENCE_CONFLICT %',r; end if;
 end $$;
 
 -- Scope attachment is hash-only and never writes L4 allowlist.
@@ -80,6 +88,12 @@ do $$ declare r jsonb; before_n bigint; after_n bigint; begin
  select count(*) into after_n from public.aos_wa_auto_allowlist_v1 where active is true;
  if before_n<>after_n or after_n<>0 then raise exception 'L10_SCOPE_MUTATED_ALLOWLIST % %',before_n,after_n; end if;
  if (select recipient_hash from public.aos_wa_l10_canary_scope_v1 limit 1)<>repeat('a',64) then raise exception 'L10_SCOPE_HASH_DRIFT'; end if;
+
+ -- Same run/conversation with a different reason is a conflict, not a replay.
+ r:=public.aos_wa_l10_attach_scope_v1(
+   '11111111-1111-4111-8111-111111111111'::uuid,'CI-L10-SAFE-OFF-0001',
+   '55555555-5555-4555-8555-555555555551'::uuid,repeat('a',64),'CI_DIFFERENT_SCOPE');
+ if r->>'error'<>'WA_L10_SCOPE_CONFLICT' then raise exception 'L10_SCOPE_REASON_CONFLICT %',r; end if;
 end $$;
 
 -- Bounded status is run-scoped, preserves SAFE-OFF and sees no autonomous activity.
