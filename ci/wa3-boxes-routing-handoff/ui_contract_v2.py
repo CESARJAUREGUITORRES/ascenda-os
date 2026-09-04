@@ -31,5 +31,7 @@ assert "privacy:'NO_CUSTOMER_DATA'" in server
 assert 'contact_number' not in server
 assert 'message_body' not in server
 assert "['server-wa3-v2.js']" in wa4
-assert 'Copilot only' in wa4
+assert 'server-only L10 autonomous CANARY orchestration' in wa4
+assert 'L4/L8 remain the sole autonomous send/preflight authority' in wa4
+assert 'WA-3 remains human ownership authority' in wa4
 print('WA-3 V2 boundary contract: PASS mode='+('FINAL' if final_mode else 'V2'))

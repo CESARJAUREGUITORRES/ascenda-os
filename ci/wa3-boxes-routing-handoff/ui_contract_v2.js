@@ -34,5 +34,7 @@ assert(server.includes("const scope=read?'read':'write'"));
 assert(server.includes("const limit=read?600:120"));
 assert(!server.includes("const key=String(req.socket.remoteAddress||'unknown'),now=Date.now()"));
 assert(wa4.includes("['server-wa3-v2.js']"));
-assert(wa4.includes('Copilot only'));
+assert(wa4.includes('server-only L10 autonomous CANARY orchestration'));
+assert(wa4.includes('L4/L8 remain the sole autonomous send/preflight authority'));
+assert(wa4.includes('WA-3 remains human ownership authority'));
 console.log('WA-3 V2 boundary contract: PASS mode='+(finalMode?'FINAL':'V2'));
