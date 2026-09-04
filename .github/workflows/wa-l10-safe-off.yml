@@ -7,6 +7,9 @@ on:
       - 'supabase/migrations/*wa_l10*'
       - 'supabase/rollbacks/*wa_l10*'
       - 'ci/wa-l10/**'
+      - 'app/server-wa4.js'
+      - 'app/wa-l10-autonomous-bridge.js'
+      - 'app/wa-l10-autonomous-bridge.test.js'
       - 'docs/control/WA_L10_*'
       - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
       - '.github/workflows/wa-l10-safe-off.yml'
@@ -32,6 +35,13 @@ jobs:
       - name: L10 static contract
         shell: powershell
         run: node ci/wa-l10/safe_off_contract.test.js
+      - name: L10 event-driven autonomous bridge contract
+        shell: powershell
+        run: |
+          node --check app/server-wa4.js
+          node --check app/wa-l10-autonomous-bridge.js
+          node --test app/wa-l10-autonomous-bridge.test.js
+          node ci/wa-l10/autonomous_bridge_contract.test.js
       - name: Existing bounded safety contract
         shell: powershell
         run: node ci/wa-l8/p0_certification_status_v2_contract.js
@@ -64,10 +74,6 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/ci/enforce-zero-cost-policy.py
-          # A cancelled prior exact-head run can bypass the EXIT trap and leave the
-          # canonical WA full-local Supabase stack listening. Reclaim only that
-          # named synthetic test stack before enforcing isolation; never kill
-          # arbitrary listeners and never relax the bounded port wait.
           (cd ci/wa4c-full-local && supabase stop --no-backup >/dev/null 2>&1) || true
           docker ps -aq --filter 'name=ascenda-wa4c-full-local' | xargs -r docker rm -f >/dev/null 2>&1 || true
           for i in $(seq 1 90); do
@@ -97,8 +103,6 @@ jobs:
         run: |
           set -euo pipefail
           python3 scripts/ci/enforce-zero-cost-policy.py
-          # Same cancellation hardening for L10's dedicated namespace. The
-          # container-name filter is intentionally narrow and test-only.
           (cd ci/zero-cost-staging && supabase stop --no-backup >/dev/null 2>&1) || true
           docker ps -aq --filter 'name=ascenda-wa-l10' | xargs -r docker rm -f >/dev/null 2>&1 || true
           for i in $(seq 1 90); do
@@ -114,4 +118,34 @@ jobs:
         if: success()
         run: |
           echo 'WA-L10 candidate passed SAFE-OFF-only observability, L4 authority boundary, L5-L9 CURRENT prerequisite regression, hash-only scope, bounded status, replay, RLS and fail-closed recovery.' >> "$GITHUB_STEP_SUMMARY"
-          echo 'No provider dispatch, active CANARY allowlist or AUTO_OFF→CANARY transition was created or authorized.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No provider dispatch, active CANARY allowlist or AUTO_OFF→CANARY transition was created or authorized by the SAFE-OFF preparation layer.' >> "$GITHUB_STEP_SUMMARY"
+
+  l10-autonomous-bridge-db:
+    name: L10 CANARY bridge DB / exact scope / ownership return / no duplicate
+    needs: l10-observability-db
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 55
+    env:
+      ASCENDA_FULL_LOCAL: '1'
+      AOS_STUDIO_BACKGROUND_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Reclaim canonical full-local namespace
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          (cd ci/wa4c-full-local && supabase stop --no-backup >/dev/null 2>&1) || true
+          docker ps -aq --filter 'name=ascenda-wa4c-full-local' | xargs -r docker rm -f >/dev/null 2>&1 || true
+      - name: Run L10 event-driven bridge DB certification
+        run: bash ci/wa-l10/run-autonomous-bridge-db.sh
+      - name: Bridge certification summary
+        if: success()
+        run: |
+          echo 'WA-L10 bridge passed durable enqueue, bounded crash lease, exact-conversation allowlist, governed human→AI_ACTIVE return, append-only audit, RLS, replay and SAFE-OFF exit.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'The test never calls Meta; real provider traffic remains gated by L4/L8 and the explicit production canary activation.' >> "$GITHUB_STEP_SUMMARY"
