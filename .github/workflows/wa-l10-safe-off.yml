@@ -1,0 +1,117 @@
+name: ASCENDA WA-L10 SAFE-OFF Preparation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/*wa_l10*'
+      - 'supabase/rollbacks/*wa_l10*'
+      - 'ci/wa-l10/**'
+      - 'docs/control/WA_L10_*'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+      - '.github/workflows/wa-l10-safe-off.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: wa-l10-safe-off-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  static-safe-off-contract:
+    name: L10 static SAFE-OFF / privacy / authority boundary
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: L10 static contract
+        shell: powershell
+        run: node ci/wa-l10/safe_off_contract.test.js
+      - name: Existing bounded safety contract
+        shell: powershell
+        run: node ci/wa-l8/p0_certification_status_v2_contract.js
+      - name: Canonical runtime regressions
+        shell: powershell
+        run: |
+          node --test ci/wa-l4/runtime_contract.js
+          node --test app/wa-l5-booking.test.js
+          node --test ci/wa-l6/attribution_ingress_contract.test.js
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+          node app/wa4-conversation-runtime-v2.test.js
+
+  current-authority-regression:
+    name: L10 prerequisite L5-L9 CURRENT authority / booking / consent / cost
+    needs: static-safe-off-contract
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 80
+    env:
+      ASCENDA_FULL_LOCAL: '1'
+      AOS_STUDIO_BACKGROUND_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Reclaim stale canonical L9 test stack and wait for isolated ports
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          # A cancelled prior exact-head run can bypass the EXIT trap and leave the
+          # canonical WA full-local Supabase stack listening. Reclaim only that
+          # named synthetic test stack before enforcing isolation; never kill
+          # arbitrary listeners and never relax the bounded port wait.
+          (cd ci/wa4c-full-local && supabase stop --no-backup >/dev/null 2>&1) || true
+          docker ps -aq --filter 'name=ascenda-wa4c-full-local' | xargs -r docker rm -f >/dev/null 2>&1 || true
+          for i in $(seq 1 90); do
+            if ! ss -ltn | grep -Eq ':(60200|60201|60202)\b'; then exit 0; fi
+            sleep 2
+          done
+          echo 'L10_L9_PORT_ISOLATION_FAILED' >&2
+          ss -ltnp | grep -E ':(60200|60201|60202)\b' || true
+          exit 1
+      - name: Re-certify current L5-L9 authority chain
+        run: bash ci/wa-l9/run-current-authority.sh
+
+  l10-observability-db:
+    name: L10 DB SAFE-OFF / replay / bounded status / recovery
+    needs: current-authority-regression
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 45
+    env:
+      ASCENDA_FULL_LOCAL: '1'
+      AOS_STUDIO_BACKGROUND_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.101.0
+      - name: Reclaim stale L10 test stack and wait for isolated ports
+        run: |
+          set -euo pipefail
+          python3 scripts/ci/enforce-zero-cost-policy.py
+          # Same cancellation hardening for L10's dedicated namespace. The
+          # container-name filter is intentionally narrow and test-only.
+          (cd ci/zero-cost-staging && supabase stop --no-backup >/dev/null 2>&1) || true
+          docker ps -aq --filter 'name=ascenda-wa-l10' | xargs -r docker rm -f >/dev/null 2>&1 || true
+          for i in $(seq 1 90); do
+            if ! ss -ltn | grep -Eq ':(59840|59841|59842)\b'; then exit 0; fi
+            sleep 2
+          done
+          echo 'L10_DB_PORT_ISOLATION_FAILED' >&2
+          ss -ltnp | grep -E ':(59840|59841|59842)\b' || true
+          exit 1
+      - name: Run exact L10 SAFE-OFF certification
+        run: bash ci/wa-l10/run-safe-off-observability.sh
+      - name: Certification summary
+        if: success()
+        run: |
+          echo 'WA-L10 candidate passed SAFE-OFF-only observability, L4 authority boundary, L5-L9 CURRENT prerequisite regression, hash-only scope, bounded status, replay, RLS and fail-closed recovery.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'No provider dispatch, active CANARY allowlist or AUTO_OFF→CANARY transition was created or authorized.' >> "$GITHUB_STEP_SUMMARY"

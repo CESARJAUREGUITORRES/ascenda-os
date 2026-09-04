@@ -1,53 +1,50 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-03 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `NONE — P0 #457 CLOSED / COMPLETED`  
-**GitHub authority:** Issue `#457` = `CLOSED / COMPLETED`  
-**Next HIGH/CRITICAL candidate:** `WA-L10 — FRESH EXACT-MAIN REVALIDATION REQUIRED` under issue `#456`  
+**ACTIVE HIGH/CRITICAL LOCK:** `WA-L10 #456 — L10-A SAFE-OFF PREPARATION / CERTIFICATION ONLY`  
+**GitHub authority:** Issue `#456` = `OPEN / ACTIVE`  
 **Parent roadmap:** Issue `#410`  
-**P0 closeout main:** `a412c85b08537794d0aa5fda5e9db9a402b9361a`  
+**Exact entry main:** `c3f2e9f8b28e05fae531451c9b9467ea292c91cf`  
+**Active branch:** `wa-l10-safe-off-revalidation-20260903`  
 **Last closed WA lane:** `WA-L9 — AUTONOMOUS DEMO READY`  
 **Effective WA production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF`  
 **CANARY ACTIVATION:** `NOT AUTHORIZED`
 
-## P0 #457 closeout
+## Lock acquisition
 
-Human recovery and security exit criteria are satisfied:
+PR #462 completed the P0 #457 governance closeout after 11/11 triggered workflows reached SUCCESS. Protected merge produced exact `main@c3f2e9f8b28e05fae531451c9b9467ea292c91cf`. Anti-drift confirmed that exact main before this branch was created.
 
-- owner confirmed valid login + 2FA + app access restored;
-- Wilmer resumed normal production work;
-- canonical ASCENDA login mark and accessible password visibility control were restored;
-- Auth V3 and 2FA remain fail-closed with no bypass and no timeout inflation.
+This branch is created exactly from that merge SHA. No pre-P0 WA-L10 branch, test result, PRE snapshot or activation evidence is valid as CANARY authority.
 
-Pressure hardening lineage:
+## Authorized mutable scope — L10-A only
 
-1. `#458` — auth/login availability + UX hotfix;
-2. `#459` — WA-L8/L9 bounded SAFETY readbacks separated from heavy COLD AUDIT paths;
-3. `#460` — `aos_panel_admin` predicates made indexable using existing indexes;
-4. `#461` — `aos_ticker_mkt` specialized to its exposed contract while preserving canonical Marketing Attribution V2 revenue authority.
+1. A0 — exact-main anti-drift, bounded LIVE safety readbacks and fresh PRE fingerprints.
+2. A1 — provider/policy/billing/template/consent readiness assessment without exposing secrets.
+3. A2 — discovery proving which observability/rollback gaps actually remain after L4-L9.
+4. A3 — minimum dormant SAFE-OFF implementation only where discovery proves a gap.
+5. A4 — exact-head cross-module certification, anti-drift, protected merge, Railway and Supabase readback.
 
-`#461` exact head `812b544d1b6909b4d582896696d3d4f489f994d6` passed Ascenda CI, Performance Guard and ASC-PERF Audit 360. Protected merge produced `main@a412c85b08537794d0aa5fda5e9db9a402b9361a`; Railway exact-main deployment reached SUCCESS.
+## Binding safety invariants
 
-Supabase PROD registered `p0_457_ticker_specialized_v1`. Live definition no longer invokes the full `aos_marketing_period_summary_v2` path and still invokes `aos_marketing_attribution_v2_preview`. Post-apply ticker readback preserved all nine payload keys; `EXPLAIN ANALYZE` measured about 100.6 ms, 4,438 shared hits and 0 shared reads.
+- Production remains `AUTO_OFF`.
+- Kill switch remains engaged.
+- `auto_reply=false`, `ai_send=false`, `auto_routing=false`, `human_send=true`.
+- No live autonomous provider dispatch.
+- No active customer CANARY allowlist is created by L10-A.
+- No L10 function may become a second activation authority, sender, pricing authority, identity authority or booking authority.
+- Existing L4 remains the sole autonomous state machine and explicit authorization gate.
+- Existing L5/L6/L7/L8/L9 remain the canonical booking, attribution, cost, policy/security and shadow authorities.
+- No timeout inflation, browser polling, retry loop, materialized analytical hot path or synthetic PROD evidence.
+- Secrets, raw WhatsApp payloads and raw recipient identifiers are never written to GitHub/Notion/L10 evidence.
 
-The last observed PostgreSQL `statement timeout` in the incident window was before the `#460` PROD hardening. No later `statement timeout` or `idle-in-transaction timeout` was observed through the closeout window, while live operational PostgREST traffic remained successful.
+## Fresh A0 preliminary evidence
 
-A single outer-runtime probe from the self-hosted runner showed high connection/runtime jitter and timed out `/app.html`; the exact same read-only gate passed on rerun without code changes (`/health` 5/5 HTTP 200 around 0.52–0.79 s; `/app.html` HTTP 200, 146,246 bytes, about 0.846 s). Therefore no speculative CRITICAL proxy-topology refactor was introduced.
+Current PROD bounded L8/L9 safety readbacks after P0 closeout show `AUTO_OFF`, kill switch engaged, autonomous reply/send/routing OFF, human-send ON, autonomous outbound `0`, provider-dispatch demo runs `0` and browser message/booking writes disabled. Active L4 CANARY allowlist entries were `0` at re-entry.
 
-## Root-cause conclusion
+A fresh exact-entry PRE fingerprint must be frozen again on this branch before A3/A4; earlier values are informational only because normal clinic activity continues.
 
-WA-L10/L11 runtime code did not cause the outage: WA-L10 had not been deployed. The incident was systemic Supabase/PostgREST pressure amplified by heavyweight production certification/read paths and existing synchronous analytical reads. Auth exposed the outage because login/2FA depended on those upstream services; the P0 both restored auth resilience and removed identified pressure sources instead of masking them with larger timeouts.
+## Activation boundary
 
-## Binding WA-L10 resume contract
+`AUTO_OFF → CANARY` is **not authorized** by issue #456, this lock, L10-A implementation, CI success, merge, deploy or SAFE-OFF certification.
 
-The P0 advanced `main`; therefore all prior WA-L10 certification is stale for activation purposes.
-
-Before issue `#456` can become the active HIGH/CRITICAL mutable lane:
-
-1. start from fresh exact `main` after this governance closeout;
-2. re-run L10-A SAFE-OFF preflight/certification against the current production state;
-3. verify `AUTO_OFF`, kill switch engaged, autonomous reply/send/routing OFF, human-send ON;
-4. verify bounded L8/L9 safety readbacks and current database/runtime health;
-5. do not reuse stale pre-P0 L10 evidence as activation authority.
-
-`AUTO_OFF → CANARY` remains a separate owner authorization and is **NOT AUTHORIZED** by P0 closure or by this document. L11 remains blocked by real L10 PASS plus a separate owner go/no-go.
+After L10-A is fully certified, stop and present the owner with current provider/billing/template/consent readiness, exact PRE/POST evidence, remaining risks and a proposed minimal cohort. Only a separate explicit owner go/no-go can authorize the existing L4 `AUTO_OFF → CANARY` transition. L11 remains blocked until a real L10 CANARY PASS and separate owner authorization.
