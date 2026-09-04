@@ -63,11 +63,11 @@ do $$ begin
   if not exists(select 1 from public.aos_wa_routing_events_v1 where conversation_id='66666666-6666-4666-8666-666666666661' and event_type='conversation.autonomous_canary_return') then raise exception 'L10_RETURN_AUDIT_MISSING'; end if;
 end $$;
 
--- A real inbound-shaped ledger row binds to the exact conversation before enqueue.
+-- A real inbound-shaped ledger row is explicitly bound to the exact synthetic conversation before enqueue.
 insert into public.aos_wa_messages_v1(
-  provider_message_id,direction,from_number,to_number,phone_number_id,contact_name,message_type,message_body,status,provider_timestamp,received_at
+  provider_message_id,conversation_id,direction,from_number,to_number,phone_number_id,contact_name,message_type,message_body,status,provider_timestamp,received_at
 ) values (
-  'wamid.ci.l10.in.0001','INBOUND','51911111111','15550000000','L10TEST','CI Contact','text','hello canary','received',now(),now()
+  'wamid.ci.l10.in.0001','66666666-6666-4666-8666-666666666661','INBOUND','51911111111','15550000000','L10TEST','CI Contact','text','hello canary','received',now(),now()
 );
 
 do $$
@@ -102,9 +102,9 @@ update public.aos_wa_conversations_v1
 set state='HUMAN_ACTIVE',owner_user_id='44444444-4444-4444-8444-444444444444',human_takeover_at=now()
 where id='66666666-6666-4666-8666-666666666661';
 insert into public.aos_wa_messages_v1(
-  provider_message_id,direction,from_number,to_number,phone_number_id,contact_name,message_type,message_body,status,provider_timestamp,received_at
+  provider_message_id,conversation_id,direction,from_number,to_number,phone_number_id,contact_name,message_type,message_body,status,provider_timestamp,received_at
 ) values (
-  'wamid.ci.l10.in.0002','INBOUND','51911111111','15550000000','L10TEST','CI Contact','text','human now','received',now(),now()
+  'wamid.ci.l10.in.0002','66666666-6666-4666-8666-666666666661','INBOUND','51911111111','15550000000','L10TEST','CI Contact','text','human now','received',now(),now()
 );
 do $$ declare r jsonb; begin
   r:=public.aos_wa_l10_bridge_enqueue_v1('wamid.ci.l10.in.0002');
