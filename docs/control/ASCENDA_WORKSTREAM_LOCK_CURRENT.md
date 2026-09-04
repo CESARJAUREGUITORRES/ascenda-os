@@ -1,68 +1,53 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-03 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `P0 #457 — AUTH/LOGIN OUTAGE + SUPABASE REST 504 + LOGIN UX REGRESSIONS`  
-**GitHub authority:** Issue `#457` = `OPEN / ACTIVE`  
-**Superseded active lane:** `WA-L10 — PAUSED / SAFE-OFF` under issue `#456`  
+**ACTIVE HIGH/CRITICAL LOCK:** `NONE — P0 #457 CLOSED / COMPLETED`  
+**GitHub authority:** Issue `#457` = `CLOSED / COMPLETED`  
+**Next HIGH/CRITICAL candidate:** `WA-L10 — FRESH EXACT-MAIN REVALIDATION REQUIRED` under issue `#456`  
 **Parent roadmap:** Issue `#410`  
-**P0 ENTRY main:** `efc3f24eb661895626ead146b6e539a172884e75`  
+**P0 closeout main:** `a412c85b08537794d0aa5fda5e9db9a402b9361a`  
 **Last closed WA lane:** `WA-L9 — AUTONOMOUS DEMO READY`  
 **Effective WA production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF`  
 **CANARY ACTIVATION:** `NOT AUTHORIZED`
 
-## Incident evidence
+## P0 #457 closeout
 
-Owner and Wilmer were force-logged out and cannot re-enter ASCENDA.
+Human recovery and security exit criteria are satisfied:
 
-Observed UI/runtime failures:
+- owner confirmed valid login + 2FA + app access restored;
+- Wilmer resumed normal production work;
+- canonical ASCENDA login mark and accessible password visibility control were restored;
+- Auth V3 and 2FA remain fail-closed with no bypass and no timeout inflation.
 
-- owner login: `AUTH_UPSTREAM_UNAVAILABLE`;
-- Wilmer login: `No fue posible preparar el envío del código 2FA`;
-- login visual mark replaced by generic `✦` despite canonical ASCENDA favicon/icon assets already existing;
-- password field has no show/hide control.
+Pressure hardening lineage:
 
-Fresh Supabase evidence shows this is not only a login-form defect:
+1. `#458` — auth/login availability + UX hotfix;
+2. `#459` — WA-L8/L9 bounded SAFETY readbacks separated from heavy COLD AUDIT paths;
+3. `#460` — `aos_panel_admin` predicates made indexable using existing indexes;
+4. `#461` — `aos_ticker_mkt` specialized to its exposed contract while preserving canonical Marketing Attribution V2 revenue authority.
 
-- project reports `ACTIVE_HEALTHY`, but PostgREST/API logs show broad repeated `504` across simple REST/RPC reads/writes and `/rest-admin/v1/ready`;
-- PostgreSQL logs show repeated `terminating connection due to idle-in-transaction timeout` plus `canceling statement due to statement timeout`;
-- even management SQL succeeds intermittently and then times out;
-- therefore auth/2FA failures are a symptom of systemic DB/PostgREST pressure plus an overly strict pre-login Resend reconciliation dependency.
+`#461` exact head `812b544d1b6909b4d582896696d3d4f489f994d6` passed Ascenda CI, Performance Guard and ASC-PERF Audit 360. Protected merge produced `main@a412c85b08537794d0aa5fda5e9db9a402b9361a`; Railway exact-main deployment reached SUCCESS.
 
-## Binding remediation rules
+Supabase PROD registered `p0_457_ticker_specialized_v1`. Live definition no longer invokes the full `aos_marketing_period_summary_v2` path and still invokes `aos_marketing_attribution_v2_preview`. Post-apply ticker readback preserved all nine payload keys; `EXPLAIN ANALYZE` measured about 100.6 ms, 4,438 shared hits and 0 shared reads.
 
-- P0 #457 is the only mutable HIGH/CRITICAL lane until production-certified closeout;
-- WA-L10 implementation/canary work is paused;
-- do not raise `statement_timeout`, browser timeout, or conceal pressure with longer waits;
-- do not bypass 2FA or weaken auth;
-- do not blindly retry non-idempotent login/2FA challenge creation after ambiguous upstream failure;
-- restore app availability by reducing pressure/fan-out and eliminating unnecessary synchronous dependencies;
-- preserve one source of truth for auth, identity and sessions;
-- exact-head CI + anti-drift + protected merge + Railway + Supabase/API readback required;
-- owner/Wilmer real login smoke is mandatory before P0 closure.
+The last observed PostgreSQL `statement timeout` in the incident window was before the `#460` PROD hardening. No later `statement timeout` or `idle-in-transaction timeout` was observed through the closeout window, while live operational PostgREST traffic remained successful.
 
-## P0 implementation scope
+A single outer-runtime probe from the self-hosted runner showed high connection/runtime jitter and timed out `/app.html`; the exact same read-only gate passed on rerun without code changes (`/health` 5/5 HTTP 200 around 0.52–0.79 s; `/app.html` HTTP 200, 146,246 bytes, about 0.846 s). Therefore no speculative CRITICAL proxy-topology refactor was introduced.
 
-1. Determine/mitigate source of DB/PostgREST pressure and idle-in-transaction accumulation.
-2. Harden auth availability without weakening security:
-   - Resend-vault synchronization must not become an unnecessary synchronous blocker before every login;
-   - auth transport errors remain fail-closed and explicit;
-   - no unsafe automatic replay of challenge-creating calls.
-3. Restore canonical ASCENDA login mark from existing canonical app asset(s).
-4. Add accessible show/hide password control.
-5. Add focused regression contracts for auth availability behavior and login UI.
-6. Re-run cross-module P0 #432 regression matrix.
+## Root-cause conclusion
 
-## Exit
+WA-L10/L11 runtime code did not cause the outage: WA-L10 had not been deployed. The incident was systemic Supabase/PostgREST pressure amplified by heavyweight production certification/read paths and existing synchronous analytical reads. Auth exposed the outage because login/2FA depended on those upstream services; the P0 both restored auth resilience and removed identified pressure sources instead of masking them with larger timeouts.
 
-Close only when:
+## Binding WA-L10 resume contract
 
-- bounded repeated Supabase REST/admin checks are healthy;
-- owner authenticates successfully through valid 2FA;
-- Wilmer authenticates successfully through valid 2FA;
-- canonical login logo/icon is restored;
-- password visibility toggle works;
-- no auth/2FA weakening;
-- WA remains `AUTO_OFF` with kill switch engaged;
-- root cause and prevention are documented.
+The P0 advanced `main`; therefore all prior WA-L10 certification is stale for activation purposes.
 
-After #457 closes and the lock is released, WA-L10 may resume from a fresh exact-main revalidation; no prior L10 certification survives this P0 main advance.
+Before issue `#456` can become the active HIGH/CRITICAL mutable lane:
+
+1. start from fresh exact `main` after this governance closeout;
+2. re-run L10-A SAFE-OFF preflight/certification against the current production state;
+3. verify `AUTO_OFF`, kill switch engaged, autonomous reply/send/routing OFF, human-send ON;
+4. verify bounded L8/L9 safety readbacks and current database/runtime health;
+5. do not reuse stale pre-P0 L10 evidence as activation authority.
+
+`AUTO_OFF → CANARY` remains a separate owner authorization and is **NOT AUTHORIZED** by P0 closure or by this document. L11 remains blocked by real L10 PASS plus a separate owner go/no-go.
