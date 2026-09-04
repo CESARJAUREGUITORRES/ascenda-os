@@ -176,7 +176,19 @@ begin
 
   select * into v_existing from public.aos_wa_l10_canary_runs_v1 where run_key=p_run_key;
   if v_existing.id is not null then
-    if v_existing.pre_fingerprint<>p_pre_fingerprint then
+    if v_existing.pre_fingerprint<>p_pre_fingerprint
+       or v_existing.policy_state<>v_policy
+       or v_existing.policy_evidence_ref<>p_policy_evidence_ref
+       or v_existing.provider_state<>v_provider
+       or v_existing.provider_evidence_ref<>p_provider_evidence_ref
+       or v_existing.template_state<>v_template
+       or v_existing.template_evidence_ref<>p_template_evidence_ref
+       or v_existing.billing_state<>v_billing
+       or v_existing.billing_evidence_ref<>p_billing_evidence_ref
+       or v_existing.consent_state<>v_consent
+       or v_existing.consent_evidence_ref<>p_consent_evidence_ref
+       or v_existing.cohort_method is distinct from p_cohort_method
+       or v_existing.created_by<>p_actor_id then
       return jsonb_build_object('ok',false,'error','WA_L10_RUN_KEY_CONFLICT');
     end if;
     return jsonb_build_object(
@@ -281,7 +293,9 @@ begin
   from public.aos_wa_l10_canary_scope_v1
   where run_id=v_run.id and conversation_id=p_conversation_id;
   if v_existing.id is not null then
-    if v_existing.recipient_hash<>p_recipient_hash then
+    if v_existing.recipient_hash<>p_recipient_hash
+       or v_existing.scope_reason<>p_scope_reason
+       or v_existing.created_by<>p_actor_id then
       return jsonb_build_object('ok',false,'error','WA_L10_SCOPE_CONFLICT');
     end if;
     return jsonb_build_object('ok',true,'replay',true,'scope_id',v_existing.id,'activation_authorized',false);
