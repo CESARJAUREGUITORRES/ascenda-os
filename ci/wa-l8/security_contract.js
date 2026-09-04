@@ -85,4 +85,7 @@ assert(!/alter\s+table\s+public\.(?:aos_pacientes|aos_ventas|aos_llamadas|aos_le
 assert(rollback.includes('WA_L8_RECOVERY_BLOCKED_AUDIT_HISTORY'));
 assert(rollback.includes('Least-privilege revocations are monotonic security hardening'));
 
+// P0 #457: production deploy/readbacks use bounded safety-only status v2.
+require('./p0_certification_status_v2_contract');
+
 console.log('WA_L8_STATIC_SECURITY_CONTRACT_PASS');
