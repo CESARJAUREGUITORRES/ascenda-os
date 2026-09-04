@@ -1,0 +1,54 @@
+name: Shared Runner Dispatcher V1 — Stage Final Installer
+
+on:
+  push:
+    branches: ['infra/shared-runner-dispatcher-v1-final']
+    paths:
+      - 'scripts/infra/install-shared-runner-dispatcher-v1.sh'
+      - '.github/workflows/shared-runner-dispatcher-stage-final.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shared-runner-dispatcher-v1-final-stage
+  cancel-in-progress: true
+
+jobs:
+  stage:
+    name: Stage shared dispatcher installer on CREACTIVE
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Non-destructive host diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "USER=$(id -un)"
+          echo "HOST=$(hostname)"
+          echo "CRONTAB=$(command -v crontab >/dev/null && echo present || echo missing)"
+          echo "FLOCK=$(command -v flock >/dev/null && echo present || echo missing)"
+          echo "RUNUSER=$(command -v runuser >/dev/null && echo present || echo missing)"
+          echo "SYSTEMD=$(test -d /run/systemd/system && echo present || echo absent)"
+          echo 'ACTIVE_LISTENERS:'
+          ps -eo user,pid,args | grep '[R]unner.Listener' || true
+          echo 'ACTIVE_WORKERS:'
+          ps -eo user,pid,args | grep '[R]unner.Worker' || true
+          test -x /home/ascenda-runner/actions-runner/actions-runner/run.sh || test -x /home/ascenda-runner/actions-runner/run.sh
+          test -x /home/cesar/actions-runner/run.sh
+          echo 'HOST_DIAGNOSTIC=PASS'
+
+      - name: Stage audited root installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          target='/home/ascenda-runner/shared-runner-dispatcher-v1/install.sh'
+          mkdir -p "$(dirname "$target")"
+          install -m 0700 scripts/infra/install-shared-runner-dispatcher-v1.sh "$target"
+          bash -n "$target"
+          echo "INSTALLER=$target"
+          echo 'SHARED_RUNNER_INSTALLER_STAGED=PASS'
