@@ -1,6 +1,7 @@
 -- WA4A retrieval relevance V2
 -- Fixes R3 real-turn failure where generic commercial words ("informacion", "precio")
--- outranked the actual treatment terms. Preserves function signature and callers.
+-- outranked the actual treatment terms. Preserves function signature, candidate-prefilter
+-- architecture, authority/conflict gates and callers.
 
 create or replace function public.aos_wa4a_knowledge_search_v1(
   p_query text,
@@ -59,67 +60,79 @@ begin
       'mas','del','una','uno','unos','unas','que'
     ]::text[])
     union all
-    -- Commercial synonym only for retrieval. It does not alter the governed facts.
+    -- Commercial synonym only for retrieval. It does not alter governed facts.
     select 'toxina'
     where exists (
       select 1 from unnest(v_raw_tokens) w where w in ('botox','botulinica')
     )
   ) s;
 
-  -- For an unusually generic query, retain the old token behavior instead of
-  -- returning a fabricated match.
+  -- For an unusually generic query, retain the legacy token behavior rather than
+  -- manufacturing a treatment match.
   if coalesce(cardinality(v_tokens),0) = 0 then
     v_tokens := v_raw_tokens;
   end if;
 
   return query
-  with prepared as materialized (
+  with folded as materialized (
     select
       k.knowledge_id,k.domain,k.subject_type,k.subject_id,k.title,k.search_text,k.facts,k.authority_tier,
       k.source_relation,k.source_pk,k.source_updated_at,k.freshness_state,k.conflict_state,
       k.retrieval_state,k.evidence_ref,
-      public.aos_wa4a_norm_v1(k.title) as norm_title,
-      public.aos_wa4a_norm_v1(concat_ws(' ',
+      lower(translate(coalesce(k.title,''),'ÁÉÍÓÚÜÑáéíóúüñ','AEIOUUNaeiouun')) as fold_title,
+      lower(translate(concat_ws(' ',
         k.title,
         k.facts->>'nombre',
         k.facts->>'nombre_corto',
         k.facts->>'categoria'
-      )) as norm_structured,
-      public.aos_wa4a_norm_v1(k.search_text) as norm_search
+      ),'ÁÉÍÓÚÜÑáéíóúüñ','AEIOUUNaeiouun')) as fold_structured,
+      lower(translate(coalesce(k.search_text,''),'ÁÉÍÓÚÜÑáéíóúüñ','AEIOUUNaeiouun')) as fold_search
     from public.aos_wa4a_knowledge_items_v1 k
     where k.retrieval_state in ('READY','READY_WITH_WARNING')
       and k.conflict_state='CLEAR'
       and (p_domains is null or cardinality(p_domains)=0 or k.domain=any(p_domains))
   ), candidates as materialized (
-    select p.*
-    from prepared p
+    select f.*
+    from folded f
     where exists (
       select 1
       from unnest(v_tokens) w
-      where p.norm_structured like '%'||w||'%'
-         or p.norm_search like '%'||w||'%'
+      where f.fold_structured like '%'||w||'%'
+         or f.fold_search like '%'||w||'%'
     )
-  ), ranked as (
+  ), prepared as materialized (
     select
       c.*,
+      public.aos_wa4a_norm_v1(c.title) as norm_title,
+      public.aos_wa4a_norm_v1(concat_ws(' ',
+        c.title,
+        c.facts->>'nombre',
+        c.facts->>'nombre_corto',
+        c.facts->>'categoria'
+      )) as norm_structured,
+      public.aos_wa4a_norm_v1(c.search_text) as norm_search
+    from candidates c
+  ), ranked as (
+    select
+      p.*,
       (
-        case when c.norm_title=v_q then 140 else 0 end
-        + case when c.norm_title like '%'||v_q||'%' then 45 else 0 end
-        + case when c.norm_search like '%'||v_q||'%' then 25 else 0 end
-        + coalesce((select count(*)::integer*90 from unnest(v_tokens) w where c.norm_title like '%'||w||'%'),0)
-        + coalesce((select count(*)::integer*60 from unnest(v_tokens) w where c.norm_structured like '%'||w||'%'),0)
-        + coalesce((select count(*)::integer*8 from unnest(v_tokens) w where c.norm_search like '%'||w||'%'),0)
-        + case when c.authority_tier=10 then 5 else 0 end
+        case when p.norm_title=v_q then 140 else 0 end
+        + case when p.norm_title like '%'||v_q||'%' then 45 else 0 end
+        + case when p.norm_search like '%'||v_q||'%' then 25 else 0 end
+        + coalesce((select count(*)::integer*90 from unnest(v_tokens) w where p.norm_title like '%'||w||'%'),0)
+        + coalesce((select count(*)::integer*60 from unnest(v_tokens) w where p.norm_structured like '%'||w||'%'),0)
+        + coalesce((select count(*)::integer*8 from unnest(v_tokens) w where p.norm_search like '%'||w||'%'),0)
+        + case when p.authority_tier=10 then 5 else 0 end
         -- Generic toxin inquiries should see the standard zone SKUs before
         -- indication-specific variants such as hyperhidrosis/platisma.
         + case
             when 'toxina'=any(v_tokens)
-             and public.aos_wa4a_norm_v1(c.facts->>'categoria')='toxina'
-             and c.norm_title ~ '(^| )(1|2|3|[0-9]+) zona(s)?( |$)'
+             and public.aos_wa4a_norm_v1(p.facts->>'categoria')='toxina'
+             and p.norm_title ~ '(^| )(1|2|3|[0-9]+) zona(s)?( |$)'
             then 50 else 0
           end
       )::integer as rank_score
-    from candidates c
+    from prepared p
   ), scored as (
     select r.*,max(r.rank_score) over() as max_score
     from ranked r
@@ -136,4 +149,4 @@ end
 $function$;
 
 comment on function public.aos_wa4a_knowledge_search_v1(text,integer,text[])
-is 'WA4A governed retrieval V2: stopword-resistant structured relevance + conservative toxin synonym routing.';
+is 'WA4A governed retrieval V2: stopword-resistant structured relevance + conservative toxin synonym routing with cheap candidate prefilter.';
