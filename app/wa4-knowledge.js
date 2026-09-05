@@ -238,12 +238,14 @@ function deterministicCitationRepair(reply,bundle) {
   }
 
   const catalogs = visible.filter(item=>String(item.domain||'').toUpperCase()==='CATALOG');
-  if (catalogs.length === 1) return [String(catalogs[0].knowledge_id)];
-  if (catalogs.length > 1) {
-    const families = new Set(catalogs.map(itemFamily).filter(Boolean));
-    if (families.size === 1) return catalogs.map(x=>String(x.knowledge_id)).filter(Boolean).slice(0,CITATION_REPAIR_VISIBLE_ITEMS);
-  }
-  return [];
+  if (!catalogs.length) return [];
+  const families = new Set(catalogs.map(itemFamily).filter(Boolean));
+  if (families.size !== 1) return [];
+  const family = [...families][0];
+  const familyTokens = family.split(/[^a-z0-9]+/).filter(t=>t.length>=4);
+  const replyTokens = new Set(normalize(reply).split(/[^a-z0-9]+/).filter(Boolean));
+  if (!familyTokens.some(t=>replyTokens.has(t))) return [];
+  return catalogs.map(x=>String(x.knowledge_id)).filter(Boolean).slice(0,CITATION_REPAIR_VISIBLE_ITEMS);
 }
 
 function validateGroundedSuggestion(obj, bundle) {
