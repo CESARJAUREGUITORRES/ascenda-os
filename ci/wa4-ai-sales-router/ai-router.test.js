@@ -86,5 +86,6 @@ test('cost estimator uses current Groq prices', () => {
   assert.equal(ai.estimateCost('openai/gpt-oss-120b', { prompt_tokens: 1000000, completion_tokens: 1000000 }), 0.75);
 });
 
-// Keep the production-scale knowledge-payload regression in the canonical WA4 test entrypoint.
+// Keep production-scale payload and FASTPATH regressions in the canonical WA4 test entrypoint.
 require('./knowledge-bounds.test.js');
+require('./fastpath-r1.test.js');
