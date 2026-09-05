@@ -196,9 +196,8 @@ function createCopilot(deps){
         return writeJson(res,200,{ok:true,playbook:pb,runtime:runtimeSummary(runtime),contexts,suggestion:null,needs_human:true,next_action:'HUMAN_COMMERCIAL',blocked_by:'PUBLIC_GOVERNED_EVIDENCE_REQUIRED',auto_send:false});
       }
 
-      const [key,geminiKey,health]=await Promise.all([getGroqKey(),typeof getGeminiKey==='function'?getGeminiKey():Promise.resolve(''),modelHealth(false)]);
-      if(!key&&!geminiKey)return writeJson(res,503,{ok:false,error:'WA4_AI_PROVIDER_NOT_CONFIGURED',playbook:pb,runtime:runtimeSummary(runtime),contexts,auto_send:false});
-      if(!health.copilot_ready&&!geminiKey)return writeJson(res,503,{ok:false,error:'WA4_MODELS_NOT_READY',health,playbook:pb,runtime:runtimeSummary(runtime),contexts,auto_send:false});
+      const key=await getGroqKey();
+      const geminiKey=typeof getGeminiKey==='function'?await getGeminiKey():'';
       const hist=history(messages,limit);
       const model=ai.chooseModel(inbound,{catalogMatches:governed.publicBundle.items.filter(x=>x.domain==='CATALOG').length});
       const promptKnowledge=answerCards.build(governed.publicBundle,{maxItems:model===ai.MODELS.reasoning?6:4});
