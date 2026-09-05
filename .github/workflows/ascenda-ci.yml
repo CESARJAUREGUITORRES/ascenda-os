@@ -80,6 +80,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (Test-Path 'app/server-wa4.js') { node --check app/server-wa4.js }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (Test-Path 'app/wa4-knowledge.js') { node --check app/wa4-knowledge.js }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (Test-Path 'app/email-runtime-env-compat.cjs') { node --check app/email-runtime-env-compat.cjs }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if (Test-Path 'app/supabase-runtime-auth.cjs') { node --check app/supabase-runtime-auth.cjs }
@@ -97,6 +99,12 @@ jobs:
           node ci/wa4c-runtime/supabase-auth-header.test.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node ci/wa4c-runtime/quota-target.test.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: WA-4 R3 focused retrieval and grounding regression
+        shell: powershell
+        run: |
+          node --test ci/wa4-ai-sales-router/retrieval-grounding-r3.test.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Check public JavaScript syntax
