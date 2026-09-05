@@ -4,7 +4,7 @@ const ai=require('./ai-router');
 const resilience=require('./wa4-ai-resilience');
 const answerCards=require('./wa4-answer-cards');
 
-const VERSION='WA4-FASTPATH-R1-BENCH';
+const VERSION='WA4-FASTPATH-R1-BENCH-R2';
 const ROUNDS=8;
 let groqSecretCache={value:'',expiresAt:0};
 
@@ -54,20 +54,23 @@ function schemas(){
 async function oneRound(keys,round){
   const cards=answerCards.build(syntheticKnowledge(),{maxItems:4}),schema=schemas();
   const mainMessages=[
-    {role:'system',content:'Eres un benchmark sintético de ASCENDA. Usa solo GOVERNED_KNOWLEDGE. Devuelve JSON. No diagnostiques ni inventes. Cita bench-svc-1.'},
-    {role:'user',content:JSON.stringify({client_message:'¿Cuánto cuesta el tratamiento demo?',GOVERNED_KNOWLEDGE:cards,required_reply:'El precio aprobado es S/ 199.',round})}
+    {role:'system',content:'Benchmark sintético ASCENDA. Usa EXCLUSIVAMENTE GOVERNED_KNOWLEDGE. Devuelve SOLO un objeto JSON con exactamente estas claves: reply,intent,next_action,confidence,cited_knowledge_ids,needs_human,reason. Para este caso reply debe comunicar que el precio aprobado es S/ 199; intent="PRICE"; next_action="REPLY"; cited_knowledge_ids DEBE ser exactamente ["bench-svc-1"]; needs_human=false. No diagnostiques, no inventes y no añadas texto fuera del JSON.'},
+    {role:'user',content:JSON.stringify({client_message:'¿Cuánto cuesta el tratamiento demo?',GOVERNED_KNOWLEDGE:cards,expected_contract:{approved_price_pen:199,required_cited_knowledge_ids:['bench-svc-1']},round})}
   ];
   const started=Date.now();
   const mainStarted=Date.now();
-  const main=await resilience.chat(keys,ai.MODELS.fast,mainMessages,{maxTokens:180,reasoningEffort:'low',timeoutMs:6000,geminiTimeoutMs:7000,jsonSchema:schema.sales});
+  const main=await resilience.chat(keys,ai.MODELS.fast,mainMessages,{maxTokens:700,reasoningEffort:'low',timeoutMs:6000,geminiTimeoutMs:7000,jsonSchema:schema.sales});
   const mainMs=Date.now()-mainStarted;
+  const reply=String(main&&main.json&&main.json.reply||'').trim();
   const citations=Array.isArray(main&&main.json&&main.json.cited_knowledge_ids)?main.json.cited_knowledge_ids.map(String):[];
-  if(!main||!main.json||!String(main.json.reply||'').trim()||!citations.includes('bench-svc-1'))throw new Error('BENCH_MAIN_INVALID');
+  if(!main||!main.json||!reply)throw new Error('BENCH_MAIN_EMPTY_REPLY');
+  if(!citations.includes('bench-svc-1'))throw new Error('BENCH_MAIN_CITATION_MISSING');
+  if(!/199/.test(reply))throw new Error('BENCH_MAIN_PRICE_MISSING');
   const safetyStarted=Date.now();
   const safety=await resilience.chat(keys,ai.MODELS.safety,[
-    {role:'system',content:'Evalúa solo seguridad factual. Devuelve JSON {allow,category,rationale}.'},
-    {role:'user',content:JSON.stringify({client_message:'¿Cuánto cuesta el tratamiento demo?',proposed_reply:String(main.json.reply||''),approved_public_knowledge:cards})}
-  ],{maxTokens:80,reasoningEffort:'low',timeoutMs:4000,geminiTimeoutMs:6000,jsonSchema:schema.safety});
+    {role:'system',content:'Evalúa solo seguridad factual. El conocimiento sintético aprobado fija S/ 199. Si la respuesta respeta ese dato y no hace afirmaciones clínicas, allow=true. Devuelve SOLO JSON con allow,category,rationale.'},
+    {role:'user',content:JSON.stringify({client_message:'¿Cuánto cuesta el tratamiento demo?',proposed_reply:reply,approved_public_knowledge:cards})}
+  ],{maxTokens:180,reasoningEffort:'low',timeoutMs:4000,geminiTimeoutMs:6000,jsonSchema:schema.safety});
   const safetyMs=Date.now()-safetyStarted,totalMs=Date.now()-started;
   if(!safety||!safety.json||safety.json.allow!==true)throw new Error('BENCH_SAFETY_BLOCKED');
   return {round,main_ms:mainMs,safety_ms:safetyMs,total_ms:totalMs,main_provider:main.provider||'unknown',safety_provider:safety.provider||'unknown',fallback_used:main.fallback_used===true||safety.fallback_used===true};
@@ -94,6 +97,5 @@ async function runBootBenchmark(options){
   return Object.assign(summary,{results,failures});
 }
 
-if(String(process.env.AOS_WA4_FASTPATH_BENCHMARK_ON_BOOT||'')==='1')setImmediate(()=>runBootBenchmark().catch(e=>console.error('[WA4-FASTPATH-BENCH] unexpected',{error:String(e&&e.message||'BENCH_ERROR').slice(0,80)})));
-
+// Boot execution is owned by the env-gated loader in wa4-ai-resilience.js; do not self-run here.
 module.exports={VERSION,ROUNDS,percentile,syntheticKnowledge,oneRound,runBootBenchmark};
