@@ -54,6 +54,9 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     const p = t.path
     if (p.indexOf('/rest/v1/aos_agentes?') === 0 && p.indexOf('tipo_ejecucion=eq.cron') >= 0) return 'agent-cron-scan'
     if (p.indexOf('/rest/v1/rpc/aos_notification_push_claim_v1') === 0) return 'notification-push-claim'
+    if (p.indexOf('/rest/v1/rpc/aos_push_vapid_config_v1') === 0) return 'notification-vapid-config'
+    if (p.indexOf('/rest/v1/rpc/aos_push_vapid_store_v1') === 0) return 'notification-vapid-store'
+    if (p.indexOf('/rest/v1/aos_f5_private_file_transport_tmp?') === 0 && p.indexOf('status=in.(READY,PROCESSING)') >= 0) return 'f5-recovery-scan'
     if (p.indexOf('/rest/v1/aos_email_plantillas?') === 0 && p.indexOf('activo=eq.true') >= 0) return 'email-template-cache'
     if (p.indexOf('/rest/v1/aos_usuarios?') === 0 && p.indexOf('select=nombre,apellidos,cmp') >= 0 && p.indexOf('cmp=neq.') >= 0) return 'medical-cmp-cache'
     if (p.indexOf('/rest/v1/rpc/aos_generar_snapshot') === 0) return 'global-snapshot'
@@ -180,7 +183,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1.4',
+    version: 'p0-a-v1.5',
     states: states,
     shieldKey: SHIELD_KEY,
     classify: classify,
