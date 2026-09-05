@@ -1,6 +1,13 @@
 from pathlib import Path
 p=Path('ci/wa4-ai-sales-router/r6-conversation-ux-fastlane.test.js')
-s=p.read_text()
-s=s.replace("assert.equal((d.reply.match(/\\\\?/g)||[]).length,1);","assert.equal(d.reply.split('?').length-1,1);")
-s=s.replace("assert.equal((draft.reply.match(/\\\\?/g)||[]).length,1);","assert.equal(draft.reply.split('?').length-1,1);")
-p.write_text(s)
+lines=[]
+for line in p.read_text().splitlines():
+    if "assert.equal((d.reply.match(" in line:
+        indent=line[:len(line)-len(line.lstrip())]
+        lines.append(indent+"assert.equal(d.reply.split('?').length-1,1);")
+    elif "assert.equal((draft.reply.match(" in line:
+        indent=line[:len(line)-len(line.lstrip())]
+        lines.append(indent+"assert.equal(draft.reply.split('?').length-1,1);")
+    else:
+        lines.append(line)
+p.write_text('\n'.join(lines)+'\n')
