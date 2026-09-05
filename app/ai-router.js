@@ -16,7 +16,7 @@ const COSTS = Object.freeze({
 });
 
 const SAFETY_MAX_COMPLETION_TOKENS = 180;
-const SAFETY_MAX_KNOWLEDGE_ITEMS = 8;
+const SAFETY_MAX_KNOWLEDGE_ITEMS = 12;
 
 function requestJson(opts, payload, timeoutMs) {
   return new Promise((resolve, reject) => {
