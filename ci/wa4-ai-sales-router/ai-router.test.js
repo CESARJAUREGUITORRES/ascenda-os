@@ -89,3 +89,4 @@ test('cost estimator uses current Groq prices', () => {
 // Keep production-scale payload and FASTPATH regressions in the canonical WA4 test entrypoint.
 require('./knowledge-bounds.test.js');
 require('./fastpath-r1.test.js');
+require('./fastpath-r1-resilience.test.js');
