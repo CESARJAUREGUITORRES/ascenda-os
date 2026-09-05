@@ -4,9 +4,13 @@
  * ASCENDA OS · Business Priority Mode P0-A
  *
  * Only known non-critical Supabase background traffic is circuit-broken.
- * Revenue-critical reads/writes, Call Center, Agenda, Sales, WhatsApp routing
- * and AI-key bootstrap remain outside this shield and always use the normal
- * transport path.
+ * Revenue-critical reads/writes, auth, Call Center, Agenda, Sales, WhatsApp
+ * routing/human paths and AI-key bootstrap remain outside this shield and
+ * always use the normal transport path.
+ *
+ * AOS_BACKGROUND_SHED=true is an explicit P0 brownout switch. When enabled,
+ * classified background work is rejected locally before it can consume a
+ * Supabase/PostgREST connection. This is load shedding, not timeout inflation.
  *
  * This preload is composed AFTER supabase-quota-circuit-preload.cjs in
  * Railway NODE_OPTIONS. The inherited request function therefore preserves
@@ -23,6 +27,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
 
   const inheritedRequest = https.request.bind(https)
   const PROJECT_HOST = String(process.env.AOS_SUPABASE_HOST || 'ituyqwstonmhnfshnaqz.supabase.co').toLowerCase()
+  const EMERGENCY_SHED = /^(1|true|yes|on)$/i.test(String(process.env.AOS_BACKGROUND_SHED || '').trim())
   const SHIELD_KEY = 'background-shield'
   const states = new Map()
 
@@ -47,6 +52,8 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     const p = t.path
     if (p.indexOf('/rest/v1/aos_agentes?') === 0 && p.indexOf('tipo_ejecucion=eq.cron') >= 0) return 'agent-cron-scan'
     if (p.indexOf('/rest/v1/rpc/aos_notification_push_claim_v1') === 0) return 'notification-push-claim'
+    if (p.indexOf('/rest/v1/rpc/aos_generar_snapshot') === 0) return 'snapshot-refresh'
+    if (p.indexOf('/rest/v1/aos_configuracion?') === 0 && p.indexOf('select=clave') >= 0) return 'configuration-cache'
     if (p.indexOf('/rest/v1/aos_email_plantillas?') === 0 && p.indexOf('activo=eq.true') >= 0) return 'email-template-cache'
     if (p.indexOf('/rest/v1/aos_usuarios?') === 0 && p.indexOf('select=nombre,apellidos,cmp') >= 0 && p.indexOf('cmp=neq.') >= 0) return 'medical-cmp-cache'
     return ''
@@ -94,18 +101,21 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   function circuitOpen(key) {
-    return !!key && Date.now() < shieldState().openUntil
+    return !!key && (EMERGENCY_SHED || Date.now() < shieldState().openUntil)
   }
 
-  function syntheticResponse() {
+  function syntheticResponse(reason) {
     const res = new PassThrough()
     res.statusCode = 503
     res.statusMessage = 'Business Priority Backoff'
-    res.headers = { 'content-type': 'application/json; charset=utf-8', 'x-ascenda-business-priority': 'backoff' }
+    res.headers = {
+      'content-type': 'application/json; charset=utf-8',
+      'x-ascenda-business-priority': reason || 'backoff'
+    }
     return res
   }
 
-  function fakeRequest(callback) {
+  function fakeRequest(callback, reason) {
     const req = new EventEmitter()
     let ended = false
     if (typeof callback === 'function') req.once('response', callback)
@@ -124,7 +134,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
       if (ended) return req
       ended = true
       process.nextTick(function() {
-        const res = syntheticResponse()
+        const res = syntheticResponse(reason)
         req.emit('response', res)
         res.end('{"ok":false,"error":"BUSINESS_PRIORITY_BACKOFF"}')
       })
@@ -141,7 +151,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   https.request = function aosBusinessPriorityRequest() {
     const args = Array.prototype.slice.call(arguments)
     const key = classify(args[0])
-    if (key && circuitOpen(key)) return fakeRequest(callbackFrom(args))
+    if (key && circuitOpen(key)) return fakeRequest(callbackFrom(args), EMERGENCY_SHED ? 'emergency-shed' : 'backoff')
 
     const req = inheritedRequest.apply(https, args)
     if (key && req && typeof req.once === 'function') {
@@ -171,11 +181,12 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1.3',
+    version: 'p0-a-v1.4',
     states: states,
     shieldKey: SHIELD_KEY,
+    emergencyShed: EMERGENCY_SHED,
     classify: classify
   }
 
-  console.log('[BUSINESS-PRIORITY] race-safe shared background shield active')
+  console.log('[BUSINESS-PRIORITY] race-safe shared background shield active', { emergency_shed: EMERGENCY_SHED })
 }
