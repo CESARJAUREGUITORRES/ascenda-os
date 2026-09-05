@@ -10,6 +10,7 @@ const SEP26_CURRENT_SKU = 'CATALOG_SEP2026_CURRENT_SKU';
 const CATALOG_IDENTITY_ALLOWLIST = Object.freeze(new Set([
   'family_name','commercial_variant','clinical_sessions','brand','zones','unit_cap','syringes','volume_ml'
 ]));
+const FAQ_BOUNDS = Object.freeze({ maxItems: 6, questionChars: 220, answerChars: 650 });
 
 const FIELD_ALLOWLIST = Object.freeze({
   CATALOG: new Set(['tipo','nombre','nombre_corto','categoria','precio_base','precio_oferta','moneda','duracion_sesion','num_sesiones','frecuencia','descripcion_comercial','beneficios','faqs','requiere_doctora','requiere_enfermeria','included_benefit','included_benefit_source','catalog_identity','catalog_identity_source']),
@@ -29,6 +30,28 @@ function normalizeAudience(value) {
   return AUDIENCES.has(audience) ? audience : 'PUBLIC_CLIENT';
 }
 
+function boundedText(value,maxChars) {
+  const text = String(value == null ? '' : value).trim();
+  return text ? text.slice(0,maxChars) : '';
+}
+
+function sanitizeFaqs(value) {
+  if (!Array.isArray(value)) return [];
+  const out = [];
+  for (const item of value) {
+    if (out.length >= FAQ_BOUNDS.maxItems) break;
+    if (item && typeof item === 'object' && !Array.isArray(item)) {
+      const q = boundedText(item.q,FAQ_BOUNDS.questionChars);
+      const a = boundedText(item.a,FAQ_BOUNDS.answerChars);
+      if (q || a) out.push({q,a});
+      continue;
+    }
+    const text = boundedText(item,FAQ_BOUNDS.answerChars);
+    if (text) out.push({q:'',a:text});
+  }
+  return out;
+}
+
 function sanitizeCatalogIdentity(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   const out = {};
@@ -46,28 +69,34 @@ function sanitizeCatalogIdentity(value) {
 }
 
 function sanitizeFacts(domain, facts) {
-  const allowed = FIELD_ALLOWLIST[String(domain || '').toUpperCase()];
+  const normalizedDomain = String(domain || '').toUpperCase();
+  const allowed = FIELD_ALLOWLIST[normalizedDomain];
   if (!allowed || !facts || typeof facts !== 'object' || Array.isArray(facts)) return {};
   const out = {};
   for (const key of allowed) {
     if (!Object.prototype.hasOwnProperty.call(facts,key)) continue;
-    if (String(domain || '').toUpperCase() === 'CATALOG' && key === 'included_benefit') {
+    if (key === 'faqs') {
+      const faqs = sanitizeFaqs(facts[key]);
+      if (faqs.length) out[key] = faqs;
+      continue;
+    }
+    if (normalizedDomain === 'CATALOG' && key === 'included_benefit') {
       if (facts.included_benefit_source !== SEP26_CURRENT_SKU) continue;
       const text = String(facts[key] == null ? '' : facts[key]).trim();
       if (text) out[key] = text.slice(0,500);
       continue;
     }
-    if (String(domain || '').toUpperCase() === 'CATALOG' && key === 'included_benefit_source') {
+    if (normalizedDomain === 'CATALOG' && key === 'included_benefit_source') {
       if (facts[key] === SEP26_CURRENT_SKU) out[key] = SEP26_CURRENT_SKU;
       continue;
     }
-    if (String(domain || '').toUpperCase() === 'CATALOG' && key === 'catalog_identity') {
+    if (normalizedDomain === 'CATALOG' && key === 'catalog_identity') {
       if (facts.catalog_identity_source !== SEP26_CURRENT_SKU) continue;
       const identity = sanitizeCatalogIdentity(facts[key]);
       if (identity) out[key] = identity;
       continue;
     }
-    if (String(domain || '').toUpperCase() === 'CATALOG' && key === 'catalog_identity_source') {
+    if (normalizedDomain === 'CATALOG' && key === 'catalog_identity_source') {
       if (facts[key] === SEP26_CURRENT_SKU) out[key] = SEP26_CURRENT_SKU;
       continue;
     }
@@ -197,4 +226,4 @@ function validateGroundedSuggestion(obj, bundle) {
   return {ok:true,reply,citations,nextAction};
 }
 
-module.exports = {AUDIENCES,SEP26_CURRENT_SKU,CATALOG_IDENTITY_ALLOWLIST,FIELD_ALLOWLIST,normalize,normalizeAudience,sanitizeCatalogIdentity,sanitizeFacts,buildKnowledgeBundle,validateGroundedSuggestion};
+module.exports = {AUDIENCES,SEP26_CURRENT_SKU,CATALOG_IDENTITY_ALLOWLIST,FAQ_BOUNDS,FIELD_ALLOWLIST,normalize,normalizeAudience,boundedText,sanitizeFaqs,sanitizeCatalogIdentity,sanitizeFacts,buildKnowledgeBundle,validateGroundedSuggestion};
