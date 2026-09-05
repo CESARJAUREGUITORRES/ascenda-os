@@ -159,5 +159,6 @@ async function runBootSelftest(){
 }
 
 if(String(process.env.AOS_WA4_PROVIDER_SELFTEST_ON_BOOT||'')==='1')setImmediate(()=>runBootSelftest().catch(e=>console.error('[WA4-PROVIDER-SHADOW] unexpected',{error:String(e&&e.message||'ERROR').slice(0,80)})));
+if(String(process.env.AOS_WA4_FASTPATH_BENCHMARK_ON_BOOT||'')==='1')setImmediate(()=>require('./wa4-fastpath-benchmark').runBootBenchmark().catch(e=>console.error('[WA4-FASTPATH-BENCH] unexpected',{error:String(e&&e.message||'BENCH_ERROR').slice(0,80)})));
 
 module.exports={GEMINI_MODEL,GEMINI_COST,retryableGroq,messageInput,textFromInteraction,usageFromInteraction,geminiChat,chat,loadGeminiSecret,clearSecretCache,runBootSelftest};

@@ -90,3 +90,4 @@ test('cost estimator uses current Groq prices', () => {
 require('./knowledge-bounds.test.js');
 require('./fastpath-r1.test.js');
 require('./fastpath-r1-resilience.test.js');
+require('./fastpath-r1-benchmark.test.js');
