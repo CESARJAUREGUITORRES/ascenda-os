@@ -8,6 +8,12 @@
  * and AI-key bootstrap remain outside this shield and always use the normal
  * transport path.
  *
+ * P0 #467 adds a reversible incident-only foreground-priority mode. When
+ * AOS_FOREGROUND_PRIORITY_MODE=true, classified non-critical background calls
+ * are rejected locally before network I/O. This is intentionally narrower than
+ * stopping the service: Auth V3, foreground panels and governed business writes
+ * keep their normal transport path while PostgREST/DB is allowed to recover.
+ *
  * This preload is composed AFTER supabase-quota-circuit-preload.cjs in
  * Railway NODE_OPTIONS. The inherited request function therefore preserves
  * the existing project-wide 402 quota breaker while this layer adds a shared
@@ -23,6 +29,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
 
   const inheritedRequest = https.request.bind(https)
   const PROJECT_HOST = String(process.env.AOS_SUPABASE_HOST || 'ituyqwstonmhnfshnaqz.supabase.co').toLowerCase()
+  const FOREGROUND_PRIORITY_MODE = /^(1|true|yes|on)$/i.test(String(process.env.AOS_FOREGROUND_PRIORITY_MODE || 'false'))
   const SHIELD_KEY = 'background-shield'
   const states = new Map()
 
@@ -49,6 +56,8 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     if (p.indexOf('/rest/v1/rpc/aos_notification_push_claim_v1') === 0) return 'notification-push-claim'
     if (p.indexOf('/rest/v1/aos_email_plantillas?') === 0 && p.indexOf('activo=eq.true') >= 0) return 'email-template-cache'
     if (p.indexOf('/rest/v1/aos_usuarios?') === 0 && p.indexOf('select=nombre,apellidos,cmp') >= 0 && p.indexOf('cmp=neq.') >= 0) return 'medical-cmp-cache'
+    if (p.indexOf('/rest/v1/rpc/aos_generar_snapshot') === 0) return 'global-snapshot'
+    if (p.indexOf('/rest/v1/aos_configuracion?') === 0 && (p.indexOf('select=clave%2Cvalor') >= 0 || p.indexOf('select=clave,valor') >= 0)) return 'brand-config-cache'
     return ''
   }
 
@@ -141,7 +150,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   https.request = function aosBusinessPriorityRequest() {
     const args = Array.prototype.slice.call(arguments)
     const key = classify(args[0])
-    if (key && circuitOpen(key)) return fakeRequest(callbackFrom(args))
+    if (key && (FOREGROUND_PRIORITY_MODE || circuitOpen(key))) return fakeRequest(callbackFrom(args))
 
     const req = inheritedRequest.apply(https, args)
     if (key && req && typeof req.once === 'function') {
@@ -171,11 +180,12 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1.3',
+    version: 'p0-a-v1.4',
     states: states,
     shieldKey: SHIELD_KEY,
-    classify: classify
+    classify: classify,
+    foregroundPriorityMode: FOREGROUND_PRIORITY_MODE
   }
 
-  console.log('[BUSINESS-PRIORITY] race-safe shared background shield active')
+  console.log('[BUSINESS-PRIORITY] race-safe shared background shield active', { foregroundPriorityMode: FOREGROUND_PRIORITY_MODE })
 }
