@@ -27,6 +27,7 @@ jobs:
         run: |
           python ci/wa-l10/r6_patch_tmp.py
           python ci/wa-l10/r6_test_fix_tmp.py
+          python -c "from pathlib import Path; p=Path('app/wa-l10-autonomous-bridge.test.js'); p.write_text(p.read_text().rstrip()+'\\n')"
       - name: R6 syntax and focused regression gates
         run: |
           node --check app/wa4-copilot.js
