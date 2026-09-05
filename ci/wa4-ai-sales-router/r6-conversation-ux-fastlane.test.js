@@ -58,3 +58,14 @@ test('R6 owner-copy and price fast lanes execute before expensive adapters and g
   const governed=src.indexOf('governed=await buildGovernedContext');
   assert.ok(intro>0&&price>intro&&adapters>price&&governed>adapters);
 });
+
+test('R6 typing transport remains in canonical F4/WA-1 provider boundary',()=>{
+  const wa4=fs.readFileSync(require.resolve('../../app/server-wa4'),'utf8');
+  const f4=fs.readFileSync(require.resolve('../../app/server-f4'),'utf8');
+  assert.equal(wa4.includes('graph.facebook.com'),false);
+  assert.equal(wa4.includes('WHATSAPP_ACCESS_TOKEN'),false);
+  assert.ok(wa4.includes("internalPost('/api/wa/auto-typing'"));
+  assert.ok(f4.includes("pathname==='/api/wa/auto-typing'&&req.method==='POST'"));
+  assert.ok(f4.includes("typing_indicator:{type:'text'}"));
+  assert.ok(f4.includes('authorizeWaAutoRuntime(req)'));
+});

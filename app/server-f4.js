@@ -223,6 +223,21 @@ async function handleWaAutoSend(req,res,body){
     writeJson(res,e.status||502,{ok:false,error:e.message||'WA_SEND_FAILED',decision_id:authority.decision_id,status:ambiguous?'PENDING':'FAILED',retry_safe:false,handoff:true});
   }
 }
+async function handleWaAutoTyping(req,res,body){
+  if(!WA_L4_INTERNAL_TOKEN||WA_L4_INTERNAL_TOKEN.length<32){writeJson(res,503,{ok:false,error:'WA_L4_INTERNAL_AUTH_NOT_CONFIGURED'});return;}
+  if(!authorizeWaAutoRuntime(req)){writeJson(res,403,{ok:false,error:'WA_L4_INTERNAL_AUTH_REQUIRED'});return;}
+  const messageId=String(body&&body.provider_message_id||'').trim();
+  if(!/^wamid\.[A-Za-z0-9._~:/+=-]{8,500}$/.test(messageId)){writeJson(res,400,{ok:false,error:'WA_TYPING_PROVIDER_MESSAGE_ID_REQUIRED'});return;}
+  if(!waConfigReadyOutbound()){writeJson(res,503,{ok:false,error:'WA_OUTBOUND_NOT_CONFIGURED'});return;}
+  try{
+    await graphSend({messaging_product:'whatsapp',status:'read',message_id:messageId,typing_indicator:{type:'text'}});
+    writeJson(res,200,{ok:true,typing:true,provider:'META'});
+  }catch(e){
+    console.error('[WA-L10] typing indicator',l4.sanitizeReason(e&&e.message));
+    writeJson(res,e.status||502,{ok:false,error:'WA_TYPING_PROVIDER_UNAVAILABLE'});
+  }
+}
+
 async function handleWaStatus(req,res){
   try{
     const actor=await authorizeWaSender(req);if(!actor){writeJson(res,403,{ok:false,error:'WA_ADMIN_2FA_REQUIRED'});return;}
@@ -240,9 +255,11 @@ const server=http.createServer(async(req,res)=>{
   if((pathname==='/webhook'||pathname==='/webhook/')&&req.method==='POST'){await handleWaWebhook(req,res);return;}
   if(pathname==='/api/wa/send'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleWaSend(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/wa/auto-send'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleWaAutoSend(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
+  if(pathname==='/api/wa/auto-typing'&&req.method==='POST'){try{const parsed=await readJson(req,16*1024);await handleWaAutoTyping(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/wa/status'&&req.method==='GET'){await handleWaStatus(req,res);return;}
   if(pathname==='/api/wa/send'&&req.method==='OPTIONS'){res.writeHead(204,{'Access-Control-Allow-Methods':'POST,OPTIONS','Access-Control-Allow-Headers':'Content-Type,X-AOS-App-Token','Cache-Control':'no-store'});res.end();return;}
   if(pathname==='/api/wa/auto-send'){writeJson(res,405,{ok:false,error:'WA_L4_INTERNAL_POST_ONLY'});return;}
+  if(pathname==='/api/wa/auto-typing'){writeJson(res,405,{ok:false,error:'WA_L4_INTERNAL_POST_ONLY'});return;}
   if(pathname==='/api/f4/cartera-read'&&req.method==='POST'){try{const parsed=await readJson(req,64*1024);await handleRevenueRead(req,res,parsed.body,'cartera');}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/f4/sales-intelligence-read'&&req.method==='POST'){try{const parsed=await readJson(req,64*1024);await handleRevenueRead(req,res,parsed.body,'sales-intelligence');}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/f4/cartera-candidates'&&req.method==='POST'){
