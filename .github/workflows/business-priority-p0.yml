@@ -9,6 +9,7 @@ on:
       - 'app/public/f4-production-canary-hotfix.js'
       - 'ci/performance/business-priority-p0.test.js'
       - 'ci/performance/business-priority-race.test.js'
+      - 'ci/performance/background-shed-p0.test.js'
       - 'ci/performance/cross-panel-pressure-p0432.test.js'
       - 'supabase/migrations/20260902202000_p0432_db_hotpath_refresh_removal_v1.sql'
       - 'supabase/rollbacks/20260902202000_p0432_db_hotpath_refresh_removal_v1_recovery.sql'
@@ -22,6 +23,7 @@ on:
       - 'app/public/f4-production-canary-hotfix.js'
       - 'ci/performance/business-priority-p0.test.js'
       - 'ci/performance/business-priority-race.test.js'
+      - 'ci/performance/background-shed-p0.test.js'
       - 'ci/performance/cross-panel-pressure-p0432.test.js'
       - 'supabase/migrations/20260902202000_p0432_db_hotpath_refresh_removal_v1.sql'
       - 'supabase/rollbacks/20260902202000_p0432_db_hotpath_refresh_removal_v1_recovery.sql'
@@ -46,8 +48,9 @@ jobs:
           node --check app/public/browser-business-priority-v1.js
           node --check app/public/f4-production-canary-hotfix.js
           node --check ci/performance/business-priority-race.test.js
+          node --check ci/performance/background-shed-p0.test.js
           node --check ci/performance/cross-panel-pressure-p0432.test.js
       - name: Regression gates
-        run: node --test ci/performance/business-priority-p0.test.js ci/performance/business-priority-race.test.js ci/performance/cross-panel-pressure-p0432.test.js
+        run: node --test ci/performance/business-priority-p0.test.js ci/performance/business-priority-race.test.js ci/performance/background-shed-p0.test.js ci/performance/cross-panel-pressure-p0432.test.js
       - name: Existing Call Center performance gates
         run: node --test ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js
