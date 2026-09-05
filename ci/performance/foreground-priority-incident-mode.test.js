@@ -38,6 +38,9 @@ test('foreground-priority mode suppresses only classified background traffic bef
   const background=[
     {hostname:host,path:'/rest/v1/aos_agentes?activo=eq.true&tipo_ejecucion=eq.cron'},
     {hostname:host,path:'/rest/v1/rpc/aos_notification_push_claim_v1'},
+    {hostname:host,path:'/rest/v1/rpc/aos_push_vapid_config_v1'},
+    {hostname:host,path:'/rest/v1/rpc/aos_push_vapid_store_v1'},
+    {hostname:host,path:'/rest/v1/aos_f5_private_file_transport_tmp?status=in.(READY,PROCESSING)&select=source_filename,source_sha256,content_base64&order=source_filename.asc'},
     {hostname:host,path:'/rest/v1/aos_email_plantillas?select=tipo,html_body&activo=eq.true'},
     {hostname:host,path:'/rest/v1/aos_usuarios?select=nombre,apellidos,cmp&area=eq.médica&cmp=neq.'},
     {hostname:host,path:'/rest/v1/rpc/aos_generar_snapshot'},
