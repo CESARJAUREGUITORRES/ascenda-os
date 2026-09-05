@@ -1,51 +1,43 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
-**Captured:** 2026-09-04 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `WA-L10 #456 — FIRST REAL TURN FAIL-CLOSED REMEDIATION V2`  
-**GitHub authority:** Issue `#456` = `OPEN / ACTIVE`  
-**Parent roadmap:** Issue `#410`  
-**Exact entry main:** `abb6444766cb45116f42c450c1174d339c2b86fc`  
-**Active branch:** `wa-l10-first-turn-candidate-prefilter-20260904`  
-**Deployed L10 layer:** `PR #464 · event-driven autonomous canary bridge`  
-**Deployed first remediation:** `PR #465 · first-turn DB hotpath v1`  
+**Captured:** 2026-09-05 America/Lima  
+**ACTIVE HIGH/CRITICAL LOCK:** `P0 #467 — AUTH AVAILABILITY / SUPABASE-POSTGREST PRESSURE`  
+**GitHub authority:** Issue `#467` = `OPEN / ACTIVE`  
+**Exact entry main:** `6c34f833762e370dd709e5789f2ac3f40847349d`  
+**Active branch:** `p0-467-foreground-priority-20260905`  
+**WA-L10 #456:** `PAUSED — NO MUTABLE WORK WHILE P0 #467 IS ACTIVE`  
 **Current production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF`  
 **Active L4 allowlist:** `0`  
-**Prior L10 CANARY authorization:** `CONSUMED BY FIRST-TURN ATTEMPT; RE-ACTIVATION SUSPENDED PENDING FRESH EVIDENCE`  
-**Authorization ref:** `OWNER-CHAT-20260904-L10-ZIVITAL-CANARY`  
+**L10 CANARY:** `NOT AUTHORIZED`  
 **L11/general PROD:** `NOT AUTHORIZED`
 
-## First real turn and v1 remediation result
+## Incident evidence
 
-The exact Zi Vital test conversation produced a valid Meta inbound and entered the deployed L10 bridge. The provider message was durably queued and claimed exactly once. WA4 Copilot then failed before L4 autonomous authorization/provider dispatch. The bridge correctly requested human handoff and recorded `HANDOFF · WA4_COPILOT_UNAVAILABLE`; no AUTO decision or outbound autonomous message was created.
+Wilmer's login requests reach Railway, but `/api/auth/v3/login` terminates with `502` after the fixed 12 s Auth V3 upstream boundary. Railway logs identify `AUTH_UPSTREAM_TIMEOUT` against `aos_login_v3`; the app container itself remains healthy and lightly loaded.
 
-PR #465 fixed the first discovered defects without timeout inflation: it normalized each eligible derived row once via a per-query MATERIALIZED prepared set and aligned the append-only audit CHECK with the existing `SALES_PLAYBOOK` fail-closed logger. It merged and deployed on exact main `abb6444766cb45116f42c450c1174d339c2b86fc`.
+Supabase is degraded beyond Auth: unrelated REST resources and RPCs return `503/504/522`, and direct management SQL currently cannot establish a usable connection. This is therefore a database/PostgREST availability incident, not a credential rejection and not a reason to weaken Auth V3/2FA.
 
-Fresh production certification then used the exact real first-turn phrase under the binding `statement_timeout=3000ms` boundary. That exact proof still returned SQLSTATE `57014` (`canceling statement due to statement timeout`). Therefore v1 is insufficient and the CANARY retry remains blocked. Production source profiling explains the residual cost: about 234 active service rows average ~12.7k characters of derived commercial search text, with additional category rows averaging ~8k characters. Canonical regexp normalization of the entire eligible multi-megabyte corpus once per request remains too expensive under foreground load.
+The first sustained degradation begins immediately after a synchronized recurring background window around 09:38 UTC: snapshot, configuration/branding cache, medical CMP cache, template cache, agent cron scan and notification-push claim all align within seconds. The existing business-priority circuit suppresses several known background sources after failure, but the snapshot/config paths were not classified and there was no reversible incident-mode hard suppression before network I/O.
 
-The same observation window also contained transient foreground Call Center/Historial/Panel timeouts near the 3 s boundary. Those are treated as systemic pressure signals, not as evidence that L10 may bypass its own strict first-turn gate.
+## Authorized P0 remediation scope
 
-## Authorized mutable remediation v2 scope
-
-1. Preserve the deployed event-driven L10 bridge, L4 authority and L8 mandatory preflight; no second sender or authority.
-2. Add a **cheap per-query candidate prefilter** using case/accent folding without regexp normalization.
-3. Perform the existing canonical `aos_wa4a_norm_v1(search_text)` and the original ranking semantics only on the candidate subset.
-4. Keep the solution request-scoped: no persistent/global materialized view, no refresh trigger, no polling and no retry loop.
-5. Add a production-scale synthetic regression approximating the current service/category text volume and require the exact real first-turn phrase to pass under 3 s.
-6. Re-run the original WA4A retrieval/provenance/conflict/ACL suite plus L4-L10 authority/safety regressions.
-7. Certify exact head, merge, deploy, apply merged-lineage migration, then repeat the exact strict 3 s proof in PROD.
-8. Require a fresh authenticated Meta provider-health `200 / READY` after DB remediation before any new `AUTO_OFF → CANARY` transition.
+1. Preserve Auth V3/2FA fail-closed and the existing 12 s transport boundary; **no timeout inflation and no bypass**.
+2. Add a reversible `AOS_FOREGROUND_PRIORITY_MODE=true` incident mode in the existing composed HTTPS preload.
+3. In that mode, reject only classified non-critical background calls locally before Supabase network I/O, including snapshot/config cache paths that were previously uncovered.
+4. Keep Auth, Call Center, Agenda, Sales, WhatsApp routing/authority and AI-key bootstrap on the normal transport path.
+5. Enable the incident mode in Railway only after exact-head CI and protected merge/deploy.
+6. Prove Supabase/PostgREST recovery with cheap reads/SQL and observe the timeout window before asking Wilmer to retry login.
+7. After recovery, implement the durable scheduling fix: de-synchronize/serialize recurring background jobs and remove false-success recovery semantics rather than leaving emergency mode as the permanent architecture.
 
 ## Binding invariants
 
-- Production remains `AUTO_OFF`, kill switch engaged, `auto_reply=false`, `ai_send=false`, `auto_routing=false`, `human_send=true` throughout remediation/certification.
-- Active L4 allowlist remains zero until the retry gate is explicitly re-armed after all evidence is green.
-- No live autonomous provider dispatch during remediation.
-- No statement-timeout inflation or bypass of the 3 s exact first-turn proof.
-- L4 remains the sole `AUTO_OFF|CANARY|PROD` authority; L8 remains mandatory preflight.
-- Human handoff always overrides autonomy.
-- No browser-held provider/internal secrets and no raw webhook/message-body/recipient storage in remediation evidence.
-- No second sender, browser polling, autonomous retry loop or refresh-driven global materialized analytical hot path.
+- Production WhatsApp remains `AUTO_OFF`, kill switch engaged, `auto_reply=false`, `ai_send=false`, `auto_routing=false`, `human_send=true`.
+- Active L4 allowlist remains zero and autonomous outbound remains zero.
+- No live autonomous provider dispatch and no CANARY transition during P0 #467.
+- No auth timeout inflation, credential bypass, 2FA bypass, DB restart, project pause, or destructive recovery without separate evidence/authorization.
+- No new polling/retry loop, persistent materialized analytical hot path or duplicate authority.
+- `main` drift invalidates the candidate and requires revalidation.
 
 ## Exit boundary
 
-This remediation can close only after exact-head CI, merged Railway/Supabase parity, strict production-scale + exact-PROD first-turn search PASS, authenticated provider-health READY, and a fresh safe readback showing `AUTO_OFF + kill=true + allowlist=0 + AUTO outbound=0`. Only then may the tiny exact-conversation L10 CANARY be re-armed for one fresh real turn. L11/general production stays blocked.
+P0 #467 can close only after exact-head CI, Railway deployment, foreground-priority recovery evidence, Supabase/PostgREST readiness, successful Auth V3 smoke, and a post-recovery observation window without renewed systemic 503/504/522 pressure. WA-L10 may resume only from the then-current exact main and with fresh SAFE-OFF evidence.
