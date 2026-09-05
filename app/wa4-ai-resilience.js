@@ -117,4 +117,47 @@ async function chat(keys,model,messages,options){
 }
 
 function clearSecretCache(){geminiSecretCache={value:'',expiresAt:0};}
-module.exports={GEMINI_MODEL,GEMINI_COST,retryableGroq,messageInput,textFromInteraction,usageFromInteraction,geminiChat,chat,loadGeminiSecret,clearSecretCache};
+
+async function runBootSelftest(){
+  if(String(process.env.AOS_WA4_PROVIDER_SELFTEST_ON_BOOT||'')!=='1')return {skipped:true};
+  const schema={type:'object',properties:{ok:{type:'boolean'},label:{type:'string'}},required:['ok','label']};
+  const messages=[
+    {role:'system',content:'Return only JSON matching the requested schema. This is a harmless provider health probe.'},
+    {role:'user',content:'Return ok=true and label="ascenda-wa4-shadow".'}
+  ];
+  const key=await loadGeminiSecret();
+  if(!key){console.error('[WA4-PROVIDER-SHADOW] gemini-secret-unavailable');return {ok:false,error:'GEMINI_SECRET_UNAVAILABLE'};}
+  try{
+    const direct=await geminiChat(key,messages,{maxTokens:80,geminiTimeoutMs:7000,jsonSchema:schema});
+    console.log('[WA4-PROVIDER-SHADOW] direct-gemini',{
+      ok:direct&&direct.json&&direct.json.ok===true,
+      label_ok:direct&&direct.json&&direct.json.label==='ascenda-wa4-shadow',
+      provider:direct&&direct.provider,
+      model:direct&&direct.model,
+      latency_ms:direct&&direct.latencyMs
+    });
+  }catch(e){
+    console.error('[WA4-PROVIDER-SHADOW] direct-gemini-failed',{error:String(e&&e.message||'ERROR').slice(0,80),upstream_status:Number(e&&e.upstreamStatus||0)||null,code:String(e&&e.code||'').slice(0,80)||null});
+    return {ok:false,error:'DIRECT_GEMINI_FAILED'};
+  }
+  try{
+    const fallback=await chat({groq:'wa4-shadow-invalid-groq-key',gemini:key},ai.MODELS.fast,messages,{maxTokens:80,timeoutMs:2500,geminiTimeoutMs:7000,jsonSchema:schema});
+    const passed=fallback&&fallback.provider==='gemini'&&fallback.fallback_used===true&&fallback.json&&fallback.json.ok===true&&fallback.json.label==='ascenda-wa4-shadow';
+    console.log('[WA4-PROVIDER-SHADOW] forced-fallback',{
+      ok:passed,
+      primary_error:String(fallback&&fallback.primary_error||'').slice(0,80),
+      provider:fallback&&fallback.provider,
+      model:fallback&&fallback.model,
+      fallback_used:fallback&&fallback.fallback_used===true,
+      total_latency_ms:Number(fallback&&fallback.total_latency_ms||0)
+    });
+    return {ok:passed};
+  }catch(e){
+    console.error('[WA4-PROVIDER-SHADOW] forced-fallback-failed',{error:String(e&&e.message||'ERROR').slice(0,80),upstream_status:Number(e&&e.upstreamStatus||0)||null,code:String(e&&e.code||'').slice(0,80)||null});
+    return {ok:false,error:'FORCED_FALLBACK_FAILED'};
+  }
+}
+
+if(String(process.env.AOS_WA4_PROVIDER_SELFTEST_ON_BOOT||'')==='1')setImmediate(()=>runBootSelftest().catch(e=>console.error('[WA4-PROVIDER-SHADOW] unexpected',{error:String(e&&e.message||'ERROR').slice(0,80)})));
+
+module.exports={GEMINI_MODEL,GEMINI_COST,retryableGroq,messageInput,textFromInteraction,usageFromInteraction,geminiChat,chat,loadGeminiSecret,clearSecretCache,runBootSelftest};
