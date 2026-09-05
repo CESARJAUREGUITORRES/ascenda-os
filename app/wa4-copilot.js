@@ -195,11 +195,6 @@ function knowledgeQuery(inbound,runtime){
   const s=runtime&&runtime.state||{};
   return [String(inbound||''),s.treatment||'',s.campaign_source||''].filter(Boolean).join(' | ').slice(0,5000);
 }
-function withDeadline(promise,ms,code){
-  let timer;
-  const timeout=new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error(code||'WA4_DEADLINE_EXCEEDED')),Math.max(250,Number(ms)||2500));});
-  return Promise.race([Promise.resolve(promise),timeout]).finally(()=>clearTimeout(timer));
-}
 function isPriceFastLane(runtime){
   const intents=new Set(runtime&&Array.isArray(runtime.intents)?runtime.intents:[]);
   const treatment=String(runtime&&runtime.state&&runtime.state.treatment||'');
@@ -234,9 +229,9 @@ function deterministicToxinPriceDraft(publicBundle,processContexts){
 }
 async function buildFastPriceContext(serviceRpc,serviceGet,inbound,runtime){
   const query=knowledgeQuery(inbound,runtime);
-  const rows=await withDeadline(searchKnowledge(serviceRpc,query,'PUBLIC_CLIENT',8,['CATALOG','CATEGORY']),3500,'WA4_FAST_PRICE_SEARCH_TIMEOUT');
+  const rows=await searchKnowledge(serviceRpc,query,'PUBLIC_CLIENT',8,['CATALOG','CATEGORY']);
   const raw=knowledge.buildKnowledgeBundle(rows,8,'PUBLIC_CLIENT');
-  const contexts=await withDeadline(loadProcessContexts(serviceGet,catalogIdsFromBundles(raw)),1800,'WA4_FAST_PRICE_CONTEXT_TIMEOUT');
+  const contexts=await loadProcessContexts(serviceGet,catalogIdsFromBundles(raw));
   return {publicBundle:gatePublicCatalogMoney(raw,contexts,'PRICE_QUOTE',runtime),processContexts:contexts};
 }
 async function buildGovernedContext(serviceRpc,serviceGet,inbound,maxItems,clinicalRisk,runtime){

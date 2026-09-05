@@ -69,3 +69,10 @@ test('R6 typing transport remains in canonical F4/WA-1 provider boundary',()=>{
   assert.ok(f4.includes("typing_indicator:{type:'text'}"));
   assert.ok(f4.includes('authorizeWaAutoRuntime(req)'));
 });
+
+test('R6 fast lane does not create a recurrent network owner in wa4-copilot',()=>{
+  const src=fs.readFileSync(require.resolve('../../app/wa4-copilot'),'utf8');
+  assert.equal(/\bsetTimeout\s*\(/.test(src),false);
+  assert.equal(/\bsetInterval\s*\(/.test(src),false);
+  assert.ok(src.includes("searchKnowledge(serviceRpc,query,'PUBLIC_CLIENT',8,['CATALOG','CATEGORY'])"));
+});
