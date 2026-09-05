@@ -31,7 +31,7 @@ jobs:
           node --test ci/wa4-ai-sales-router/ai-router.test.js
           node --test app/wa-l10-autonomous-bridge.test.js
           node ci/wa-l10/autonomous_bridge_contract.test.js
-          node tools/perf-audit/runtime-census.mjs app sentinel > /tmp/r6-perf-census.log
+          RUNNER_TEMP=/tmp node tools/perf-audit/runtime-census.mjs app sentinel > /tmp/r6-perf-census.log
           node ci/performance/performance-guard.mjs /tmp/asc-perf-runtime-census.json
       - name: Commit scoped product correction
         run: |
