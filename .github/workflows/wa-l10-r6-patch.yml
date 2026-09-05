@@ -22,7 +22,9 @@ jobs:
         with:
           node-version: 22
       - name: Apply scoped R6 patch
-        run: python ci/wa-l10/r6_patch_tmp.py
+        run: |
+          python ci/wa-l10/r6_patch_tmp.py
+          python ci/wa-l10/r6_test_fix_tmp.py
       - name: R6 syntax and focused regression gates
         run: |
           node --check app/wa4-copilot.js
