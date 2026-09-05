@@ -28,15 +28,12 @@ jobs:
           from pathlib import Path
           p=Path('app/wa4-knowledge.js')
           s=p.read_text()
-          old="""  const catalogs = visible.filter(item=>String(item.domain||'').toUpperCase()==='CATALOG');
-          if (catalogs.length === 1) return [String(catalogs[0].knowledge_id)];
-          if (catalogs.length > 1) {
-            const families = new Set(catalogs.map(itemFamily).filter(Boolean));
-            if (families.size === 1) return catalogs.map(x=>String(x.knowledge_id)).filter(Boolean).slice(0,CITATION_REPAIR_VISIBLE_ITEMS);
-          }
-          return [];
-          """
-          new="""  const catalogs = visible.filter(item=>String(item.domain||'').toUpperCase()==='CATALOG');
+          marker="const catalogs = visible.filter(item=>String(item.domain||'').toUpperCase()==='CATALOG');"
+          start=s.index(marker)
+          end_marker="return [];\n}"
+          end=s.index(end_marker,start)
+          indent=s[s.rfind('\n',0,start)+1:start]
+          replacement="""const catalogs = visible.filter(item=>String(item.domain||'').toUpperCase()==='CATALOG');
           if (!catalogs.length) return [];
           const families = new Set(catalogs.map(itemFamily).filter(Boolean));
           if (families.size !== 1) return [];
@@ -46,9 +43,8 @@ jobs:
           if (!familyTokens.some(t=>replyTokens.has(t))) return [];
           return catalogs.map(x=>String(x.knowledge_id)).filter(Boolean).slice(0,CITATION_REPAIR_VISIBLE_ITEMS);
           """
-          if old not in s:
-              raise SystemExit('GROUNDING_PATCH_ANCHOR_MISSING')
-          p.write_text(s.replace(old,new,1))
+          replacement='\n'.join(indent+line if i else indent+line for i,line in enumerate(replacement.strip('\n').split('\n')))+'\n'
+          p.write_text(s[:s.rfind('\n',0,start)+1]+replacement+s[end+len('return [];\n'):])
           PY
       - name: Focused safety and regression gates
         run: |
