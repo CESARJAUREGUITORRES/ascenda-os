@@ -128,7 +128,7 @@ async function runBootSelftest(){
   const key=await loadGeminiSecret();
   if(!key){console.error('[WA4-PROVIDER-SHADOW] gemini-secret-unavailable');return {ok:false,error:'GEMINI_SECRET_UNAVAILABLE'};}
   try{
-    const direct=await geminiChat(key,messages,{maxTokens:80,geminiTimeoutMs:7000,jsonSchema:schema});
+    const direct=await geminiChat(key,messages,{maxTokens:80,geminiTimeoutMs:20000,jsonSchema:schema});
     console.log('[WA4-PROVIDER-SHADOW] direct-gemini',{
       ok:direct&&direct.json&&direct.json.ok===true,
       label_ok:direct&&direct.json&&direct.json.label==='ascenda-wa4-shadow',
@@ -141,7 +141,7 @@ async function runBootSelftest(){
     return {ok:false,error:'DIRECT_GEMINI_FAILED'};
   }
   try{
-    const fallback=await chat({groq:'wa4-shadow-invalid-groq-key',gemini:key},ai.MODELS.fast,messages,{maxTokens:80,timeoutMs:2500,geminiTimeoutMs:7000,jsonSchema:schema});
+    const fallback=await chat({groq:'wa4-shadow-invalid-groq-key',gemini:key},ai.MODELS.fast,messages,{maxTokens:80,timeoutMs:2500,geminiTimeoutMs:20000,jsonSchema:schema});
     const passed=fallback&&fallback.provider==='gemini'&&fallback.fallback_used===true&&fallback.json&&fallback.json.ok===true&&fallback.json.label==='ascenda-wa4-shadow';
     console.log('[WA4-PROVIDER-SHADOW] forced-fallback',{
       ok:passed,
