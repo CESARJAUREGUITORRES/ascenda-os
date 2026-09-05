@@ -7,7 +7,12 @@ on:
       - 'app/wa4-knowledge.js'
       - 'supabase/migrations/*wa4a_knowledge_fabric*'
       - 'supabase/rollbacks/*wa4a_knowledge_fabric*'
+      - 'supabase/migrations/*wa_l10_first_turn*'
+      - 'supabase/rollbacks/*wa_l10_first_turn*'
       - 'ci/wa4a-knowledge-fabric/**'
+      - 'ci/wa-l10/*hotpath*'
+      - 'ci/wa-l10/*candidate_prefilter*'
+      - 'ci/wa-l10/tests/*first_turn*'
       - 'docs/control/WHATSAPP_REVENUE_HUB_WA4A_*'
       - '.github/workflows/wa4a-knowledge-fabric.yml'
   push:
@@ -51,6 +56,8 @@ jobs:
           node --check app/wa4-copilot.js
           node --check app/ai-router.js
           node --test ci/wa4-ai-sales-router/ai-router.test.js
+          node ci/wa-l10/first_turn_hotpath_contract.test.js
+          node ci/wa-l10/first_turn_candidate_prefilter_v2_contract.test.js
           ! grep -q "wa4-knowledge" app/server-wa4.js app/wa4-copilot.js
           ! grep -Eq "auto_send:[[:space:]]*true" app/wa4-knowledge.js
           ! grep -q "graph.facebook.com" app/wa4-knowledge.js
@@ -59,6 +66,7 @@ jobs:
         run: |
           set -euo pipefail
           M=supabase/migrations/20260827185000_wa4a_knowledge_fabric_v1.sql
+          V2=supabase/migrations/20260905001000_wa_l10_first_turn_candidate_prefilter_v2.sql
           grep -q 'aos_wa4a_knowledge_authority_v1' "$M"
           grep -q 'aos_wa4a_knowledge_items_v1' "$M"
           grep -q 'aos_wa4a_knowledge_issues_v1' "$M"
@@ -68,7 +76,10 @@ jobs:
           grep -q 'public.aos_config_horarios' "$M"
           grep -q 'public.aos_sedes_geo.horario_\*' "$M"
           grep -q 'security_invoker=true' "$M"
-          ! grep -Eiq '(insert into|update|delete from|alter table)[[:space:]]+public\.(aos_catalogo_servicios|aos_promociones|aos_sedes_geo|aos_config_horarios|aos_catalogo_categorias)' "$M"
+          grep -q 'candidates as materialized' "$V2"
+          ! grep -Eiq '(insert into|update|delete from|alter table)[[:space:]]+public\.(aos_catalogo_servicios|aos_promociones|aos_sedes_geo|aos_config_horarios|aos_catalogo_categorias)' "$M" "$V2"
+          ! grep -Eiq '(set[[:space:]]+(local[[:space:]]+)?statement_timeout|create[[:space:]]+materialized[[:space:]]+view)' "$V2"
+          ! grep -Eiq 'aos_wa_l4_set_control_v1|aos_wa_l4_allowlist_set_v1|graph\.facebook\.com|/messages' "$V2"
           ! grep -Eiq 'public\.(aos_pacientes|aos_ventas|aos_leads|aos_rev_)' "$M"
           ! grep -Eiq '(descripcion_clinica|indicaciones|contraindicaciones|perfil_paciente|mecanismo_accion|composicion)' "$M"
           ! grep -Eiq '(auto_routing|ai_send|auto_reply|copilot)[[:space:]]*=[[:space:]]*true' "$M"
@@ -97,7 +108,7 @@ jobs:
           echo 'WA-4A isolated Postgres did not become ready' >&2
           exit 1
 
-      - name: Build certified WA prerequisites through WA-7A.4
+      - name: Build certified WA prerequisites through WA-7A.4 and current L10 hotpath
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa3-boxes-routing-handoff/schema_contract.sql
@@ -117,6 +128,8 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827141500_wa7a4_marketing_eligibility_v1.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a-knowledge-fabric/source_contract.sql
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260827185000_wa4a_knowledge_fabric_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260904225500_wa_l10_first_turn_hotpath_fix_v1.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260905001000_wa_l10_first_turn_candidate_prefilter_v2.sql
 
       - name: Database lint
         working-directory: ci/zero-cost-staging
@@ -127,6 +140,20 @@ jobs:
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa4a-knowledge-fabric/tests/001_knowledge_fabric.sql | tee /tmp/wa4a-db.txt
           grep -q 'WA4A_KNOWLEDGE_FABRIC_PASS' /tmp/wa4a-db.txt
+
+      - name: Exact real first-turn production-scale strict 3s gate
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/wa-l10/tests/003_first_turn_candidate_prefilter_v2.sql 2>&1 | tee /tmp/wa-l10-first-turn-v2.txt
+          grep -q 'WA_L10_FIRST_TURN_V2_STRICT_3S_PASS' /tmp/wa-l10-first-turn-v2.txt
+
+      - name: Candidate prefilter rollback and reapply
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollbacks/20260905001000_wa_l10_first_turn_candidate_prefilter_v2.rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select position('eligible derived rows are normalized once' in coalesce(obj_description('public.aos_wa4a_knowledge_search_v1(text,integer,text[])'::regprocedure,'pg_proc'),''))>0")" = 't'
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260905001000_wa_l10_first_turn_candidate_prefilter_v2.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select position('candidate prefilter' in lower(coalesce(obj_description('public.aos_wa4a_knowledge_search_v1(text,integer,text[])'::regprocedure,'pg_proc'),'')))>0")" = 't'
 
       - name: Existing WA-4 ownership budget safety regression
         run: |
@@ -160,7 +187,7 @@ jobs:
           set -euo pipefail
           test "$(psql "$DB_URL" -X -qAt -c 'select copilot_enabled from public.aos_wa_ai_control_v1 where id=1')" = "f"
           test "$(psql "$DB_URL" -X -qAt -c 'select auto_reply_enabled from public.aos_wa_ai_control_v1 where id=1')" = "f"
-          echo 'WA-4A TEST CERTIFICATION ONLY: Knowledge Fabric is PROD-ready but unapplied to production.'
+          echo 'WA-4A TEST CERTIFICATION ONLY: governed knowledge remains SAFE-OFF.'
           echo 'Governed source facts + evidence refs > approved derived knowledge > generic LLM knowledge.'
           echo 'Conflicting/stale/missing facts fail closed; no Copilot activation, AI send, auto-reply, auto-routing, campaigns or Ads Sync.'
 
