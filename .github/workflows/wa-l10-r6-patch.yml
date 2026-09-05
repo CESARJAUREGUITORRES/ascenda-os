@@ -6,6 +6,8 @@ on:
       - wa-l10-r6-conversation-ux-fastlane-20260905
     paths:
       - .github/workflows/wa-l10-r6-patch.yml
+      - ci/wa-l10/r6_patch_tmp.py
+      - ci/wa-l10/r6_test_fix_tmp.py
 
 permissions:
   contents: write
