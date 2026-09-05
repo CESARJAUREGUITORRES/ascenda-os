@@ -15,6 +15,9 @@ const SB_URL=process.env.SUPABASE_URL||'https://ituyqwstonmhnfshnaqz.supabase.co
 const SB_ANON_KEY=process.env.SUPABASE_ANON_KEY||'';
 const SB_SERVICE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
 const WA_L4_INTERNAL_TOKEN=process.env.WA_L4_INTERNAL_TOKEN||'';
+const WA_ACCESS_TOKEN=process.env.WHATSAPP_ACCESS_TOKEN||'';
+const WA_PHONE_NUMBER_ID=process.env.WHATSAPP_PHONE_NUMBER_ID||'';
+const WA_GRAPH_VERSION=process.env.WHATSAPP_GRAPH_VERSION||'';
 const HOOK=path.join(__dirname,'legacy-groq-model-hook.js');
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 let child=null,startupHealth={checked_at:null,configured:false,active:{},legacy_compat_ready:false,copilot_ready:false,error:'NOT_CHECKED'},healthExpiresAt=0;
@@ -97,7 +100,18 @@ async function requestHandoff(conversationId,reason){
   const o=await serviceRpc('aos_wa3_handoff_request_v1',{p_conversation_id:conversationId,p_box_id:null,p_actor_id:null,p_reason:l4.sanitizeReason(reason)});
   return o.data||{};
 }
-const bridge=createAutonomousBridge({serviceRpc,suggestInternal,autoSend:body=>internalPost('/api/wa/auto-send',body),requestHandoff,log:console});
+function sendTypingIndicator(providerMessageId){
+  return new Promise(resolve=>{
+    const messageId=String(providerMessageId||'').trim();
+    if(!messageId||!WA_ACCESS_TOKEN||!WA_PHONE_NUMBER_ID||!/^v\d+\.\d+$/.test(WA_GRAPH_VERSION))return resolve({ok:false,skipped:true});
+    const payload=JSON.stringify({messaging_product:'whatsapp',status:'read',message_id:messageId,typing_indicator:{type:'text'}});
+    const q=https.request({hostname:'graph.facebook.com',path:'/'+WA_GRAPH_VERSION+'/'+encodeURIComponent(WA_PHONE_NUMBER_ID)+'/messages',method:'POST',headers:{Authorization:'Bearer '+WA_ACCESS_TOKEN,'Content-Type':'application/json','Content-Length':Buffer.byteLength(payload),'User-Agent':'AscendaOS-WA-L10-Typing/1.0'},timeout:3000},r=>{r.resume();r.on('end',()=>resolve({ok:r.statusCode>=200&&r.statusCode<300,status:r.statusCode||0}));});
+    q.on('timeout',()=>{q.destroy();resolve({ok:false,error:'META_TYPING_TIMEOUT'});});
+    q.on('error',()=>resolve({ok:false,error:'META_TYPING_UNAVAILABLE'}));
+    q.write(payload);q.end();
+  });
+}
+const bridge=createAutonomousBridge({serviceRpc,suggestInternal,autoSend:body=>internalPost('/api/wa/auto-send',body),requestHandoff,sendTyping:sendTypingIndicator,log:console});
 
 async function bootstrap(req,res){const a=await requireActor(req,res,false);if(!a)return;try{const [c,h]=await Promise.all([serviceGet('/rest/v1/aos_wa_ai_control_v1?select=provider,fast_model,reasoning_model,safety_model,copilot_enabled,auto_reply_enabled,daily_budget_usd,max_context_messages,max_catalog_items,updated_at&id=eq.1'),modelHealth(false)]);writeJson(res,200,{ok:true,version:'WA4-V1',actor:{id:a.actor_id,is_admin:a.is_admin===true},control:Array.isArray(c.data)?c.data[0]||{}:{},health:h,l5:{version:l5.version,autonomous_commit:'L4_GATED',canary_authorized:false}});}catch(_){writeJson(res,503,{ok:false,error:'WA4_BOOTSTRAP_UNAVAILABLE'});}}
 async function control(req,res,body){const a=await requireActor(req,res,true);if(!a)return;const h=await modelHealth(false);if(body.copilot_enabled===true&&h.copilot_ready!==true)return writeJson(res,409,{ok:false,error:'WA4_MODELS_NOT_READY',health:h});try{const o=await serviceRpc('aos_wa4_admin_set_control_v1',{p_actor_id:a.actor_id,p_copilot_enabled:typeof body.copilot_enabled==='boolean'?body.copilot_enabled:null,p_daily_budget_usd:body.daily_budget_usd==null?null:Number(body.daily_budget_usd)});writeJson(res,o.data&&o.data.ok===false?409:200,o.data||{ok:false,error:'WA4_CONTROL_EMPTY'});}catch(_){writeJson(res,503,{ok:false,error:'WA4_CONTROL_UNAVAILABLE'});}}

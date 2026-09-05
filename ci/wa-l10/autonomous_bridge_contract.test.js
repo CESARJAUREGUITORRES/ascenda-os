@@ -43,4 +43,11 @@ assert(!/message_body|raw_webhook|access_token|recipient_address|contact_address
 assert(!/graph\.facebook\.com|graphSend\s*\(/i.test(migration),'SQL may not dispatch provider traffic');
 assert(rollback.includes('WA_L10_BRIDGE_RECOVERY_BLOCKED_AUDIT_HISTORY'),'rollback must fail closed after live evidence');
 
+assert(server.includes("typing_indicator:{type:'text'}"),'Meta typing indicator payload missing');
+assert(server.includes("status:'read'"),'typing indicator must mark the triggering inbound as read');
+assert(server.includes('sendTyping:sendTypingIndicator'),'L10 bridge must receive server-owned typing dependency');
+const typingAt=bridge.indexOf('sendTyping(claim.provider_message_id)');
+assert(typingAt>claimAt&&typingAt<suggestAt,'typing indicator must start after exact claim and before model work');
+assert(!/graph\.facebook\.com/i.test(bridge),'bridge itself may not become provider transport');
+
 console.log('WA_L10_AUTONOMOUS_BRIDGE_STATIC_CONTRACT=PASS');

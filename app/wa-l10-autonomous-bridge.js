@@ -27,7 +27,7 @@ function bodyOf(out){return out&&out.body&&typeof out.body==='object'?out.body:{
 function statusOf(out){const n=Number(out&&out.status);return Number.isFinite(n)?n:200;}
 
 function createAutonomousBridge(deps){
-  const {serviceRpc,suggestInternal,autoSend,requestHandoff}=deps;
+  const {serviceRpc,suggestInternal,autoSend,requestHandoff,sendTyping}=deps;
   const log=deps.log||console;
   if(typeof serviceRpc!=='function'||typeof suggestInternal!=='function'||typeof autoSend!=='function'||typeof requestHandoff!=='function')throw new Error('WA_L10_BRIDGE_DEPS_REQUIRED');
 
@@ -69,6 +69,13 @@ function createAutonomousBridge(deps){
     if(claim.claimed!==true)return {ok:true,processed:false,reason:claim.reason||'WA_L10_NOT_CLAIMED'};
     claim=Object.assign({provider_message_id:String(providerMessageId)},claim);
     const started=Date.now();
+
+    if(typeof sendTyping==='function'){
+      try{
+        const typingPromise=sendTyping(claim.provider_message_id);
+        if(typingPromise&&typeof typingPromise.catch==='function')typingPromise.catch(e=>log.error&&log.error('[WA-L10-BRIDGE] typing indicator failed',cleanReason(e&&e.message)));
+      }catch(e){log.error&&log.error('[WA-L10-BRIDGE] typing indicator failed',cleanReason(e&&e.message));}
+    }
 
     try{
       const suggestionResult=await suggestInternal(claim.conversation_id);
