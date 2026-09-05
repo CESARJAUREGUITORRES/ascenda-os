@@ -11,6 +11,7 @@ const CATALOG_IDENTITY_ALLOWLIST = Object.freeze(new Set([
   'family_name','commercial_variant','clinical_sessions','brand','zones','unit_cap','syringes','volume_ml'
 ]));
 const FAQ_BOUNDS = Object.freeze({ maxItems: 6, questionChars: 220, answerChars: 650 });
+const CITATION_REPAIR_VISIBLE_ITEMS = 4;
 
 const FIELD_ALLOWLIST = Object.freeze({
   CATALOG: new Set(['tipo','nombre','nombre_corto','categoria','precio_base','precio_oferta','moneda','duracion_sesion','num_sesiones','frecuencia','descripcion_comercial','beneficios','faqs','requiere_doctora','requiere_enfermeria','included_benefit','included_benefit_source','catalog_identity','catalog_identity_source']),
@@ -187,21 +188,7 @@ function timeValues(bundle) {
   return out;
 }
 
-function validateGroundedSuggestion(obj, bundle) {
-  if (!obj || typeof obj !== 'object') return {ok:false,error:'WA4A_INVALID_MODEL_OBJECT'};
-  const reply = String(obj.reply || '').trim();
-  if (!reply || reply.length > 1600) return {ok:false,error:'WA4A_INVALID_REPLY'};
-  const items = Array.isArray(bundle && bundle.items) ? bundle.items : [];
-  const citations = Array.isArray(obj.cited_knowledge_ids) ? obj.cited_knowledge_ids.map(String) : [];
-  const allowedIds = new Set(items.map(x=>String(x.knowledge_id)));
-  if (citations.some(id=>!allowedIds.has(id))) return {ok:false,error:'WA4A_UNGROUNDED_CITATION'};
-
-  const nextAction = String(obj.next_action || 'REPLY').toUpperCase();
-  const humanOnly = nextAction === 'HUMAN_CLINICAL' || nextAction === 'HUMAN_COMMERCIAL';
-  if (!humanOnly && citations.length === 0) return {ok:false,error:'WA4A_EVIDENCE_REQUIRED'};
-  if (!humanOnly && items.length === 0) return {ok:false,error:'WA4A_KNOWLEDGE_REQUIRED'};
-
-  const allowedMoney = moneyValuesByCurrency(bundle || {items:[]});
+function moneyMentions(reply) {
   const mentions = [];
   const patterns = [
     {currency:'PEN',re:/(?:s\/\.?\s*|soles?\s*)(\d+(?:[.,]\d{1,2})?)/gi},
@@ -209,21 +196,97 @@ function validateGroundedSuggestion(obj, bundle) {
   ];
   for (const p of patterns) {
     let m;
-    while ((m = p.re.exec(reply))) mentions.push({currency:p.currency,value:Number(m[1].replace(',','.'))});
+    while ((m = p.re.exec(String(reply || '')))) {
+      const value = Number(m[1].replace(',','.'));
+      if (Number.isFinite(value)) mentions.push({currency:p.currency,value});
+    }
   }
-  if (mentions.some(x=>!allowedMoney[x.currency].has(x.value.toFixed(2)))) return {ok:false,error:'WA4A_UNGROUNDED_PRICE'};
+  return mentions;
+}
 
-  const allowedTimes = timeValues(bundle || {items:[]});
+function itemFamily(item) {
+  if (!item || String(item.domain || '').toUpperCase() !== 'CATALOG') return '';
+  const f = item.facts || {};
+  const identity = f.catalog_identity && typeof f.catalog_identity === 'object' ? f.catalog_identity : {};
+  return normalize(identity.family_name || f.categoria || f.nombre || item.title).trim();
+}
+
+function itemSupportsMoney(item,mention) {
+  if (!item || !mention) return false;
+  const values = moneyValuesByCurrency({items:[item]});
+  return Boolean(values[mention.currency] && values[mention.currency].has(Number(mention.value).toFixed(2)));
+}
+
+function deterministicCitationRepair(reply,bundle) {
+  const source = Array.isArray(bundle && bundle.items) ? bundle.items : [];
+  const visible = source.slice(0,CITATION_REPAIR_VISIBLE_ITEMS);
+  if (!visible.length) return [];
+  const mentions = moneyMentions(reply);
+
+  if (mentions.length) {
+    const ids = new Set();
+    for (const mention of mentions) {
+      const matches = visible.filter(item=>itemSupportsMoney(item,mention));
+      if (!matches.length) return [];
+      const catalogFamilies = new Set(matches.filter(x=>x.domain==='CATALOG').map(itemFamily).filter(Boolean));
+      const nonCatalog = matches.filter(x=>x.domain!=='CATALOG');
+      // Multiple unrelated items at the same amount are ambiguous and must not be auto-cited.
+      if (catalogFamilies.size > 1 || (nonCatalog.length > 1) || (catalogFamilies.size && nonCatalog.length)) return [];
+      for (const item of matches) ids.add(String(item.knowledge_id));
+    }
+    return [...ids].filter(Boolean).slice(0,CITATION_REPAIR_VISIBLE_ITEMS);
+  }
+
+  const catalogs = visible.filter(item=>String(item.domain||'').toUpperCase()==='CATALOG');
+  if (catalogs.length === 1) return [String(catalogs[0].knowledge_id)];
+  if (catalogs.length > 1) {
+    const families = new Set(catalogs.map(itemFamily).filter(Boolean));
+    if (families.size === 1) return catalogs.map(x=>String(x.knowledge_id)).filter(Boolean).slice(0,CITATION_REPAIR_VISIBLE_ITEMS);
+  }
+  return [];
+}
+
+function validateGroundedSuggestion(obj, bundle) {
+  if (!obj || typeof obj !== 'object') return {ok:false,error:'WA4A_INVALID_MODEL_OBJECT'};
+  const reply = String(obj.reply || '').trim();
+  if (!reply || reply.length > 1600) return {ok:false,error:'WA4A_INVALID_REPLY'};
+  const items = Array.isArray(bundle && bundle.items) ? bundle.items : [];
+  let citations = Array.isArray(obj.cited_knowledge_ids) ? obj.cited_knowledge_ids.map(String).filter(Boolean) : [];
+  const allowedIds = new Set(items.map(x=>String(x.knowledge_id)));
+  if (citations.some(id=>!allowedIds.has(id))) return {ok:false,error:'WA4A_UNGROUNDED_CITATION'};
+
+  const nextAction = String(obj.next_action || 'REPLY').toUpperCase();
+  const humanOnly = nextAction === 'HUMAN_CLINICAL' || nextAction === 'HUMAN_COMMERCIAL';
+  let citationRepaired = false;
+  if (!humanOnly && citations.length === 0) {
+    citations = deterministicCitationRepair(reply,bundle);
+    citationRepaired = citations.length > 0;
+  }
+  if (!humanOnly && citations.length === 0) return {ok:false,error:'WA4A_EVIDENCE_REQUIRED'};
+  if (!humanOnly && items.length === 0) return {ok:false,error:'WA4A_KNOWLEDGE_REQUIRED'};
+
+  // Commercial claims must be supported by the evidence actually cited. Human-only
+  // drafts without citations remain non-autonomous and retain the broader governed set.
+  const citedItems = citations.length ? items.filter(x=>citations.includes(String(x.knowledge_id))) : (humanOnly ? items : []);
+  const allowedMoney = moneyValuesByCurrency({items:citedItems});
+  const mentions = moneyMentions(reply);
+  if (mentions.some(x=>!allowedMoney[x.currency].has(Number(x.value).toFixed(2)))) return {ok:false,error:'WA4A_UNGROUNDED_PRICE'};
+
+  const allowedTimes = timeValues({items:citedItems});
   const mentionedTimes = [...reply.matchAll(/\b(?:[01]?\d|2[0-3]):[0-5]\d\b/g)].map(x=>x[0].padStart(5,'0'));
   if (mentionedTimes.some(t=>!allowedTimes.has(t))) return {ok:false,error:'WA4A_UNGROUNDED_HOURS'};
 
   const n = normalize(reply);
   if (/(direccion|dirección|ubicad|sede|como llegar|cómo llegar)/.test(n)) {
-    const citedDomains = new Set(items.filter(x=>citations.includes(String(x.knowledge_id))).map(x=>x.domain));
+    const citedDomains = new Set(citedItems.map(x=>x.domain));
     if (!citedDomains.has('BRANCH')) return {ok:false,error:'WA4A_BRANCH_EVIDENCE_REQUIRED'};
   }
 
-  return {ok:true,reply,citations,nextAction};
+  return {ok:true,reply,citations,nextAction,citationRepaired};
 }
 
-module.exports = {AUDIENCES,SEP26_CURRENT_SKU,CATALOG_IDENTITY_ALLOWLIST,FAQ_BOUNDS,FIELD_ALLOWLIST,normalize,normalizeAudience,boundedText,sanitizeFaqs,sanitizeCatalogIdentity,sanitizeFacts,buildKnowledgeBundle,validateGroundedSuggestion};
+module.exports = {
+  AUDIENCES,SEP26_CURRENT_SKU,CATALOG_IDENTITY_ALLOWLIST,FAQ_BOUNDS,FIELD_ALLOWLIST,CITATION_REPAIR_VISIBLE_ITEMS,
+  normalize,normalizeAudience,boundedText,sanitizeFaqs,sanitizeCatalogIdentity,sanitizeFacts,buildKnowledgeBundle,
+  moneyValuesByCurrency,moneyMentions,itemFamily,deterministicCitationRepair,validateGroundedSuggestion
+};
