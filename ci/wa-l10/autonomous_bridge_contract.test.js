@@ -3,6 +3,7 @@ const fs=require('fs');
 const assert=require('assert');
 
 const server=fs.readFileSync('app/server-wa4.js','utf8');
+const f4=fs.readFileSync('app/server-f4.js','utf8');
 const bridge=fs.readFileSync('app/wa-l10-autonomous-bridge.js','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260904204500_wa_l10_autonomous_bridge_v1.sql','utf8');
 const rollback=fs.readFileSync('supabase/rollbacks/20260904204500_wa_l10_autonomous_bridge_v1.rollback.sql','utf8');
@@ -42,5 +43,17 @@ assert(/force row level security/i.test(migration),'bridge ledgers must FORCE RL
 assert(!/message_body|raw_webhook|access_token|recipient_address|contact_address/i.test(ddl),'bridge ledger DDL may not store raw content, recipient or secrets');
 assert(!/graph\.facebook\.com|graphSend\s*\(/i.test(migration),'SQL may not dispatch provider traffic');
 assert(rollback.includes('WA_L10_BRIDGE_RECOVERY_BLOCKED_AUDIT_HISTORY'),'rollback must fail closed after live evidence');
+
+assert(server.includes("internalPost('/api/wa/auto-typing'"),'WA4 typing must reuse canonical internal provider boundary');
+assert(!/graph\.facebook\.com/i.test(server),'WA4 may not own Meta provider transport');
+assert(!/WHATSAPP_ACCESS_TOKEN|WHATSAPP_PHONE_NUMBER_ID|WHATSAPP_GRAPH_VERSION/.test(server),'WA4 may not own Meta transport secrets');
+assert(f4.includes("pathname==='/api/wa/auto-typing'&&req.method==='POST'"),'canonical WA-1/F4 typing route missing');
+assert(f4.includes("typing_indicator:{type:'text'}"),'Meta typing indicator payload missing at canonical provider boundary');
+assert(f4.includes("status:'read'"),'typing indicator must mark the triggering inbound as read');
+assert(f4.includes('authorizeWaAutoRuntime(req)'),'typing route must require server-only internal authorization');
+assert(f4.includes("graph.facebook.com"),'canonical provider boundary must retain Meta transport');
+const typingAt=bridge.indexOf('sendTyping(claim.provider_message_id)');
+assert(typingAt>claimAt&&typingAt<suggestAt,'typing indicator must start after exact claim and before model work');
+assert(!/graph\.facebook\.com/i.test(bridge),'bridge itself may not become provider transport');
 
 console.log('WA_L10_AUTONOMOUS_BRIDGE_STATIC_CONTRACT=PASS');

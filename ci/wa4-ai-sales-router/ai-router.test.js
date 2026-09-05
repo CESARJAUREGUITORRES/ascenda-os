@@ -93,3 +93,4 @@ require('./fastpath-r1-resilience.test.js');
 require('./fastpath-r1-benchmark.test.js');
 require('./retrieval-grounding-r3.test.js');
 require('./r4-continuity-presentation.test.js');
+require('./r6-conversation-ux-fastlane.test.js');

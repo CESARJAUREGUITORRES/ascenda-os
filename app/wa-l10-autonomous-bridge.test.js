@@ -97,3 +97,30 @@ test('provider/runtime error fails closed into human handoff with no retry loop'
   const r=await bridge.processProviderMessage('wamid.error');
   assert.equal(r.outcome,'ERROR');assert.equal(sends,1);assert.equal(handoffs,1);assert.deepEqual(events,['SUGGESTED','ERROR']);
 });
+
+test('eligible inbound requests real typing before governed suggestion and canonical send',async()=>{
+  const order=[];
+  const bridge=createAutonomousBridge({
+    serviceRpc:async(name,p)=>{if(name==='aos_wa_l10_bridge_claim_v1')return {data:claim(p.p_provider_message_id)};return {data:{ok:true}};},
+    sendTyping:(id)=>{order.push('typing:'+id);return Promise.resolve({ok:true});},
+    suggestInternal:async()=>{order.push('suggest');return safeSuggestion();},
+    autoSend:async()=>{order.push('send');return {status:200,body:{ok:true,decision_id:'33333333-3333-4333-8333-333333333333',message_id:'wamid.out.typing'}};},
+    requestHandoff:async()=>{}
+  });
+  const r=await bridge.processProviderMessage('wamid.typing');
+  assert.equal(r.outcome,'SENT');assert.deepEqual(order,['typing:wamid.typing','suggest','send']);
+});
+
+test('typing indicator failure is best-effort and never blocks governed reply',async()=>{
+  let sends=0,handoffs=0;
+  const bridge=createAutonomousBridge({
+    serviceRpc:async(name,p)=>{if(name==='aos_wa_l10_bridge_claim_v1')return {data:claim(p.p_provider_message_id)};return {data:{ok:true}};},
+    sendTyping:()=>{throw new Error('META_TYPING_UNAVAILABLE');},
+    suggestInternal:async()=>safeSuggestion(),
+    autoSend:async()=>{sends++;return {status:200,body:{ok:true,decision_id:'33333333-3333-4333-8333-333333333333',message_id:'wamid.out.typing2'}};},
+    requestHandoff:async()=>{handoffs++;},
+    log:{error:()=>{}}
+  });
+  const r=await bridge.processProviderMessage('wamid.typing.fail');
+  assert.equal(r.outcome,'SENT');assert.equal(sends,1);assert.equal(handoffs,0);
+});

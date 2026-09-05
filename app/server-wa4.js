@@ -97,7 +97,14 @@ async function requestHandoff(conversationId,reason){
   const o=await serviceRpc('aos_wa3_handoff_request_v1',{p_conversation_id:conversationId,p_box_id:null,p_actor_id:null,p_reason:l4.sanitizeReason(reason)});
   return o.data||{};
 }
-const bridge=createAutonomousBridge({serviceRpc,suggestInternal,autoSend:body=>internalPost('/api/wa/auto-send',body),requestHandoff,log:console});
+const bridge=createAutonomousBridge({
+  serviceRpc,
+  suggestInternal,
+  autoSend:body=>internalPost('/api/wa/auto-send',body),
+  requestHandoff,
+  sendTyping:providerMessageId=>internalPost('/api/wa/auto-typing',{provider_message_id:providerMessageId}),
+  log:console
+});
 
 async function bootstrap(req,res){const a=await requireActor(req,res,false);if(!a)return;try{const [c,h]=await Promise.all([serviceGet('/rest/v1/aos_wa_ai_control_v1?select=provider,fast_model,reasoning_model,safety_model,copilot_enabled,auto_reply_enabled,daily_budget_usd,max_context_messages,max_catalog_items,updated_at&id=eq.1'),modelHealth(false)]);writeJson(res,200,{ok:true,version:'WA4-V1',actor:{id:a.actor_id,is_admin:a.is_admin===true},control:Array.isArray(c.data)?c.data[0]||{}:{},health:h,l5:{version:l5.version,autonomous_commit:'L4_GATED',canary_authorized:false}});}catch(_){writeJson(res,503,{ok:false,error:'WA4_BOOTSTRAP_UNAVAILABLE'});}}
 async function control(req,res,body){const a=await requireActor(req,res,true);if(!a)return;const h=await modelHealth(false);if(body.copilot_enabled===true&&h.copilot_ready!==true)return writeJson(res,409,{ok:false,error:'WA4_MODELS_NOT_READY',health:h});try{const o=await serviceRpc('aos_wa4_admin_set_control_v1',{p_actor_id:a.actor_id,p_copilot_enabled:typeof body.copilot_enabled==='boolean'?body.copilot_enabled:null,p_daily_budget_usd:body.daily_budget_usd==null?null:Number(body.daily_budget_usd)});writeJson(res,o.data&&o.data.ok===false?409:200,o.data||{ok:false,error:'WA4_CONTROL_EMPTY'});}catch(_){writeJson(res,503,{ok:false,error:'WA4_CONTROL_UNAVAILABLE'});}}
