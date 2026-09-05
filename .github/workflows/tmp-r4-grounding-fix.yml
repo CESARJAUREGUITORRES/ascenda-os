@@ -1,0 +1,69 @@
+name: TEMP R4 grounding safety patch
+
+on:
+  push:
+    branches:
+      - tmp/wa-l10-r4-grounding-fix-20260905
+    paths:
+      - .github/workflows/tmp-r4-grounding-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-target:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: wa-l10-r4-continuity-presentation-fix-20260905
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Harden no-money deterministic citation repair
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('app/wa4-knowledge.js')
+          s=p.read_text()
+          old="""  const catalogs = visible.filter(item=>String(item.domain||'').toUpperCase()==='CATALOG');
+          if (catalogs.length === 1) return [String(catalogs[0].knowledge_id)];
+          if (catalogs.length > 1) {
+            const families = new Set(catalogs.map(itemFamily).filter(Boolean));
+            if (families.size === 1) return catalogs.map(x=>String(x.knowledge_id)).filter(Boolean).slice(0,CITATION_REPAIR_VISIBLE_ITEMS);
+          }
+          return [];
+          """
+          new="""  const catalogs = visible.filter(item=>String(item.domain||'').toUpperCase()==='CATALOG');
+          if (!catalogs.length) return [];
+          const families = new Set(catalogs.map(itemFamily).filter(Boolean));
+          if (families.size !== 1) return [];
+          const family = [...families][0];
+          const familyTokens = family.split(/[^a-z0-9]+/).filter(t=>t.length>=4);
+          const replyTokens = new Set(normalize(reply).split(/[^a-z0-9]+/).filter(Boolean));
+          if (!familyTokens.some(t=>replyTokens.has(t))) return [];
+          return catalogs.map(x=>String(x.knowledge_id)).filter(Boolean).slice(0,CITATION_REPAIR_VISIBLE_ITEMS);
+          """
+          if old not in s:
+              raise SystemExit('GROUNDING_PATCH_ANCHOR_MISSING')
+          p.write_text(s.replace(old,new,1))
+          PY
+      - name: Focused safety and regression gates
+        run: |
+          node --check app/wa4-knowledge.js
+          node --test ci/wa4a-knowledge-fabric/wa4-knowledge.test.js
+          node --test ci/wa4-ai-sales-router/retrieval-grounding-r3.test.js
+          node --test ci/wa4-ai-sales-router/r4-continuity-presentation.test.js
+          node --test ci/wa4-ai-sales-router/ai-router.test.js
+          node --test ci/wa4b-sales-playbook/wa4-playbook.test.js
+      - name: Commit only product safety fix to R4 branch
+        shell: bash
+        run: |
+          git config user.name "ascenda-r4-safety-bot"
+          git config user.email "ascenda-r4-safety-bot@users.noreply.github.com"
+          git add app/wa4-knowledge.js
+          git diff --cached --check
+          git commit -m "WA-L10 R4: require semantic anchor for citation repair"
+          git push origin HEAD:wa-l10-r4-continuity-presentation-fix-20260905
