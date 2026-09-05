@@ -37,6 +37,7 @@ jobs:
         run: |
           node ci/wa-l10/safe_off_contract.test.js
           node ci/wa-l10/first_turn_hotpath_contract.test.js
+          node ci/wa-l10/first_turn_candidate_prefilter_v2_contract.test.js
       - name: L10 event-driven autonomous bridge contract
         shell: powershell
         run: |
