@@ -1,0 +1,106 @@
+{
+  "schema_version": "sentinel-post-v1-revalidation/v1",
+  "historical_baseline": {
+    "version": "Sentinel V1",
+    "status": "CERTIFIED_BASELINE",
+    "fases": "F1-F13",
+    "certified_main": "15de6f0358c53f9088a20d44e579dafae99fa041",
+    "immutable_by_sha": true
+  },
+  "maintenance_program": {
+    "status": "REGISTERED_PAUSED_BY_GLOBAL_PORTFOLIO_LOCK",
+    "branch": "fix/sentinel-v11-current-alignment-20260817",
+    "pr": 271,
+    "full_revalidation_stage": "R6",
+    "surveillance_during_buildout": true,
+    "full_recertification_per_commit": false
+  },
+  "stages": [
+    {
+      "id": "R0",
+      "name": "Continuous Surveillance During ASCENDA Buildout",
+      "state": "ACTIVE_REGRESSION_ONLY",
+      "prerequisite": null,
+      "purpose": "Keep Sentinel V1 surveillance and safe incident handling active while other workstreams evolve."
+    },
+    {
+      "id": "R1",
+      "name": "Database Ingestion Completion Checkpoint",
+      "state": "WAITING_EXTERNAL_WORKSTREAM",
+      "prerequisite": "ASCENDA database ingestion closeout",
+      "impact_phases": ["F2", "F3", "F5", "F6", "F8", "F10", "F13"]
+    },
+    {
+      "id": "R2",
+      "name": "Database Management & Governance Completion Checkpoint",
+      "state": "WAITING_EXTERNAL_WORKSTREAM",
+      "prerequisite": "ASCENDA database management/governance closeout",
+      "impact_phases": ["F1", "F3", "F6", "F8", "F10", "F12", "F13"]
+    },
+    {
+      "id": "R3",
+      "name": "WhatsApp Completion Checkpoint",
+      "state": "WAITING_EXTERNAL_WORKSTREAM",
+      "prerequisite": "ASCENDA WhatsApp closeout",
+      "impact_phases": ["F2", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F13"]
+    },
+    {
+      "id": "R4",
+      "name": "Email + SMS Completion Checkpoint",
+      "state": "WAITING_EXTERNAL_WORKSTREAM",
+      "prerequisite": "ASCENDA email and SMS closeout",
+      "impact_phases": ["F1", "F3", "F5", "F6", "F8", "F9", "F10", "F13"]
+    },
+    {
+      "id": "R5",
+      "name": "KronIA Completion Checkpoint",
+      "state": "WAITING_EXTERNAL_WORKSTREAM",
+      "prerequisite": "KronIA closeout",
+      "impact_phases": ["F2", "F3", "F6", "F8", "F10", "F11", "F12", "F13"]
+    },
+    {
+      "id": "R6",
+      "name": "Full Cross-System Revalidation + Sentinel Hub V1.2",
+      "state": "BLOCKED_BY_R1_R5_AND_PORTFOLIO_LOCK",
+      "prerequisite": "R1-R5 external prerequisites complete and Sentinel maintenance lane released",
+      "mandatory_regressions": ["F4", "F9", "F13"],
+      "final_state": "CURRENT_ALIGNED"
+    }
+  ],
+  "hub_v1_2": {
+    "status": "PLANNED",
+    "required_fields": [
+      "baseline_status",
+      "baseline_certified_sha",
+      "current_alignment_status",
+      "current_main_sha",
+      "aligned_to_sha",
+      "last_revalidated_at",
+      "topology_freshness",
+      "runtime_chain_summary",
+      "domain_coverage",
+      "domain_checkpoint_status",
+      "impacted_sentinel_phases",
+      "open_sen_incidents",
+      "maintenance_findings",
+      "deferred_transports"
+    ],
+    "alignment_states": ["ALIGNED", "REVALIDATING", "DRIFTED", "UNKNOWN"],
+    "zero_phi_pii": true,
+    "owner_admin_only": true,
+    "destructive_auto_remediation": false
+  },
+  "future_automation": {
+    "registry_generator": "PLANNED",
+    "topology_digest": "PLANNED",
+    "freshness_gate": "PLANNED",
+    "impact_map_generator": "PLANNED"
+  },
+  "source_of_truth_precedence": [
+    "github_docs",
+    "runtime_schema_live",
+    "ci_sensor_evidence",
+    "sentinel_core",
+    "notion_visual"
+  ]
+}

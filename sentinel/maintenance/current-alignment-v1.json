@@ -1,0 +1,54 @@
+{
+  "schema_version": "sentinel-current-alignment/v1",
+  "baseline": {
+    "sentinel_version": "V1",
+    "certified_main": "15de6f0358c53f9088a20d44e579dafae99fa041",
+    "registry": "docs/control/SENTINEL_SYSTEM_REGISTRY_V1.json",
+    "status": "CERTIFIED_BASELINE",
+    "immutable_by_sha": true
+  },
+  "current": {
+    "source_main": "8487a1d7481e364ddee12139a927d4e3b1b259db",
+    "status": "REVALIDATING",
+    "reason": "S15.2 introduced the F17 production bootstrap after the V1 certificate; F13 also added the Sentinel Hub surface after the original F2 snapshot. CURRENT later advanced through a CIA V3 control-plane docs-only merge, so the overlay is rebound to that exact main SHA without changing the runtime topology claim.",
+    "runtime": {
+      "railway_config": "app/railway.json",
+      "start_command": "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js",
+      "entrypoint": "app/server-phase-s-f17.js",
+      "healthcheck_path": "/health",
+      "chain": [
+        "app/server-phase-s-f17.js",
+        "app/server-phase-s.js",
+        "app/server-f17.js",
+        "app/server-f5.js",
+        "app/server-wa4.js",
+        "app/server-wa3.js",
+        "app/server-wa2.js",
+        "app/server-f4.js",
+        "app/server-phase2.js",
+        "app/server.js"
+      ]
+    },
+    "public_surfaces": {
+      "html_count": 42,
+      "new_since_f2_baseline": [
+        "app/public/admin-sentinel.html"
+      ],
+      "sentinel_hub_assets": [
+        "app/public/admin-sentinel.html",
+        "app/public/sentinel-hub.js",
+        "app/public/sentinel-hub-bootstrap.js",
+        "app/public/sentinel-topology.v1.json"
+      ]
+    }
+  },
+  "invariants": {
+    "zero_phi_pii": true,
+    "default_observability_state": "UNKNOWN",
+    "sentry_preload_must_be_runtime_only": true,
+    "sentry_preload": "--require ./sentinel-sentry-init.cjs",
+    "pay_as_you_go": false,
+    "baseline_certificate_must_not_be_rewritten": true,
+    "current_drift_must_fail_closed": true
+  }
+}
