@@ -7,6 +7,7 @@ on:
     paths:
       - .github/workflows/wa-l10-r6-boundary-patch.yml
       - ci/wa-l10/r6_boundary_patch_tmp.py
+      - ci/wa-l10/r6_boundary_fix_tmp.py
 
 permissions:
   contents: write
@@ -23,7 +24,9 @@ jobs:
         with:
           node-version: 24
       - name: Apply provider-boundary correction
-        run: python ci/wa-l10/r6_boundary_patch_tmp.py
+        run: |
+          python ci/wa-l10/r6_boundary_patch_tmp.py
+          python ci/wa-l10/r6_boundary_fix_tmp.py
       - name: R6 provider-boundary and functional gates
         run: |
           node --check app/server-wa4.js
