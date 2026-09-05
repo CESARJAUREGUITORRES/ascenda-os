@@ -5,9 +5,28 @@ const ai=require('./ai-router');
 const GEMINI_MODEL='gemini-3.8-flash';
 const GEMINI_COST={input:0.75,output:3.75};
 const DEFAULT_SCHEMA=Object.freeze({type:'object'});
+let geminiSecretCache={value:'',expiresAt:0};
 
 function providerError(name,message,status,upstreamStatus,code){
   const e=new Error(name);e.status=status||502;e.upstreamStatus=upstreamStatus||null;e.code=code||null;e.messageSafe=String(message||'').slice(0,180)||null;return e;
+}
+
+function loadGeminiSecret(){
+  const now=Date.now();if(now<geminiSecretCache.expiresAt)return Promise.resolve(geminiSecretCache.value);
+  const sb=String(process.env.SUPABASE_URL||''),serviceKey=String(process.env.SUPABASE_SERVICE_ROLE_KEY||'');
+  if(!sb||!serviceKey){geminiSecretCache={value:'',expiresAt:now+30000};return Promise.resolve('');}
+  return new Promise(resolve=>{
+    let u;try{u=new URL(sb);}catch(_){geminiSecretCache={value:'',expiresAt:now+30000};return resolve('');}
+    const path='/rest/v1/aos_integration_secrets_v1?tipo=eq.gemini&select=api_key&limit=1';
+    const q=https.request({hostname:u.hostname,port:u.port||443,path,method:'GET',headers:{apikey:serviceKey,Authorization:'Bearer '+serviceKey,'Content-Type':'application/json','User-Agent':'AscendaOS-WA4-ProviderRouter/1.0'},timeout:5000},r=>{
+      let raw='';r.on('data',c=>raw+=c);r.on('end',()=>{
+        let rows=[];try{rows=JSON.parse(raw||'[]');}catch(_){}
+        const value=r.statusCode>=200&&r.statusCode<300&&Array.isArray(rows)&&rows[0]&&typeof rows[0].api_key==='string'?rows[0].api_key:'';
+        geminiSecretCache={value:value.length>10?value:'',expiresAt:Date.now()+(value.length>10?300000:30000)};resolve(geminiSecretCache.value);
+      });
+    });
+    q.on('timeout',()=>q.destroy());q.on('error',()=>{geminiSecretCache={value:'',expiresAt:Date.now()+30000};resolve('');});q.end();
+  });
 }
 
 function geminiRequest(apiKey,body,timeoutMs){
@@ -88,12 +107,14 @@ async function chat(keys,model,messages,options){
     const out=await ai.chat(k.groq||'',model,messages,opts);
     return Object.assign({provider:'groq',fallback_used:false,estimated_cost_usd:ai.estimateCost(out.model,out.usage)},out);
   }catch(e){
-    if(!k.gemini||!retryableGroq(e))throw e;
-    const fallback=await geminiChat(k.gemini,messages,opts);
+    if(!retryableGroq(e))throw e;
+    const geminiKey=k.gemini||await loadGeminiSecret();if(!geminiKey)throw e;
+    const fallback=await geminiChat(geminiKey,messages,opts);
     fallback.primary_error=String(e&&e.message||'GROQ_FAILED').slice(0,80);
     fallback.total_latency_ms=Date.now()-started;
     return fallback;
   }
 }
 
-module.exports={GEMINI_MODEL,GEMINI_COST,retryableGroq,messageInput,textFromInteraction,usageFromInteraction,geminiChat,chat};
+function clearSecretCache(){geminiSecretCache={value:'',expiresAt:0};}
+module.exports={GEMINI_MODEL,GEMINI_COST,retryableGroq,messageInput,textFromInteraction,usageFromInteraction,geminiChat,chat,loadGeminiSecret,clearSecretCache};
