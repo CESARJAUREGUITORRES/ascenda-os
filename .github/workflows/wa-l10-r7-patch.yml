@@ -7,6 +7,8 @@ on:
     paths:
       - .github/workflows/wa-l10-r7-patch.yml
       - ci/wa-l10/r7_patch_tmp.py
+      - app/wa4-conversation-style.js
+      - ci/wa4-ai-sales-router/r7-conversation-product-contract.test.js
 
 permissions:
   contents: write
