@@ -60,7 +60,7 @@ function toxinPriceCard(options){
 }
 function noPromotionCard(options){
   const rows=(Array.isArray(options)?options:[]).filter(Boolean).slice(0,6);
-  const lines=['😊 Por ahora no tengo una promoción adicional vigente confirmada para esta consulta.'];
+  const lines=['😊 No tengo una promoción vigente confirmada para esta consulta.'];
   if(rows.length){
     lines.push('','✨ *Precios regulares vigentes*');
     for(const o of rows){
