@@ -1,0 +1,44 @@
+name: WA-L10 R7 conversation product contract patch
+
+on:
+  push:
+    branches:
+      - wa-l10-r7-conversation-product-contract-20260905
+    paths:
+      - .github/workflows/wa-l10-r7-patch.yml
+      - ci/wa-l10/r7_patch_tmp.py
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: wa-l10-r7-conversation-product-contract-20260905
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Apply scoped R7 product patch
+        run: python ci/wa-l10/r7_patch_tmp.py
+      - name: R7 syntax and conversation-product gates
+        run: |
+          node --check app/wa4-conversation-style.js
+          node --check app/wa4-copilot.js
+          node --test ci/wa4-ai-sales-router/r7-conversation-product-contract.test.js
+          node --test ci/wa4-ai-sales-router/r6-conversation-ux-fastlane.test.js
+          node --test ci/wa4-ai-sales-router/ai-router.test.js
+          node --test app/wa-l10-autonomous-bridge.test.js
+          node ci/wa-l10/autonomous_bridge_contract.test.js
+          python ci/wa4-ai-sales-router/ui_contract.py
+      - name: Commit scoped R7 product patch
+        run: |
+          git config user.name "ascenda-r7-bot"
+          git config user.email "ascenda-r7-bot@users.noreply.github.com"
+          git add app/wa4-copilot.js app/wa4-conversation-style.js ci/wa4-ai-sales-router/r7-conversation-product-contract.test.js ci/wa4-ai-sales-router/ai-router.test.js
+          git diff --cached --check
+          git commit -m "WA-L10 R7: add Zi Vital conversation product contract"
+          git push origin HEAD:wa-l10-r7-conversation-product-contract-20260905
