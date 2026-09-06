@@ -19,8 +19,9 @@ function msg(direction,body,sec){return {direction,message_body:body,created_at:
 
 test('R7 first contact keeps Sofía persona, Zi Vital canon and restrained emoji density',()=>{
   const out=style.firstContactToxin();
-  assert.ok(out.startsWith('¡Hola! 👋 Soy Sofía de Zi Vital 😊'));
-  assert.ok(out.includes('toxina botulínica ✨'));
+  assert.ok(out.startsWith('¡Hola! 👋 Soy Sofía de Zi Vital. Claro, te ayudo 😊'));
+  assert.ok(out.includes('toxina botulínica'));
+  assert.ok(out.includes('✨'));
   assert.equal(out.includes('ZI VITAL'),false);
   assert.equal(out.includes('�'),false);
   const m=style.styleMetrics(out);
@@ -37,7 +38,8 @@ test('R7 price card matches Zi Vital commercial WhatsApp pattern: short heading,
   ]);
   for(const x of ['*TOXINA BOTULÍNICA*','*1 zona*','*3 zonas*','HUTOX 15U — S/ 299','NABOTA 15U — S/ 399','HUTOX 50U — S/ 799','NABOTA 50U — S/ 999'])assert.ok(out.includes(x),x);
   assert.equal((out.match(/^• /gm)||[]).length,4);
-  assert.equal((out.match(/\?/g)||[]).length,0);
+  assert.equal((out.match(/\?/g)||[]).length,1);
+  assert.ok(out.endsWith('😊'));
   const m=style.styleMetrics(out);assert.ok(m.emoji<=4,m.emoji);assert.ok(m.chars<500,m.chars);
 });
 
