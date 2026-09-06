@@ -25,10 +25,10 @@ function firstContactOrganic(){
 }
 function firstContactTreatment(label){
   const treatment=clean(label||'este tratamiento').toLowerCase();
-  return '¡Hola! 👋 Soy Sofía de Zi Vital 😊\n\nClaro, te ayudo con '+treatment+' ✨\nPara orientarte mejor, cuéntame qué zona o resultado te interesa mejorar.';
+  return APPROVED_FIRST_CONTACT_COPY+'\n\n✨ Te ayudo con '+treatment+'.\nCuéntame qué zona o resultado te interesa mejorar.';
 }
 function firstContactToxin(){
-  return '¡Hola! 👋 Soy Sofía de Zi Vital 😊\n\nClaro, te ayudo con la toxina botulínica ✨\nPara orientarte bien, cuéntame qué zona te gustaría mejorar: frente, entrecejo, patitas de gallo o varias zonas.';
+  return APPROVED_FIRST_CONTACT_COPY+'\n\n✨ Te ayudo con la toxina botulínica.\nPara orientarte bien, cuéntame qué zona te gustaría mejorar: frente, entrecejo, patitas de gallo o varias zonas.';
 }
 function groupToxinOptions(options){
   const rows=(Array.isArray(options)?options:[]).filter(Boolean).slice(0,8);
@@ -55,7 +55,7 @@ function toxinPriceCard(options){
     }
     lines.push('');
   }
-  lines.push('Si quieres, dime qué zonas deseas tratar y te oriento con la opción que corresponde 😊');
+  lines.push('¿Qué zonas te gustaría tratar? 😊');
   return clean(lines.join('\n'));
 }
 function noPromotionCard(options){
