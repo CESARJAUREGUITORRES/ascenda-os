@@ -45,7 +45,7 @@ test('R7 price card matches Zi Vital commercial WhatsApp pattern: short heading,
 
 test('R7 no-promo copy is honest and preserves regular-price card rather than handing off',()=>{
   const out=style.noPromotionCard([{label:'HUTOX · 3 zonas (50U)',price:'S/ 799'},{label:'NABOTA · 3 zonas (50U)',price:'S/ 999'}]);
-  assert.match(out,/no tengo una promoción adicional vigente confirmada/i);
+  assert.match(out,/no tengo una promoción vigente confirmada/i);
   assert.ok(out.includes('*Precios regulares vigentes*'));
   assert.ok(out.includes('S/ 799'));assert.ok(out.includes('S/ 999'));
   assert.ok(out.includes('revisamos una cita 📅'));
