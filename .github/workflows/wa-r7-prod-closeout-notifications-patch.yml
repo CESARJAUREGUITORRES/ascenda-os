@@ -24,7 +24,7 @@ jobs:
           node-version: 22
       - name: Install app dependencies
         working-directory: app
-        run: npm ci --ignore-scripts
+        run: npm install --ignore-scripts --no-audit --no-fund
       - name: Apply scoped patch
         run: python ci/wa-s14/r7_prod_closeout_patch_tmp.py
       - name: Syntax and S14 closeout contracts
