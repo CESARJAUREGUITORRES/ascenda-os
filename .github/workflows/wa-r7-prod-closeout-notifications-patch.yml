@@ -1,0 +1,43 @@
+name: WA R7 production closeout notifications patch
+
+on:
+  push:
+    branches:
+      - wa-r7-prod-closeout-notifications-20260909
+    paths:
+      - .github/workflows/wa-r7-prod-closeout-notifications-patch.yml
+      - ci/wa-s14/r7_prod_closeout_patch_tmp.py
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: wa-r7-prod-closeout-notifications-20260909
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install app dependencies
+        working-directory: app
+        run: npm ci --ignore-scripts
+      - name: Apply scoped patch
+        run: python ci/wa-s14/r7_prod_closeout_patch_tmp.py
+      - name: Syntax and S14 closeout contracts
+        run: |
+          node --check app/push-notifications-s14.js
+          node ci/wa-s14/contract.js
+          node --test ci/wa-s14/r7_prod_closeout.test.js
+          node --test ci/performance/foreground-priority-incident-mode.test.js
+      - name: Commit product patch
+        run: |
+          git config user.name "ascenda-wa-closeout-bot"
+          git config user.email "ascenda-wa-closeout-bot@users.noreply.github.com"
+          git add app/push-notifications-s14.js ci/wa-s14/contract.js
+          git diff --cached --check
+          git commit -m "WA-S14: restore bounded event-driven WhatsApp notifications"
+          git push origin HEAD:wa-r7-prod-closeout-notifications-20260909
