@@ -25,7 +25,9 @@ function createPushService(opts) {
   }
 
   async function loadVapid() {
-    const current = await rpc('aos_push_vapid_config_v1', {})
+    let current
+    try { current = await rpc('aos_push_vapid_runtime_config_v2', {}) }
+    catch (_) { current = await rpc('aos_push_vapid_config_v1', {}) }
     if (current.configured === true && current.public_key && current.private_key) return current
     const generated = webpush.generateVAPIDKeys()
     const stored = await rpc('aos_push_vapid_store_v1', { public_key: generated.publicKey, private_key: generated.privateKey })
@@ -204,12 +206,14 @@ function createPushService(opts) {
     for (const m of messages) {
       if (!m || String(m.direction || 'INBOUND').toUpperCase() !== 'INBOUND' || !m.provider_message_id) continue
       let target
+      const targetPayload = {
+        contact_number: digits(m.from_number),
+        phone_number_id: text(m.phone_number_id, 128),
+        provider_message_id: text(m.provider_message_id, 256)
+      }
       try {
-        target = await rpc('aos_push_targets_for_wa_v1', {
-          contact_number: digits(m.from_number),
-          phone_number_id: text(m.phone_number_id, 128),
-          provider_message_id: text(m.provider_message_id, 256)
-        })
+        try { target = await rpc('aos_push_targets_for_wa_v2', targetPayload) }
+        catch (_) { target = await rpc('aos_push_targets_for_wa_v1', targetPayload) }
       } catch (e) {
         totals.failed++
         logger.error('[S14] target resolution failed', e.message)
