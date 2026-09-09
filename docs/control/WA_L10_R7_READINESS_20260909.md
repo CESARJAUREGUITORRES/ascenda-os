@@ -59,3 +59,9 @@ These mocked/pure tests are not end-to-end Meta delivery or latency evidence.
 - https://www.notion.so/3bf0e4fe8414810793f5c19da8be0c78
 
 Risk: LOW documentation/audit. Rollback: revert this documentation-only commit. Production runtime, database and autonomous authority unchanged.
+
+## Authenticated panel follow-up
+
+Secure user-assisted Auth V3 credentials and 2FA succeeded in the audit browser. Navigated via the visible WhatsApp Hub menu. Inbox, exact conversation, Details, Customer 360, Campaign and Activity rendered. UI reports Meta API READY, RUNTIME READY, AI SEND OFF, BOT OFF, 24H closed, no owner. Manual composer is disabled with the explicit ownership requirement. Customer 360 returns no resolved canonical patient; Campaign returns no explicit ad provenance; neither invents identity/attribution. Historical R5 formatting defects remain visible in old messages and are not new R7 outputs.
+
+No human message, assignment, release, autonomous activation or new model suggestion was executed. This proves authenticated panel reading and fail-closed composer presentation, not the unexecuted human-send/takeover workflow. Fresh owner CANARY authorization is still absent.
