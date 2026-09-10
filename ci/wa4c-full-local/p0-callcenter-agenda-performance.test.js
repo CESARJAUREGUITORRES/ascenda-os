@@ -4,6 +4,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 
 const cc=fs.readFileSync('app/public/calls-performance-v1.js','utf8');
+const calls=fs.readFileSync('app/public/calls.js','utf8');
 const agenda=fs.readFileSync('app/public/agenda-governed-status-v1.js','utf8');
 const f4=fs.readFileSync('app/public/f4-production-canary-hotfix.js','utf8');
 const panel=fs.readFileSync('app/public/panel-access-authority-v1.js','utf8');
@@ -12,12 +13,24 @@ const hot=fs.readFileSync('supabase/migrations/20260902002500_mkt_loop6_p0_booki
 const hotExec=hot.split(/\r?\n/).filter(line=>!line.trimStart().startsWith('--')).join('\n');
 const hotRollback=fs.readFileSync('supabase/rollbacks/20260902002500_mkt_loop6_p0_booking_hotpath_v3_recovery.sql','utf8');
 const agSql=fs.readFileSync('supabase/migrations/20260901034000_p0_agenda_status_governed_v1.sql','utf8');
+const debt=fs.readFileSync('supabase/migrations/20260910200500_mkt_loop6_p0_contact_debt_timestamp_sanity_v1.sql','utf8');
 
 test('Call Center waits for Loop6 and coalesces duplicated panel reads',()=>{
   assert.match(cc,/__AOS_CC_LOOP6_POSTLOAD_READY__!=='v2\.3-postload'/);
   assert.match(cc,/aos_siguiente_lead_v2'\?'aos_siguiente_lead'/);
   assert.match(cc,/aos_panel_asesor:2500/);
   assert.match(cc,/aos_horarios_semana:30000/);
+});
+
+test('P0 #490 keeps Contact Debt event time sane and initial selector canonical',()=>{
+  assert.match(calls,/_rpc\('aos_siguiente_lead',\{p_asesor:x\.a,p_id_asesor:x\.id,p_hoy:x\.hoy\}/);
+  assert.doesNotMatch(calls,/_rpc\('aos_siguiente_lead_v2',\{p_asesor:x\.a,p_id_asesor:x\.id,p_hoy:x\.hoy\}/);
+  assert.match(debt,/aos_callcenter_effective_lead_ts_v1/);
+  assert.match(debt,/p_hora_ingreso <= now\(\)\+interval '5 minutes'/);
+  assert.match(debt,/abs\(\(\(p_hora_ingreso at time zone 'America\/Lima'\)::date - p_fecha\)\) <= 1/);
+  assert.match(debt,/>= public\.aos_callcenter_effective_lead_ts_v1/);
+  assert.match(debt,/order by bucket,lead_ts,id/);
+  assert.match(debt,/return public\.aos_siguiente_lead_v2\(p_asesor,p_id_asesor,p_hoy\)/);
 });
 
 test('Call Center governed writes prefer canonical strong-session token and fail closed',()=>{
