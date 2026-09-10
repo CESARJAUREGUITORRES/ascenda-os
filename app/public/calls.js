@@ -135,7 +135,7 @@ function loadLead(_retried){
     document.getElementById('cc-num').textContent='Error: sin sesión';document.getElementById('cc-no-lead').style.display='block';document.getElementById('cc-no-txt').textContent='Sesión no detectada. Recarga la página.';console.error('[CC] _ctx vacío después de 5 reintentos:',JSON.stringify(x));return;
   }
   CC._retries=0;
-  _rpc('aos_siguiente_lead_v2',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy},function(res){
+  _rpc('aos_siguiente_lead',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy},function(res){
     if(!res||!res.ok||!res.lead){
       document.getElementById('cc-no-lead').style.display='block';
       document.getElementById('cc-no-txt').textContent=res?(res.msg||'Sin leads pendientes.'):'Sin leads pendientes.';
