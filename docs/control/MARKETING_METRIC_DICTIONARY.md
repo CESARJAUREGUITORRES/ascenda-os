@@ -85,3 +85,38 @@ Revenue acumulado de los clientes originalmente adquiridos por una cohorte. Pued
 ## Regla de dashboard
 
 Marketing debe mostrar datos del universo derivado de campañas/touchpoints. Las ventas globales de la clínica pertenecen al panel Ventas y no deben contaminar KPIs de Marketing.
+
+
+## V4.3 — Reconciliación de valor
+
+### Revenue atribuido pagado del período
+Facturación M0 atribuible a touchpoints/campañas pagadas del período seleccionado. Debe reconciliar exactamente:
+
+`Revenue atribuido = Adquisición + Reactivación + Seguimiento histórico`.
+
+El revenue orgánico se informa aparte y no entra al KPI pagado.
+
+### LTV de adquisición
+Cohorte de clientes nuevos originalmente adquiridos por marketing. Sigue `M0 → M+1 → M+2 → M+3 → M+4+`. No debe absorber revenue de reactivación de clientes preexistentes.
+
+### Valor post-reactivación
+Cohorte separada de clientes ya existentes recuperados por un nuevo touchpoint. Sigue `R0 → R+1 → R+2 → R+3 → R+4+`, donde R0 es el mes de reactivación y los meses posteriores acumulan compras posteriores del cliente reactivado.
+
+El valor post-reactivación es longitudinal y no se suma al LTV de adquisición para reconstruir el revenue M0; son cohortes analíticas distintas.
+
+### Trazabilidad de atribución
+La auditoría mensual debe mostrar, sin exponer PII completa:
+- últimos 4 dígitos del teléfono;
+- tipo de atribución;
+- `lead_id`, fecha, campaña y anuncio;
+- cantidad de llamadas/citas vinculadas;
+- método de match y confidence;
+- operaciones y facturación.
+
+Jerarquía interpretativa:
+1. vínculo explícito `lead_id_origen` / llamada / cita;
+2. cadena directa parcial;
+3. inferencia fuerte;
+4. inferencia por lead único compatible.
+
+La ambigüedad nunca debe convertirse silenciosamente en atribución fuerte.

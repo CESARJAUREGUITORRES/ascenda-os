@@ -7,10 +7,11 @@ const core=fs.readFileSync('app/public/admin-marketing-v2-core.js','utf8');
 const indexMigration=fs.readFileSync('supabase/migrations/20260902022000_p0_marketing_confirmed_call_lookup_index.sql','utf8');
 const callLeadMigration=fs.readFileSync('supabase/migrations/20260902024000_p0_marketing_call_lead_single_pass_v4.sql','utf8');
 const summaryMigration=fs.readFileSync('supabase/migrations/20260902164000_p0_marketing_period_summary_fast_v5.sql','utf8');
+const valueMapMigration=fs.readFileSync('supabase/migrations/20260910230000_marketing_value_map_v43.sql','utf8');
 
-test('preserves certified Marketing V4.2 core',()=>{
+test('preserves certified Marketing V4.3 core',()=>{
   assert.match(boot,/admin-marketing-v2-core\.js/);
-  assert.match(core,/2026-08-31-v4\.2\.2-organic-paid-boundary/);
+  assert.match(core,/2026-09-10-v4\.3-value-reconciliation/);
   assert.match(core,/Facturación, ROAS y CAC excluyen ORGANICO/);
 });
 
@@ -21,6 +22,7 @@ test('single-flight and cache are scoped to Marketing reads',()=>{
   assert.match(boot,/aos_marketing_period_summary_v2:10000/);
   assert.match(boot,/aos_marketing_historico_public_v2:60000/);
   assert.match(boot,/aos_marketing_ltv_public_v2:60000/);
+  assert.match(boot,/aos_marketing_value_map_public_v43:60000/);
   assert.match(boot,/inflight\.has\(key\)/);
   assert.match(boot,/cache\.get\(key\)/);
 });
@@ -38,6 +40,7 @@ test('failed reads never poison the short-lived cache and one timeout retry is b
 test('expensive annual analytics are viewport gated and wait for monthly quiescence',()=>{
   assert.match(boot,/aos_marketing_historico_public_v2:'#mk-hist'/);
   assert.match(boot,/aos_marketing_ltv_public_v2:'#mk-ltv'/);
+  assert.match(boot,/aos_marketing_value_map_public_v43:'#mk-ltv'/);
   assert.match(boot,/IntersectionObserver/);
   assert.match(boot,/rootMargin:'500px 0px'/);
   assert.match(boot,/setTimeout\(finish,12000\)/);
@@ -59,7 +62,7 @@ test('legacy LTV cohort read is suppressed from bootstrap start',()=>{
 });
 
 test('new bootstrap release replaces older SPA fetch wrapper',()=>{
-  assert.match(boot,/p0-marketing-read-pressure-v1\.4/);
+  assert.match(boot,/2026-09-10-mkt-v4\.3-read-pressure-v1/);
   assert.match(boot,/G&&G\.release!==RELEASE&&typeof G\.baseFetch==='function'/);
   assert.match(boot,/window\.fetch=G\.baseFetch/);
   assert.match(boot,/delete window\.__AOS_MKT_PERF_V1/);
@@ -77,6 +80,28 @@ test('period summary attribution and intent share one serialized monthly lane',(
   assert.match(boot,/monthlyTail=queued\.then/);
   assert.match(boot,/serializedMonthly/);
   assert.match(boot,/waitAnnualDrain/);
+});
+
+test('V4.3 value map reconciles revenue and keeps cohorts separate',()=>{
+  assert.match(valueMapMigration,/create or replace function public\.aos_marketing_value_map_public_v43/);
+  assert.match(valueMapMigration,/'reconciliation'/);
+  assert.match(valueMapMigration,/'acquisitionLtv'/);
+  assert.match(valueMapMigration,/'reactivationLtv'/);
+  assert.match(valueMapMigration,/'lineage'/);
+  assert.match(valueMapMigration,/tipo_atribucion='ADQUISICION'/);
+  assert.match(valueMapMigration,/tipo_atribucion='REACTIVACION'/);
+  assert.match(valueMapMigration,/tipo_atribucion='SEGUIMIENTO_HISTORICO'/);
+  assert.match(valueMapMigration,/reconciliation_delta/);
+  assert.match(valueMapMigration,/SAME_MONTH_UNIQUE_LEAD/);
+  assert.match(valueMapMigration,/right\(a\.numero_limpio,4\)/);
+  assert.doesNotMatch(valueMapMigration,/update\s+public\./i);
+  assert.doesNotMatch(valueMapMigration,/delete\s+from\s+public\./i);
+  assert.doesNotMatch(valueMapMigration,/insert\s+into\s+public\./i);
+  assert.match(core,/RECONCILIACIÓN DEL REVENUE ATRIBUIDO/);
+  assert.match(core,/LTV DE ADQUISICIÓN/);
+  assert.match(core,/VALOR POST-REACTIVACIÓN/);
+  assert.match(core,/AUDITORÍA DE ATRIBUCIÓN DEL MES/);
+  assert.match(core,/aos_marketing_value_map_public_v43/);
 });
 
 test('confirmed-call lookup index is partial and formula-neutral',()=>{
@@ -125,5 +150,5 @@ test('bootstrap adds no recurrent polling and core keeps canonical RPCs',()=>{
   assert.doesNotMatch(boot,/setInterval\s*\(/);
   assert.match(core,/aos_marketing_period_summary_v2/);
   assert.match(core,/aos_marketing_historico_public_v2/);
-  assert.match(core,/aos_marketing_ltv_public_v2/);
+  assert.match(core,/aos_marketing_value_map_public_v43/);
 });
