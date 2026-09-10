@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import re
 
 root=Path(__file__).resolve().parents[2]
 server=(root/'app/server-wa3.js').read_text(encoding='utf-8')
@@ -35,7 +36,8 @@ sentinel_s152="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node serv
 sentinel_s152_email="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s-f17.js"
 direct=normalized_start=='node server-wa3.js'
 wa4_to_v1=("['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
-wa4_to_v2_to_v1=("['server-wa3-v2.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa3.js']" in wa3v2 and 'proxy(req,res)' in wa3v2)
+wa3v2_proxy = re.search(r"proxy\s*\(\s*req\s*,\s*res(?:\s*,|\s*\))", wa3v2) is not None
+wa4_to_v2_to_v1=("['server-wa3-v2.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa3.js']" in wa3v2 and wa3v2_proxy)
 wa4_authority=wa4_to_v1 or wa4_to_v2_to_v1
 wa4_wrapped=(normalized_start=='node server-wa4.js' and wa4_authority)
 f5_wrapped=(normalized_start=='node server-f5.js' and "['server-wa4.js']" in f5 and 'proxy(req,res)' in f5 and wa4_authority)

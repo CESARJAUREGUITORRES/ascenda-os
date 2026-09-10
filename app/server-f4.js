@@ -127,7 +127,15 @@ async function handleWaWebhook(req,res){
 function graphSend(payload){
   return new Promise((resolve,reject)=>{
     if(!waConfigReadyOutbound()){reject(Object.assign(new Error('WA_OUTBOUND_NOT_CONFIGURED'),{status:503,definite:true}));return;}
-    const data=JSON.stringify(payload);const q=https.request({hostname:'graph.facebook.com',path:'/'+WA_GRAPH_VERSION+'/'+encodeURIComponent(WA_PHONE_NUMBER_ID)+'/messages',method:'POST',headers:{Authorization:'Bearer '+WA_ACCESS_TOKEN,'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'User-Agent':'AscendaOS-WA-Gateway/1.0'},timeout:15000},r=>{let out='';r.on('data',c=>out+=c);r.on('end',()=>{let parsed={};try{parsed=out?JSON.parse(out):{};}catch(e){}if(r.statusCode>=200&&r.statusCode<300)resolve(parsed);else reject(Object.assign(new Error('META_SEND_REJECTED'),{status:502,metaStatus:r.statusCode,definite:true}));});});
+    const data=JSON.stringify(payload);const q=https.request({hostname:'graph.facebook.com',path:'/'+WA_GRAPH_VERSION+'/'+encodeURIComponent(WA_PHONE_NUMBER_ID)+'/messages',method:'POST',headers:{Authorization:'Bearer '+WA_ACCESS_TOKEN,'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'User-Agent':'AscendaOS-WA-Gateway/1.0'},timeout:15000},r=>{let out='';r.on('data',c=>out+=c);r.on('end',()=>{
+      let parsed={};try{parsed=out?JSON.parse(out):{};}catch(e){}
+      if(r.statusCode>=200&&r.statusCode<300){resolve(parsed);return;}
+      const me=parsed&&parsed.error||{};
+      const metaCode=String(me.code||'').trim();
+      const metaSubcode=String(me.error_subcode||'').trim();
+      const errorCode=metaCode?('META_'+metaCode+(metaSubcode?'_'+metaSubcode:'')):'META_SEND_REJECTED';
+      reject(Object.assign(new Error(errorCode),{status:502,metaStatus:r.statusCode,metaCode:metaCode||null,metaSubcode:metaSubcode||null,definite:true}));
+    });});
     q.on('timeout',()=>q.destroy(Object.assign(new Error('META_SEND_TIMEOUT'),{status:504,ambiguous:true})));
     q.on('error',err=>reject(Object.assign(err,{status:err.status||502,ambiguous:err.definite!==true})));
     q.write(data);q.end();
