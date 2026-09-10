@@ -26,13 +26,13 @@ permissions:
 
 jobs:
   stability:
-    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Syntax gates
         run: |
           node --check app/wa3-stability.js
