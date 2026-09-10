@@ -1,46 +1,40 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-09 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `P0 #485 — AUTH/WHATSAPP FALSE-2FA + POLLING-PRESSURE RECURRENCE`  
-**GitHub authority:** Issue `#485` = `OPEN / ACTIVE`  
-**Exact entry main:** `07e5ac06ae82ea586d7239fa69a75532384460a1`  
-**Active branch:** `p0-485-auth-wa-stability-20260909`  
-**WA-L10 #456:** `PAUSED — RESUME ONLY AFTER P0 #485 PROD LOAD/RECURRENCE PASS`  
+**ACTIVE HIGH/CRITICAL LOCK:** `WA-L10 #456 — R7 ONE-CONVERSATION CANARY ACTIVATION GATE`  
+**P0 #485:** `CLOSED / COMPLETED — PROD RECURRENCE+LOAD PASS`  
+**GitHub authority:** Issue `#456` = `OPEN`; Issue `#485` = `CLOSED / COMPLETED`  
+**Runtime-certified main:** `74380f3ea4784a63c4b2ff630bc58af4e6c2065d`  
+**Runtime-certified Railway PROD:** `8ebc575d-4f62-4710-878b-23bb337aab41` = `SUCCESS` on exact `74380f3e...`  
+**P0 production validation:** GitHub Actions run `34423672397` = `SUCCESS / P0_485_PROD_VALIDATION_PASS`  
 **Current production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF`  
 **Active L4 allowlist:** `0`  
-**L10 CANARY:** `NOT AUTHORIZED DURING P0`  
+**L10 CANARY:** `READY AT GATE · NOT ACTIVATED · FRESH EXPLICIT OWNER AUTHORIZATION REQUIRED`  
 **L11/general PROD:** `NOT AUTHORIZED`
 
-## Incident evidence
+## P0 #485 closure evidence
 
-At approximately 19:13–19:17 Lima on 2026-09-09, immediately after the real R7 notification gate, production again developed cross-module Supabase/PostgREST latency. The owner observed intermittent login failure, global slowness and a WhatsApp Hub screen titled `Sesión 2FA requerida` while the underlying failure code was `WA3_INBOX_UNAVAILABLE`. The system later recovered and fresh `/api/wa3/provider-health` returned HTTP 200 / READY on the same deployment.
+P0 #485 was opened after a production recurrence in which Supabase/PostgREST pressure could be misclassified by WA3 as a false `403 / Sesión 2FA requerida`, while overlapping WA reads amplified load. The remediation preserved Auth V3/2FA fail-closed and existing transport boundaries while separating definitive auth denial from upstream unavailability, adding bounded actor/summary coalescing, browser cache/backoff/stale-safe behavior, and a service-unavailable UI state that does not clear a valid ASCENDA session.
 
-The failure exposed two distinct correctness problems plus a load amplifier: WA3 actor verification collapsed upstream database failure into the same null result used for an invalid session; the native UI rendered any mount failure as a 2FA error; and overlapping native/supervisor refresh loops repeatedly requested inbox, queue and team summaries. `team-summary` itself performs multiple aggregate reads plus per-agent effective-presence RPCs.
+Exact-head focused P0 certification passed syntax, deterministic stability, browser runtime, WA performance and WA3 UI contracts. PR #486 then merged to `main@74380f3ea4784a63c4b2ff630bc58af4e6c2065d` and Railway deployed that exact commit successfully under SAFE-OFF.
 
-This is an availability/classification incident, not authority to weaken authentication and not authority to activate the autonomous WhatsApp agent.
+A bounded production recurrence/load validation then passed without autonomous dispatch or a real customer mutation. Observed results included 12/12 shell reads at HTTP 200; six Auth V3 invalid-credential transport probes with max client latency 741 ms; four 50-request WA invalid-session waves with expected 403 classification, no 5xx and worst p95 2.564 s; and a 35-second recurrence window. Concurrent/post-test PostgreSQL readbacks showed zero active queries >2 s, zero >5 s and zero active waits at every sampled checkpoint. Real browser traffic remained healthy during the test, including WA bootstrap/presence HTTP 200.
 
-## Authorized P0 remediation scope
+Final SAFE-OFF readback remained: `mode=AUTO_OFF`, kill switch engaged, `auto_reply=false`, `ai_send=false`, `auto_routing=false`, `human_send=true`, active autonomous allowlist `0`.
 
-1. Preserve Auth V3/2FA fail-closed and existing transport timeout boundaries; **no timeout inflation and no bypass**.
-2. Distinguish definitive authentication denial from upstream Auth/PostgREST unavailability. Upstream failure must be retryable 503-class state, not false 403/2FA.
-3. Keep a short positive actor-verification cache, longer definitive-negative cache and in-flight coalescing; never negative-cache upstream outages.
-4. Coalesce/cache bounded supervisor queue/team summaries and cap request-rate exposure without blocking human mutations.
-5. Increase browser read-cache intervals, add exponential backoff/stale-safe reads, stop zombie-session network churn after definitive auth denial, and preserve the valid ASCENDA shell during WA 5xx.
-6. Replace the misleading 2FA recovery card with a retryable WhatsApp-service-unavailable state when the error is operational rather than authentication-related.
-7. Add deterministic P0 regression and bounded recurrence/load gates before production merge.
-8. Deploy only while L4/L8 remain SAFE-OFF, then verify production Auth/WA availability, DB pressure and no request storm before releasing this lock.
+## Restored WA-L10 #456 boundary
 
-## Binding invariants
+The P0 override is released. WA-L10 #456 resumes **exactly** at the previously prepared R7 pre-CANARY boundary for **one exact Zi Vital conversation**. The R7 product/behavior contract remains the already-certified multi-turn path (`saludo -> precio -> promo -> booking`) and the notification repair remains deployed; neither is authorization to send autonomously.
 
-- Production WhatsApp remains `AUTO_OFF`, kill switch engaged, `auto_reply=false`, `ai_send=false`, `auto_routing=false`, `human_send=true`.
-- Active L4 allowlist remains zero and autonomous outbound remains zero.
-- No live autonomous provider dispatch and no CANARY transition during P0 #485.
-- No auth timeout inflation, credential bypass, 2FA bypass, DB restart, project pause, or destructive recovery without separate evidence/authorization.
-- No new hot polling loop, persistent materialized analytical hot path, second sender, second identity authority or duplicate routing authority.
-- `main` drift invalidates the candidate and requires exact-current revalidation.
+### Binding safety while waiting at the gate
 
-## Exit boundary
+- Production remains `AUTO_OFF`, kill switch engaged, `auto_reply=false`, `ai_send=false`, `auto_routing=false`, `human_send=true`.
+- Active autonomous allowlist remains zero.
+- No conversation is armed to `AI_ACTIVE` by this governance transition.
+- No live autonomous Meta/provider dispatch is authorized by P0 closure or by this lock update.
+- Auth V3/2FA remains fail-closed; no timeout inflation or bypass.
+- L11/general production remains separately gated.
 
-P0 #485 can close only after exact-head CI, protected merge, Railway SAFE-OFF deployment, production readback and a bounded recurrence/load test proving: Auth/WA errors are classified correctly; no false 2FA/logout is produced by WA 5xx; stale clients back off; supervisor reads are coalesced; login/critical WA endpoints stay inside existing boundaries; and Postgres has no sustained waiting or >2 s / >5 s active-query buildup during the test.
+## Next authorized decision point
 
-Only after that PASS may WA-L10 #456 resume **exactly** at the prepared one-conversation R7 CANARY gate. `AUTO_OFF -> CANARY` still requires a new explicit owner activation authorization after this P0 is closed.
+**STOP at this gate.** `AUTO_OFF -> CANARY` requires a fresh explicit owner go/no-go that names/accepts the one-conversation R7 canary scope. Only after that explicit authorization may the operator revalidate exact-current `main`, Railway deployment, provider/L8 readiness and DB pressure, arm the single exact conversation/allowlist, and execute the bounded R7 real multi-turn canary with immediate kill/rollback available.

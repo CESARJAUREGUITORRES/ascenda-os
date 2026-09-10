@@ -78,9 +78,10 @@ function sourceContracts() {
     'transient_auth_remaps'
   ]) assert(perf.includes(token), 'browser stability token missing: ' + token)
 
-  assert(lock.includes('P0 #485'), 'workstream lock must point to P0 #485')
+  assert(lock.includes('P0 #485:** `CLOSED / COMPLETED'), 'P0 closeout marker missing')
+  assert(lock.includes('WA-L10 #456 — R7 ONE-CONVERSATION CANARY ACTIVATION GATE'), 'R7 re-entry lock missing')
   assert(lock.includes('AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF'), 'SAFE-OFF lock missing')
-  assert(lock.includes('L10 CANARY:** `NOT AUTHORIZED DURING P0`'), 'CANARY prohibition missing')
+  assert(lock.includes('FRESH EXPLICIT OWNER AUTHORIZATION REQUIRED'), 'fresh CANARY authorization gate missing')
 
   assert.strictEqual(shouldRemapInnerAuth(403, JSON.stringify({ error: 'WA3_2FA_PANEL_REQUIRED' }), true), true)
   assert.strictEqual(shouldRemapInnerAuth(403, JSON.stringify({ error: 'WA3_ADMIN_REQUIRED' }), true), false)
