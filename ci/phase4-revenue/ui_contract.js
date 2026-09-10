@@ -60,7 +60,7 @@ ok(prc1Sql.includes("resolution_status='RESOLVED'") && prc1Sql.includes("resolut
 // WA-3 V2 is allowed only as the explicit additive wrapper between WA-4 and WA-3 V1.
 const wa4ToWa3 = (
   (wa4.includes("['server-wa3.js']") && wa4.includes('proxy(req,res)')) ||
-  (wa4.includes("['server-wa3-v2.js']") && wa4.includes('proxy(req,res)') && wa3v2.includes("['server-wa3.js']") && wa3v2.includes('proxy(req,res)'))
+  (wa4.includes("['server-wa3-v2.js']") && wa4.includes('proxy(req,res)') && wa3v2.includes("['server-wa3.js']") && wa3v2.includes('proxy(req,res'))
 );
 const directF4 = railway.includes('node server-f4.js');
 const wa2WrappedF4 = railway.includes('node server-wa2.js') && wa2.includes("['server-f4.js']") && wa2.includes('proxy(req,res)');

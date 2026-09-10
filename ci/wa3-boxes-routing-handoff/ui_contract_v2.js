@@ -31,7 +31,8 @@ assert(!server.includes('message_body'));
 assert(server.includes("const crypto=require('crypto')"));
 assert(server.includes("crypto.createHash('sha256').update(token)"));
 assert(server.includes("const scope=read?'read':'write'"));
-assert(server.includes("const limit=read?600:120"));
+// P0 #485 lowers the read bucket from 600/min to 240/min; writes remain independently bounded.
+assert(server.includes("const limit=read?240:120"));
 assert(!server.includes("const key=String(req.socket.remoteAddress||'unknown'),now=Date.now()"));
 assert(wa4.includes("['server-wa3-v2.js']"));
 assert(wa4.includes('server-only L10 autonomous CANARY orchestration'));

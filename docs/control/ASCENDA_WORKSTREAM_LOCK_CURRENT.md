@@ -1,43 +1,46 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
-**Captured:** 2026-09-05 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `P0 #467 — AUTH AVAILABILITY / SUPABASE-POSTGREST PRESSURE`  
-**GitHub authority:** Issue `#467` = `OPEN / ACTIVE`  
-**Exact entry main:** `6c34f833762e370dd709e5789f2ac3f40847349d`  
-**Active branch:** `p0-467-foreground-priority-20260905`  
-**WA-L10 #456:** `PAUSED — NO MUTABLE WORK WHILE P0 #467 IS ACTIVE`  
+**Captured:** 2026-09-09 America/Lima  
+**ACTIVE HIGH/CRITICAL LOCK:** `P0 #485 — AUTH/WHATSAPP FALSE-2FA + POLLING-PRESSURE RECURRENCE`  
+**GitHub authority:** Issue `#485` = `OPEN / ACTIVE`  
+**Exact entry main:** `07e5ac06ae82ea586d7239fa69a75532384460a1`  
+**Active branch:** `p0-485-auth-wa-stability-20260909`  
+**WA-L10 #456:** `PAUSED — RESUME ONLY AFTER P0 #485 PROD LOAD/RECURRENCE PASS`  
 **Current production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF`  
 **Active L4 allowlist:** `0`  
-**L10 CANARY:** `NOT AUTHORIZED`  
+**L10 CANARY:** `NOT AUTHORIZED DURING P0`  
 **L11/general PROD:** `NOT AUTHORIZED`
 
 ## Incident evidence
 
-Wilmer's login requests reach Railway, but `/api/auth/v3/login` terminates with `502` after the fixed 12 s Auth V3 upstream boundary. Railway logs identify `AUTH_UPSTREAM_TIMEOUT` against `aos_login_v3`; the app container itself remains healthy and lightly loaded.
+At approximately 19:13–19:17 Lima on 2026-09-09, immediately after the real R7 notification gate, production again developed cross-module Supabase/PostgREST latency. The owner observed intermittent login failure, global slowness and a WhatsApp Hub screen titled `Sesión 2FA requerida` while the underlying failure code was `WA3_INBOX_UNAVAILABLE`. The system later recovered and fresh `/api/wa3/provider-health` returned HTTP 200 / READY on the same deployment.
 
-Supabase is degraded beyond Auth: unrelated REST resources and RPCs return `503/504/522`, and direct management SQL currently cannot establish a usable connection. This is therefore a database/PostgREST availability incident, not a credential rejection and not a reason to weaken Auth V3/2FA.
+The failure exposed two distinct correctness problems plus a load amplifier: WA3 actor verification collapsed upstream database failure into the same null result used for an invalid session; the native UI rendered any mount failure as a 2FA error; and overlapping native/supervisor refresh loops repeatedly requested inbox, queue and team summaries. `team-summary` itself performs multiple aggregate reads plus per-agent effective-presence RPCs.
 
-The first sustained degradation begins immediately after a synchronized recurring background window around 09:38 UTC: snapshot, configuration/branding cache, medical CMP cache, template cache, agent cron scan and notification-push claim all align within seconds. The existing business-priority circuit suppresses several known background sources after failure, but the snapshot/config paths were not classified and there was no reversible incident-mode hard suppression before network I/O.
+This is an availability/classification incident, not authority to weaken authentication and not authority to activate the autonomous WhatsApp agent.
 
 ## Authorized P0 remediation scope
 
-1. Preserve Auth V3/2FA fail-closed and the existing 12 s transport boundary; **no timeout inflation and no bypass**.
-2. Add a reversible `AOS_FOREGROUND_PRIORITY_MODE=true` incident mode in the existing composed HTTPS preload.
-3. In that mode, reject only classified non-critical background calls locally before Supabase network I/O, including snapshot/config cache paths that were previously uncovered.
-4. Keep Auth, Call Center, Agenda, Sales, WhatsApp routing/authority and AI-key bootstrap on the normal transport path.
-5. Enable the incident mode in Railway only after exact-head CI and protected merge/deploy.
-6. Prove Supabase/PostgREST recovery with cheap reads/SQL and observe the timeout window before asking Wilmer to retry login.
-7. After recovery, implement the durable scheduling fix: de-synchronize/serialize recurring background jobs and remove false-success recovery semantics rather than leaving emergency mode as the permanent architecture.
+1. Preserve Auth V3/2FA fail-closed and existing transport timeout boundaries; **no timeout inflation and no bypass**.
+2. Distinguish definitive authentication denial from upstream Auth/PostgREST unavailability. Upstream failure must be retryable 503-class state, not false 403/2FA.
+3. Keep a short positive actor-verification cache, longer definitive-negative cache and in-flight coalescing; never negative-cache upstream outages.
+4. Coalesce/cache bounded supervisor queue/team summaries and cap request-rate exposure without blocking human mutations.
+5. Increase browser read-cache intervals, add exponential backoff/stale-safe reads, stop zombie-session network churn after definitive auth denial, and preserve the valid ASCENDA shell during WA 5xx.
+6. Replace the misleading 2FA recovery card with a retryable WhatsApp-service-unavailable state when the error is operational rather than authentication-related.
+7. Add deterministic P0 regression and bounded recurrence/load gates before production merge.
+8. Deploy only while L4/L8 remain SAFE-OFF, then verify production Auth/WA availability, DB pressure and no request storm before releasing this lock.
 
 ## Binding invariants
 
 - Production WhatsApp remains `AUTO_OFF`, kill switch engaged, `auto_reply=false`, `ai_send=false`, `auto_routing=false`, `human_send=true`.
 - Active L4 allowlist remains zero and autonomous outbound remains zero.
-- No live autonomous provider dispatch and no CANARY transition during P0 #467.
+- No live autonomous provider dispatch and no CANARY transition during P0 #485.
 - No auth timeout inflation, credential bypass, 2FA bypass, DB restart, project pause, or destructive recovery without separate evidence/authorization.
-- No new polling/retry loop, persistent materialized analytical hot path or duplicate authority.
-- `main` drift invalidates the candidate and requires revalidation.
+- No new hot polling loop, persistent materialized analytical hot path, second sender, second identity authority or duplicate routing authority.
+- `main` drift invalidates the candidate and requires exact-current revalidation.
 
 ## Exit boundary
 
-P0 #467 can close only after exact-head CI, Railway deployment, foreground-priority recovery evidence, Supabase/PostgREST readiness, successful Auth V3 smoke, and a post-recovery observation window without renewed systemic 503/504/522 pressure. WA-L10 may resume only from the then-current exact main and with fresh SAFE-OFF evidence.
+P0 #485 can close only after exact-head CI, protected merge, Railway SAFE-OFF deployment, production readback and a bounded recurrence/load test proving: Auth/WA errors are classified correctly; no false 2FA/logout is produced by WA 5xx; stale clients back off; supervisor reads are coalesced; login/critical WA endpoints stay inside existing boundaries; and Postgres has no sustained waiting or >2 s / >5 s active-query buildup during the test.
+
+Only after that PASS may WA-L10 #456 resume **exactly** at the prepared one-conversation R7 CANARY gate. `AUTO_OFF -> CANARY` still requires a new explicit owner activation authorization after this P0 is closed.
