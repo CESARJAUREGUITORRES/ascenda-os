@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 
-var RELEASE='2026-09-10-mkt-v4.3-read-pressure-v1';
+var RELEASE='2026-09-10-mkt-v4.3.1-ui-lineage';
 var G=window.__AOS_MKT_PERF_V1;
 
 // SPA remounts can keep an older fetch wrapper alive. Upgrade deterministically by
@@ -39,6 +39,7 @@ if(!G){
     aos_marketing_attribution_public_v2_anio:10000,
     aos_marketing_intent_public_v2:10000,
     aos_marketing_intent_detail_public_v3:10000,
+    aos_marketing_lineage_admin_v43:10000,
     aos_marketing_historico_public_v2:60000,
     aos_marketing_ltv_public_v2:60000,
     aos_marketing_value_map_public_v43:60000
@@ -46,13 +47,15 @@ if(!G){
   var lazy={
     aos_marketing_historico_public_v2:'#mk-hist',
     aos_marketing_ltv_public_v2:'#mk-ltv',
-    aos_marketing_value_map_public_v43:'#mk-ltv'
+    aos_marketing_value_map_public_v43:'#mk-ltv',
+    aos_marketing_lineage_admin_v43:'#mk-ltv'
   };
   var monthlySerial={
     aos_marketing_period_summary_v2:true,
     aos_marketing_attribution_public_v3:true,
     aos_marketing_intent_public_v2:true,
-    aos_marketing_intent_detail_public_v3:true
+    aos_marketing_intent_detail_public_v3:true,
+    aos_marketing_lineage_admin_v43:true
   };
   var annualReads={
     aos_marketing_historico_public_v2:true,
