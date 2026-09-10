@@ -40,6 +40,8 @@ jobs:
           node --check app/public/wa-performance-hardening.js
       - name: P0 485 deterministic contract
         run: node ci/p0-485/stability_contract.js
+      - name: P0 485 browser runtime contract
+        run: node ci/p0-485/browser_runtime_contract.js
       - name: Existing WA performance behavior contract
         run: node ci/phase-s/wa_performance_hardening_behavior_contract.js
       - name: Existing WA3 UI contract
