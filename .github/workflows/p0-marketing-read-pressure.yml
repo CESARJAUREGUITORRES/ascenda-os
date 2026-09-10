@@ -10,6 +10,8 @@ on:
       - 'src/admin-marketing.html'
       - 'supabase/migrations/20260910230000_marketing_value_map_v43.sql'
       - 'supabase/rollbacks/20260910230000_marketing_value_map_v43_recovery.sql'
+      - 'supabase/migrations/20260910233500_marketing_lineage_admin_v43.sql'
+      - 'supabase/rollbacks/20260910233500_marketing_lineage_admin_v43_recovery.sql'
       - 'docs/control/MARKETING_METRIC_DICTIONARY.md'
       - 'ci/performance/marketing-read-pressure.test.js'
       - '.github/workflows/p0-marketing-read-pressure.yml'
@@ -42,9 +44,13 @@ jobs:
           BOOT='app/public/admin-marketing-v2.js'
           CORE='app/public/admin-marketing-v2-core.js'
           MIG='supabase/migrations/20260910230000_marketing_value_map_v43.sql'
+          LINEAGE='supabase/migrations/20260910233500_marketing_lineage_admin_v43.sql'
           grep -q 'admin-marketing-v2-core.js' "$BOOT"
           grep -q 'aos_marketing_historico_public_v2' "$BOOT"
           grep -q 'aos_marketing_value_map_public_v43' "$BOOT"
-          grep -q '2026-09-10-v4.3-value-reconciliation' "$CORE"
+          grep -q '2026-09-10-v4.3.1-operational-lineage' "$CORE"
+          grep -q 'aos_marketing_lineage_admin_v43' "$BOOT"
+          grep -q "aos_app_actor_v3(p_token,'admin-marketing',true)" "$LINEAGE"
+          grep -q 'MARKETING_ADMIN_2FA_REQUIRED' "$LINEAGE"
           ! grep -Eq 'setInterval[[:space:]]*\(' "$BOOT"
           echo 'ASCENDA_P0_MARKETING_READ_PRESSURE_PASS'

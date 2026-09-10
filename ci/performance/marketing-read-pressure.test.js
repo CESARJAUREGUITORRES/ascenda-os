@@ -8,10 +8,12 @@ const indexMigration=fs.readFileSync('supabase/migrations/20260902022000_p0_mark
 const callLeadMigration=fs.readFileSync('supabase/migrations/20260902024000_p0_marketing_call_lead_single_pass_v4.sql','utf8');
 const summaryMigration=fs.readFileSync('supabase/migrations/20260902164000_p0_marketing_period_summary_fast_v5.sql','utf8');
 const valueMapMigration=fs.readFileSync('supabase/migrations/20260910230000_marketing_value_map_v43.sql','utf8');
+const lineageMigration=fs.readFileSync('supabase/migrations/20260910233500_marketing_lineage_admin_v43.sql','utf8');
+const marketingHtml=fs.readFileSync('app/public/admin-marketing.html','utf8');
 
 test('preserves certified Marketing V4.3 core',()=>{
   assert.match(boot,/admin-marketing-v2-core\.js/);
-  assert.match(core,/2026-09-10-v4\.3-value-reconciliation/);
+  assert.match(core,/2026-09-10-v4\.3\.1-operational-lineage/);
   assert.match(core,/Facturación, ROAS y CAC excluyen ORGANICO/);
 });
 
@@ -23,6 +25,7 @@ test('single-flight and cache are scoped to Marketing reads',()=>{
   assert.match(boot,/aos_marketing_historico_public_v2:60000/);
   assert.match(boot,/aos_marketing_ltv_public_v2:60000/);
   assert.match(boot,/aos_marketing_value_map_public_v43:60000/);
+  assert.match(boot,/aos_marketing_lineage_admin_v43:10000/);
   assert.match(boot,/inflight\.has\(key\)/);
   assert.match(boot,/cache\.get\(key\)/);
 });
@@ -41,6 +44,7 @@ test('expensive annual analytics are viewport gated and wait for monthly quiesce
   assert.match(boot,/aos_marketing_historico_public_v2:'#mk-hist'/);
   assert.match(boot,/aos_marketing_ltv_public_v2:'#mk-ltv'/);
   assert.match(boot,/aos_marketing_value_map_public_v43:'#mk-ltv'/);
+  assert.match(boot,/aos_marketing_lineage_admin_v43:'#mk-ltv'/);
   assert.match(boot,/IntersectionObserver/);
   assert.match(boot,/rootMargin:'500px 0px'/);
   assert.match(boot,/setTimeout\(finish,12000\)/);
@@ -62,7 +66,7 @@ test('legacy LTV cohort read is suppressed from bootstrap start',()=>{
 });
 
 test('new bootstrap release replaces older SPA fetch wrapper',()=>{
-  assert.match(boot,/2026-09-10-mkt-v4\.3-read-pressure-v1/);
+  assert.match(boot,/2026-09-10-mkt-v4\.3\.1-ui-lineage/);
   assert.match(boot,/G&&G\.release!==RELEASE&&typeof G\.baseFetch==='function'/);
   assert.match(boot,/window\.fetch=G\.baseFetch/);
   assert.match(boot,/delete window\.__AOS_MKT_PERF_V1/);
@@ -75,6 +79,7 @@ test('period summary attribution and intent share one serialized monthly lane',(
   assert.match(boot,/aos_marketing_attribution_public_v3:true/);
   assert.match(boot,/aos_marketing_intent_public_v2:true/);
   assert.match(boot,/aos_marketing_intent_detail_public_v3:true/);
+  assert.match(boot,/aos_marketing_lineage_admin_v43:true/);
   assert.match(boot,/function runMonthly\(/);
   assert.match(boot,/function withoutSignal\(/);
   assert.match(boot,/monthlyTail=queued\.then/);
@@ -97,11 +102,32 @@ test('V4.3 value map reconciles revenue and keeps cohorts separate',()=>{
   assert.doesNotMatch(valueMapMigration,/update\s+public\./i);
   assert.doesNotMatch(valueMapMigration,/delete\s+from\s+public\./i);
   assert.doesNotMatch(valueMapMigration,/insert\s+into\s+public\./i);
-  assert.match(core,/RECONCILIACIÓN DEL REVENUE ATRIBUIDO/);
+  assert.doesNotMatch(core,/RECONCILIACIÓN DEL REVENUE ATRIBUIDO/);
   assert.match(core,/LTV DE ADQUISICIÓN/);
   assert.match(core,/VALOR POST-REACTIVACIÓN/);
-  assert.match(core,/AUDITORÍA DE ATRIBUCIÓN DEL MES/);
+  assert.match(core,/TRAZABILIDAD COMERCIAL DEL MES/);
   assert.match(core,/aos_marketing_value_map_public_v43/);
+});
+
+test('V4.3.1 secure lineage exposes PII only behind admin 2FA',()=>{
+  assert.match(lineageMigration,/create or replace function public\.aos_marketing_lineage_admin_v43/);
+  assert.match(lineageMigration,/aos_app_actor_v3\(p_token,'admin-marketing',true\)/);
+  assert.match(lineageMigration,/coalesce\(u\.nivel_jerarquia,99\)<=2/);
+  assert.match(lineageMigration,/g\.numero_limpio as telefono/);
+  assert.match(lineageMigration,/coalesce\(nullif\(ci\.cliente,''\),'SIN NOMBRE'\)/);
+  assert.match(lineageMigration,/prior_lead_date/);
+  assert.match(lineageMigration,/first_sale_date/);
+  assert.match(lineageMigration,/MARKETING_ADMIN_2FA_REQUIRED/);
+  assert.doesNotMatch(lineageMigration,/update\s+public\./i);
+  assert.doesNotMatch(lineageMigration,/delete\s+from\s+public\./i);
+  assert.doesNotMatch(lineageMigration,/insert\s+into\s+public\./i);
+  assert.match(core,/function strongToken\(/);
+  assert.match(core,/AOS\.role==='ADMIN'/);
+  assert.match(core,/Cliente desde/);
+  assert.match(core,/Lead previo:/);
+  assert.match(core,/Lead único compatible del mes/);
+  assert.match(core,/align-items:flex-start/);
+  assert.doesNotMatch(marketingHtml,/id="mk-ltv-tag"/);
 });
 
 test('confirmed-call lookup index is partial and formula-neutral',()=>{

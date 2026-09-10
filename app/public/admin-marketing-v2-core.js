@@ -5,19 +5,53 @@
 (function(){
 'use strict';
 
-var RELEASE='2026-09-10-v4.3-value-reconciliation';
+var RELEASE='2026-09-10-v4.3.1-operational-lineage';
 if(window.__AOS_MKT4&&window.__AOS_MKT4.destroy){
   try{window.__AOS_MKT4.destroy();}catch(e){}
 }
 
 var alive=true, cycle=0, ctl=null, timers=[], wraps={};
-var S={kpi:null,summary:null,campaigns:[],history:[],ltv:[],valueMap:null,attr:null,intent:[],intentDetail:[]};
+var S={kpi:null,summary:null,campaigns:[],history:[],ltv:[],valueMap:null,secureLineage:null,attr:null,intent:[],intentDetail:[]};
 
 function $id(x){return document.getElementById(x);}
 function N(v){var x=Number(v);return Number.isFinite(x)?x:0;}
 function R2(v){return Math.round(N(v)*100)/100;}
 function M(v){return 'S/'+Math.round(N(v)).toLocaleString('es-PE');}
 function E(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c];});}
+function cacheToken(){
+  if(!('caches' in window))return Promise.resolve('');
+  return caches.open('aos-phase2-auth').then(function(x){return x.match('/__aos_app_token');}).then(function(r){return r?r.text():'';}).catch(function(){return '';});
+}
+function strongToken(){
+  var t='';try{t=String(sessionStorage.getItem('aos_app_token')||'').trim();}catch(_){}
+  if(t.length>=32)return Promise.resolve(t);
+  return cacheToken().then(function(x){
+    x=String(x||'').trim();
+    if(x.length>=32)try{sessionStorage.setItem('aos_app_token',x);}catch(_){}
+    return x;
+  });
+}
+function MY(v){
+  var s=String(v||''),m=s.match(/^(\d{4})-(\d{2})/);
+  if(!m)return '—';
+  var i=Number(m[2]);return (MF[i]||m[2]).slice(0,3).toUpperCase()+' '+m[1];
+}
+function friendlyMethod(v){
+  var s=String(v||'').toUpperCase();
+  if(s.indexOf('SAME_MONTH_UNIQUE_LEAD')>=0)return 'Lead único compatible del mes';
+  if(s.indexOf('LEAD_CALL_APPOINTMENT')>=0)return 'Lead → llamada → cita';
+  if(s.indexOf('LEAD_CALL')>=0)return 'Lead → llamada';
+  if(s.indexOf('LEAD_APPOINTMENT')>=0)return 'Lead → cita';
+  return s?s.replace(/_/g,' ').toLowerCase():'Sin método';
+}
+function friendlyTrace(v){
+  var s=String(v||'').toUpperCase();
+  if(s==='LEAD_CALL_APPOINTMENT')return 'Directa completa';
+  if(s==='LEAD_CALL')return 'Directa por llamada';
+  if(s==='LEAD_APPOINTMENT')return 'Directa por cita';
+  if(s==='STRONG_INFERRED')return 'Inferida fuerte';
+  return 'Inferida';
+}
 function A(v){
   if(Array.isArray(v))return v;
   if(v&&Array.isArray(v.ltv))return v.ltv;
@@ -124,19 +158,23 @@ function insights(){
   var a=$id('mk4-insights')||$id('mk-v3-insights');
   if(a){
     a.id='mk4-insights';
+    a.style.cssText='display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start';
     [['mk-v3-attr-card','mk4-attr-card'],['mk-v3-attr','mk4-attr'],['mk-v3-intent-card','mk4-intent-card'],['mk-v3-intent','mk4-intent']].forEach(function(x){
       var e=$id(x[0]);if(e)e.id=x[1];
     });
+    var ac=$id('mk4-attr-card'),ic=$id('mk4-intent-card');
+    if(ac)ac.style.cssText='flex:1 1 470px;align-self:flex-start';
+    if(ic)ic.style.cssText='flex:1 1 520px;align-self:flex-start';
+    var old=ac&&ac.querySelector('.tag');if(old)old.style.display='none';
     return a;
   }
   var l=$id('mk-ltv');if(!l)return null;
   var card=l.closest('.crd');if(!card)return null;
-  a=document.createElement('div');a.id='mk4-insights';a.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
-  a.innerHTML='<div class="crd" id="mk4-attr-card" style="flex:1 1 420px"><div class="ct">🧠 Atribución y reingresos <span class="tag tag-b">V4.2</span></div><div id="mk4-attr"><div class="ld">Cargando…</div></div></div><div class="crd" id="mk4-intent-card" style="flex:1 1 420px"><div class="ct">🧩 Intención → Compra <span class="tag tag-c">auditable</span></div><div id="mk4-intent"><div class="ld">Cargando…</div></div></div>';
+  a=document.createElement('div');a.id='mk4-insights';a.style.cssText='display:flex;gap:10px;flex-wrap:wrap;align-items:flex-start';
+  a.innerHTML='<div class="crd" id="mk4-attr-card" style="flex:1 1 470px;align-self:flex-start"><div class="ct">🧠 Atribución y reingresos</div><div id="mk4-attr"><div class="ld">Cargando…</div></div></div><div class="crd" id="mk4-intent-card" style="flex:1 1 520px;align-self:flex-start"><div class="ct">🧩 Intención → Compra <span class="tag tag-c">auditable</span></div><div id="mk4-intent"><div class="ld">Cargando…</div></div></div>';
   card.insertAdjacentElement('afterend',a);
   return a;
 }
-
 function loading(){
   traceBox();insights();
   var g=$id('mk4-trace-grid');if(g)g.innerHTML='<div class="ld">Cargando trazabilidad…</div>';
@@ -235,11 +273,13 @@ function renderLtv(raw){
   var vm=O(raw),rows=A(vm.acquisitionLtv).sort(function(a,b){return N(a.mes)-N(b.mes);});
   var react=A(vm.reactivationLtv).sort(function(a,b){return N(a.mes)-N(b.mes);});
   var recon=A(vm.reconciliation).sort(function(a,b){return N(a.mes)-N(b.mes);});
-  var lineage=A(vm.lineage);
+  var secure=O(S.secureLineage||{}),secureRows=A(secure.rows);
+  var lineage=secure&&secure.ok===true&&secureRows.length?secureRows:A(vm.lineage);
   S.valueMap=vm;S.ltv=rows;
 
-  var b=$id('mk-ltv'),tag=$id('mk-ltv-tag');if(!b||!tag)return;
-  if(!rows.length&&!recon.length){b.innerHTML='<div class="ld">Sin mapa de valor</div>';tag.textContent='sin datos';return;}
+  var b=$id('mk-ltv'),tag=$id('mk-ltv-tag');if(!b)return;
+  if(tag){tag.textContent='';tag.style.display='none';}
+  if(!rows.length&&!recon.length){b.innerHTML='<div class="ld">Sin mapa de valor</div>';return;}
 
   var selected=month()?C().m:null;
   var rec=selected?recon.find(function(x){return N(x.mes)===selected;}):null;
@@ -261,19 +301,11 @@ function renderLtv(raw){
   }
 
   var reconciled=Math.abs(N(rec.reconciliation_delta))<0.01;
-  tag.textContent='V4.3 · '+(reconciled?'RECONCILIADO':'REVISAR')+' · '+M(rec.revenue_attributed);
-
-  var h='<div style="border:1px solid #DCE7F7;background:#F8FBFF;border-radius:10px;padding:11px;margin-bottom:12px">'+
-    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
-      '<div><b style="font-size:10px;color:#163A70">🧾 RECONCILIACIÓN DEL REVENUE ATRIBUIDO</b><div style="font-size:8px;color:#6B7BA8;margin-top:2px">Todo el revenue pagado del período debe vivir en una sola categoría, sin mezclarlo con LTV.</div></div>'+
-      '<div style="text-align:right"><div style="font-size:8px;color:#6B7BA8">REVENUE ATRIBUIDO PAGADO</div><div style="font-size:24px;font-weight:900;color:#0A4FBF">'+M(rec.revenue_attributed)+'</div><div style="font-size:7px;color:'+(reconciled?'#059669':'#DC2626')+'">'+(reconciled?'✓ Adquisición + reactivación + seguimiento = total':'⚠ Diferencia '+M(rec.reconciliation_delta))+'</div></div>'+
-    '</div>'+
-    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
-      '<div style="flex:1;min-width:160px;background:#EEF6FF;border-radius:8px;padding:9px"><div style="font-size:8px;color:#0A4FBF;font-weight:800">ADQUISICIÓN</div><div style="font-size:19px;font-weight:900;color:#0A4FBF">'+M(rec.acquisition)+'</div><div style="font-size:7px;color:#6B7BA8">'+N(rec.acquisition_clients)+' cliente(s) nuevo(s)</div></div>'+
-      '<div style="flex:1;min-width:160px;background:#ECFDF5;border-radius:8px;padding:9px"><div style="font-size:8px;color:#059669;font-weight:800">REACTIVACIÓN</div><div style="font-size:19px;font-weight:900;color:#059669">'+M(rec.reactivation)+'</div><div style="font-size:7px;color:#6B7BA8">'+N(rec.reactivation_clients)+' cliente(s) recuperado(s)</div></div>'+
-      '<div style="flex:1;min-width:160px;background:#FFF7ED;border-radius:8px;padding:9px"><div style="font-size:8px;color:#D97706;font-weight:800">SEGUIMIENTO HISTÓRICO</div><div style="font-size:19px;font-weight:900;color:#D97706">'+M(rec.historical_followup)+'</div><div style="font-size:7px;color:#6B7BA8">'+N(rec.historical_clients)+' cliente(s) de continuidad</div></div>'+
-    '</div>'+
-    '<div style="font-size:8px;color:#6B7BA8;margin-top:7px">'+N(rec.clients)+' clientes atribuidos · '+N(rec.operations)+' operaciones'+(N(rec.organic_revenue)>0?' · Orgánico fuera del KPI pagado: <b>'+M(rec.organic_revenue)+'</b>':'')+'</div>'+
+  var h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:9px;margin-bottom:14px">'+
+    '<div style="background:#EFF6FF;border:1px solid #DBEAFE;border-radius:10px;padding:12px"><div style="font-size:8px;color:#64748B;font-weight:800">REVENUE ATRIBUIDO</div><div style="font-size:25px;font-weight:900;color:#0A4FBF;margin-top:2px">'+M(rec.revenue_attributed)+'</div><div style="font-size:7px;color:#64748B;margin-top:3px">'+N(rec.clients)+' clientes · '+N(rec.operations)+' operaciones'+(reconciled?'':' · revisar diferencia')+'</div></div>'+
+    '<div style="background:#F8FAFF;border:1px solid #E2E8F0;border-radius:10px;padding:12px"><div style="font-size:8px;color:#0A4FBF;font-weight:800">ADQUISICIÓN</div><div style="font-size:22px;font-weight:900;color:#0A4FBF;margin-top:2px">'+M(rec.acquisition)+'</div><div style="font-size:7px;color:#64748B;margin-top:3px">'+N(rec.acquisition_clients)+' cliente(s) nuevo(s)</div></div>'+
+    '<div style="background:#ECFDF5;border:1px solid #D1FAE5;border-radius:10px;padding:12px"><div style="font-size:8px;color:#047857;font-weight:800">REACTIVACIÓN</div><div style="font-size:22px;font-weight:900;color:#059669;margin-top:2px">'+M(rec.reactivation)+'</div><div style="font-size:7px;color:#64748B;margin-top:3px">'+N(rec.reactivation_clients)+' cliente(s) recuperado(s)</div></div>'+
+    '<div style="background:#FFF7ED;border:1px solid #FFEDD5;border-radius:10px;padding:12px"><div style="font-size:8px;color:#B45309;font-weight:800">SEGUIMIENTO HISTÓRICO</div><div style="font-size:22px;font-weight:900;color:#D97706;margin-top:2px">'+M(rec.historical_followup)+'</div><div style="font-size:7px;color:#64748B;margin-top:3px">'+N(rec.historical_clients)+' cliente(s) de continuidad</div></div>'+
   '</div>';
 
   var f=selected?rows.find(function(x){return N(x.mes)===selected;}):null;
@@ -284,7 +316,7 @@ function renderLtv(raw){
   }
   var mult=N(f.m0)?N(f.ltv_total)/N(f.m0):0;
 
-  h+='<div style="margin:4px 0 7px"><b style="font-size:10px;color:#5B21B6">📈 LTV DE ADQUISICIÓN</b><div style="font-size:8px;color:#6B7BA8">Solo clientes nuevos adquiridos por la cohorte. Sus compras posteriores acumulan M+1, M+2, M+3 y M+4+.</div></div>';
+  h+='<div style="margin:4px 0 7px"><b style="font-size:10px;color:#5B21B6">📈 LTV DE ADQUISICIÓN</b><div style="font-size:8px;color:#6B7BA8">Clientes nuevos adquiridos por cada cohorte; sus compras posteriores acumulan M+1, M+2, M+3 y M+4+.</div></div>';
   h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div style="flex:1;background:#F5F3FF;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#7C3AED">LTV / M0</div><div style="font-size:24px;font-weight:800;color:#7C3AED">'+(mult?mult.toFixed(1)+'x':'—')+'</div></div><div style="flex:1;background:#F0FDF4;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#059669">ROAS LTV ADQUISICIÓN</div><div style="font-size:24px;font-weight:800;color:#059669">'+N(f.roas_ltv).toFixed(2)+'x</div></div><div style="flex:1;background:#FFF7ED;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#D97706">CAC ADQUISICIÓN</div><div style="font-size:24px;font-weight:800;color:#D97706">'+M(f.cac_adquisicion)+'</div></div></div>';
 
   if(rows.length){
@@ -294,7 +326,7 @@ function renderLtv(raw){
   }
 
   var reactShow=react.filter(function(x){return N(x.reactivated_clients)>0||(selected===N(x.mes));});
-  h+='<div style="margin:14px 0 7px;padding-top:10px;border-top:1px solid #EEF2F8"><b style="font-size:10px;color:#047857">♻️ VALOR POST-REACTIVACIÓN</b><div style="font-size:8px;color:#6B7BA8">Cliente existente recuperado por un nuevo touchpoint. R0 es el mes de reactivación; luego se acumula R+1, R+2, R+3 y R+4+ sin mezclarlo con adquisición.</div></div>';
+  h+='<div style="margin:14px 0 7px;padding-top:10px;border-top:1px solid #EEF2F8"><b style="font-size:10px;color:#047857">♻️ VALOR POST-REACTIVACIÓN</b><div style="font-size:8px;color:#6B7BA8">R0 es el mes en que una campaña recupera a un cliente existente; luego se acumulan R+1, R+2, R+3 y R+4+.</div></div>';
   if(!reactShow.length){
     h+='<div class="ld">Aún no hay cohortes de reactivación en este período.</div>';
   }else{
@@ -304,43 +336,63 @@ function renderLtv(raw){
   }
 
   if(month()){
-    h+='<div style="margin:14px 0 7px;padding-top:10px;border-top:1px solid #EEF2F8"><b style="font-size:10px;color:#163A70">🔎 AUDITORÍA DE ATRIBUCIÓN DEL MES</b><div style="font-size:8px;color:#6B7BA8">Mapea cada cliente a lead/campaña/anuncio. Teléfono enmascarado; método y confianza quedan visibles cuando la cadena directa no existe.</div></div>';
+    h+='<div style="margin:14px 0 7px;padding-top:10px;border-top:1px solid #EEF2F8"><b style="font-size:10px;color:#163A70">🔎 TRAZABILIDAD COMERCIAL DEL MES</b><div style="font-size:8px;color:#6B7BA8">Muestra por qué una venta se considera adquisición o reactivación y de qué historial venía el cliente.</div></div>';
     if(!lineage.length){
       h+='<div class="ld">Sin ventas atribuibles para auditar.</div>';
     }else{
-      h+='<div style="overflow:auto"><table class="vt"><thead><tr><th>CLIENTE</th><th>TIPO</th><th>LEAD / CAMPAÑA</th><th>ANUNCIO</th><th>TRAZA</th><th>CONFIANZA</th><th>OPS.</th><th>FACT.</th></tr></thead><tbody>'+lineage.map(function(x){
+      h+='<div style="overflow:auto"><table class="vt"><thead><tr><th>CLIENTE</th><th>TIPO</th><th>HISTORIAL PREVIO</th><th>INGRESO / REACTIVACIÓN ACTUAL</th><th>TRAZA</th><th>CONFIANZA</th><th>OPS.</th><th>FACT.</th></tr></thead><tbody>'+lineage.map(function(x){
         var typ=String(x.tipo_atribucion||'').toUpperCase(),tc=typ==='ADQUISICION'?'#0A4FBF':typ==='REACTIVACION'?'#059669':'#D97706';
-        var trace='📞 '+N(x.llamadas_vinculadas)+' · 📅 '+N(x.citas_vinculadas);
-        return '<tr><td><b>•••• '+E(x.telefono_ult4||'—')+'</b></td><td><span style="font-size:7px;font-weight:800;color:'+tc+'">'+E(typ)+'</span></td><td><b>#'+E(x.lead_id)+'</b> · '+E(x.lead_fecha)+'<div style="font-size:7px;color:#6B7BA8">'+E(x.campana)+'</div></td><td>'+E(x.anuncio||'—')+'</td><td>'+trace+'<div style="font-size:7px;color:#6B7BA8">'+E(x.lineage_strength)+' · '+E(x.metodo_match)+'</div></td><td><b style="color:'+(N(x.confidence)>=80?'#059669':'#D97706')+'">'+N(x.confidence)+'%</b></td><td>'+N(x.operaciones)+'</td><td class="hi hi-g">'+M(x.facturacion)+'</td></tr>';
+        var full=String(x.telefono||'').trim();
+        var phone=full||('•••• '+String(x.telefono_ult4||'—'));
+        var name=String(x.cliente||'').trim()||('Cliente '+String(x.telefono_ult4||'—'));
+        var previous='';
+        if(typ==='REACTIVACION'){
+          if(x.prior_lead_date){
+            previous='<b>Lead previo: '+MY(x.prior_lead_date)+'</b><div style="font-size:7px;color:#6B7BA8">'+E(x.prior_campaign||'Campaña no registrada')+(x.prior_ad?' · '+E(x.prior_ad):'')+'</div>';
+          }else if(x.first_sale_date){
+            previous='<b>Cliente desde '+MY(x.first_sale_date)+'</b><div style="font-size:7px;color:#6B7BA8">Sin lead previo histórico registrado</div>';
+          }else{
+            previous='<span style="color:#9AAAC8">Historial previo confirmado</span>';
+          }
+        }else{
+          previous='<b>Nuevo en '+MY(x.first_sale_date||x.lead_fecha)+'</b><div style="font-size:7px;color:#6B7BA8">Sin compra anterior</div>';
+        }
+        var current='<b>'+MY(x.lead_fecha)+' · Lead #'+E(x.lead_id)+'</b><div style="font-size:7px;color:#6B7BA8">'+E(x.campana||'—')+(x.anuncio?' · '+E(x.anuncio):'')+'</div>';
+        var direct=N(x.llamadas_vinculadas)||N(x.citas_vinculadas);
+        var trace='<b>'+friendlyTrace(x.lineage_strength)+'</b><div style="font-size:7px;color:#6B7BA8;margin-top:2px">'+(direct?('Llamadas vinculadas: '+N(x.llamadas_vinculadas)+' · Citas: '+N(x.citas_vinculadas)):'Sin llamada/cita enlazada por ID')+'</div><div style="font-size:7px;color:#6B7BA8">'+E(friendlyMethod(x.metodo_match))+'</div>';
+        return '<tr><td style="min-width:150px"><b>'+E(name)+'</b><div style="font-size:8px;color:#64748B;margin-top:2px">'+E(phone)+'</div></td><td><span style="font-size:7px;font-weight:800;color:'+tc+'">'+E(typ)+'</span></td><td style="min-width:160px">'+previous+'</td><td style="min-width:210px">'+current+'</td><td style="min-width:180px">'+trace+'</td><td><b style="color:'+(N(x.confidence)>=80?'#059669':'#D97706')+'">'+N(x.confidence)+'%</b></td><td>'+N(x.operaciones)+'</td><td class="hi hi-g">'+M(x.facturacion)+'</td></tr>';
       }).join('')+'</tbody></table></div>';
     }
   }
 
-  h+='<div style="font-size:8px;color:#6B7BA8;margin-top:8px"><b>Lectura:</b> revenue atribuido explica el resultado del período; LTV de adquisición y valor post-reactivación siguen cohortes distintas y no deben sumarse entre sí para reconstruir el M0.</div>';
   b.innerHTML=h;
 }
-
 function renderAttr(raw){
   var s=O(raw);S.attr=s;insights();
   var b=$id('mk4-attr');if(!b)return;
   var ac=N(s.clientesAdquiridosM0||s.clientesAdquiridos||s.clientesAdquiridosAtribuidos);
-  var v=[
+  var primary=[
     [s.personasUnicas,'PERSONAS ÚNICAS','#0A4FBF'],
-    [s.touchpointsEfectivos,'TOUCHPOINTS EFECTIVOS','#0D9488'],
-    [s.duplicadosTecnicosProbables,'DUPLICADOS TÉCNICOS','#DC2626'],
     [s.reingresosProspectoHistorico,'REINGRESOS HISTÓRICOS','#7C3AED'],
-    [s.reingresosProspectoMismoMes,'REINGRESOS MISMO MES','#7C3AED'],
     [s.reingresosClienteExistente,'CLIENTES QUE REINGRESAN','#D97706'],
-    [ac,month()?'CLIENTES M0':'CLIENTES ADQUIRIDOS','#059669'],
+    [ac,month()?'CLIENTES M0':'CLIENTES ADQUIRIDOS','#059669']
+  ];
+  var secondary=[
+    [s.touchpointsEfectivos,'TOUCHPOINTS EFECTIVOS','#0D9488'],
     [s.reactivacionesConfirmadas,'REACTIVACIONES CONF.','#00C9A7'],
+    [s.reingresosProspectoMismoMes,'REINGRESOS MISMO MES','#7C3AED'],
+    [s.duplicadosTecnicosProbables,'DUPLICADOS TÉCNICOS','#DC2626'],
     [s.anomaliasHigh,'REVISIÓN ALTA','#DC2626'],
     [s.anomaliasMedium,'REVISIÓN MEDIA','#D97706']
   ];
-  b.innerHTML='<div class="g-row">'+v.map(function(x){
-    return '<div class="g-c" style="background:#F8FAFF;border:1px solid #EEF2F8"><div class="g-v" style="color:'+x[2]+'">'+N(x[0])+'</div><div class="g-l">'+x[1]+'</div></div>';
-  }).join('')+'</div><div style="font-size:8px;color:#6B7BA8;margin-top:6px">Reingreso ≠ reactivación. Los duplicados técnicos son candidatos de revisión; no se eliminan automáticamente.</div>';
+  var p='<div style="display:grid;grid-template-columns:repeat(2,minmax(130px,1fr));gap:8px">'+primary.map(function(x){
+    return '<div style="background:#F8FAFF;border:1px solid #E7EDF7;border-radius:10px;padding:13px 10px;min-height:72px;display:flex;flex-direction:column;justify-content:center;text-align:center"><div style="font-size:22px;font-weight:900;color:'+x[2]+'">'+N(x[0])+'</div><div style="font-size:7px;font-weight:800;color:#64748B;margin-top:3px;letter-spacing:.25px">'+x[1]+'</div></div>';
+  }).join('')+'</div>';
+  var q='<div style="display:grid;grid-template-columns:repeat(3,minmax(95px,1fr));gap:6px;margin-top:8px">'+secondary.map(function(x){
+    return '<div style="background:#FFF;border:1px solid #EEF2F8;border-radius:8px;padding:8px;text-align:center"><div style="font-size:15px;font-weight:900;color:'+x[2]+'">'+N(x[0])+'</div><div style="font-size:6px;font-weight:800;color:#64748B;margin-top:2px">'+x[1]+'</div></div>';
+  }).join('')+'</div>';
+  b.innerHTML=p+q+'<div style="font-size:8px;color:#6B7BA8;margin-top:7px">Reingreso ≠ reactivación. Los duplicados técnicos quedan para revisión y no se eliminan automáticamente.</div>';
 }
-
 function renderIntent(r,d){
   insights();
   var card=$id('mk4-intent-card'),b=$id('mk4-intent');if(!card||!b)return;
@@ -401,6 +453,19 @@ function loadAll(){
     });
   }
 
+  S.secureLineage=null;
+  if(month()&&window.AOS&&AOS.role==='ADMIN'){
+    chain=chain.then(function(){
+      return strongToken().then(function(token){
+        if(stale(my)||String(token||'').length<32)return;
+        return rpc('aos_marketing_lineage_admin_v43',{p_token:token,p_anio:c.a,p_mes:c.m},s)
+          .then(function(x){if(!stale(my))S.secureLineage=O(x);});
+      }).catch(function(e){
+        if(e&&e.name!=='AbortError')console.warn('[MKT4.3] secure lineage fallback',e&&e.message);
+      });
+    });
+  }
+
   chain=chain.then(function(){
     return rpc('aos_marketing_historico_public_v2',{p_anio:c.a},s)
       .then(function(x){if(!stale(my))renderHistory(x);})
@@ -437,5 +502,5 @@ window.__AOS_MKT4={release:RELEASE,reload:loadAll,destroy:destroy,state:S};
 window.__AOS_MARKETING_V3_ACTIVE=false;
 window.__AOS_MARKETING_V3_CONSISTENCY_PATCH=false;
 traceBox();insights();L(loadAll,1200);L(styleOrganicRow,1400);
-console.log('[ASCENDA] Marketing V4.3 mounted — revenue reconciliation + acquisition/reactivation cohorts');
+console.log('[ASCENDA] Marketing V4.3.1 mounted — operational lineage + compact revenue/value UI');
 })();
