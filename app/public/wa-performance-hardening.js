@@ -5,7 +5,7 @@
 if(window.AOS_WA_PERF&&window.AOS_WA_PERF.installed)return;
 var baseFetch=window.fetch.bind(window);
 var cache=new Map(),inflight=new Map(),failures=new Map(),epoch=0;
-var lastVerifiedAt=0,authDeniedUntil=0,authDeniedToken='',serviceObserver=null;
+var lastVerifiedAt=0,authDeniedUntil=0,serviceObserver=null;
 var AUTH_BACKOFF_MS=120000,RECENT_VERIFY_MS=15000,STALE_MAX_MS=120000;
 var metrics={requests:0,network:0,cache_hits:0,coalesced:0,invalidations:0,stale_retries:0,backoff_hits:0,auth_backoff_hits:0,service_card_patches:0,transient_auth_remaps:0};
 var rules=[
@@ -16,7 +16,6 @@ var rules=[
 ];
 function methodOf(input,init){return String(init&&init.method||(input&&input.method)||'GET').toUpperCase();}
 function urlOf(input){try{return new URL(typeof input==='string'?input:(input&&input.url)||'',location.href);}catch(_){return null;}}
-function token(){try{return String(sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||'').trim();}catch(_){return '';}}
 function ruleFor(u){if(!u||u.origin!==location.origin)return null;for(var i=0;i<rules.length;i++)if(rules[i].test(u))return rules[i];return null;}
 function ttlFor(rule){return document.hidden?rule.hidden:rule.visible;}
 function keyFor(u){return u.pathname+u.search;}
@@ -61,9 +60,7 @@ window.fetch=function(input,init){
   }
   var rule=ruleFor(u);
   if(!rule){metrics.network++;return baseFetch(input,init);}
-  var currentToken=token();
-  if(authDeniedToken&&currentToken&&currentToken!==authDeniedToken){authDeniedToken='';authDeniedUntil=0;}
-  if(currentToken&&authDeniedToken===currentToken&&Date.now()<authDeniedUntil){metrics.auth_backoff_hits++;return Promise.resolve(synthetic(403,'WA3_2FA_PANEL_REQUIRED','AUTH-BACKOFF'));}
+  if(Date.now()<authDeniedUntil){metrics.auth_backoff_hits++;return Promise.resolve(synthetic(403,'WA3_2FA_PANEL_REQUIRED','AUTH-BACKOFF'));}
   var key=keyFor(u),hit=readCached(key,rule);
   if(hit){metrics.cache_hits++;return Promise.resolve(materialize(hit,'HIT'));}
   if(backoffOpen(key)){
@@ -86,11 +83,11 @@ window.fetch=function(input,init){
         return {cache:null,response:materialize(s,'AUTH-UPSTREAM-REMAP',503),stale:false};
       }
       if(cacheableResponse(resp)){
-        lastVerifiedAt=Date.now();authDeniedUntil=0;authDeniedToken='';clearFailure(key);
+        lastVerifiedAt=Date.now();authDeniedUntil=0;clearFailure(key);
         var fresh=requestEpoch===epoch;if(fresh)store(key,s);
         return {cache:fresh?s:null,response:fresh?materialize(s,'MISS'):null,stale:!fresh};
       }
-      if(trueAuthDenial(status,data)&&currentToken){authDeniedToken=currentToken;authDeniedUntil=Date.now()+AUTH_BACKOFF_MS;}
+      if(trueAuthDenial(status,data))authDeniedUntil=Date.now()+AUTH_BACKOFF_MS;
       if(status===408||status===429||status>=500)markFailure(key);
       return {cache:null,response:materialize(s,'ERROR'),stale:false};
     }).catch(function(){return {cache:null,response:resp,stale:false};});
