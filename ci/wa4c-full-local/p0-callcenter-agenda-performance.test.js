@@ -13,6 +13,7 @@ const hot=fs.readFileSync('supabase/migrations/20260902002500_mkt_loop6_p0_booki
 const hotExec=hot.split(/\r?\n/).filter(line=>!line.trimStart().startsWith('--')).join('\n');
 const hotRollback=fs.readFileSync('supabase/rollbacks/20260902002500_mkt_loop6_p0_booking_hotpath_v3_recovery.sql','utf8');
 const agSql=fs.readFileSync('supabase/migrations/20260901034000_p0_agenda_status_governed_v1.sql','utf8');
+const agExposure=fs.readFileSync('supabase/migrations/20260910212500_p0_agenda_postgrest_rpc_exposure_v1.sql','utf8');
 const debt=fs.readFileSync('supabase/migrations/20260910200500_mkt_loop6_p0_contact_debt_timestamp_sanity_v1.sql','utf8');
 
 test('Call Center waits for Loop6 and coalesces duplicated panel reads',()=>{
@@ -100,6 +101,15 @@ test('Agenda status is an atomic strong-session RPC and preserves WhatsApp direc
   assert.doesNotMatch(agenda,/method:'PATCH'/);
   assert.doesNotMatch(agenda,/setInterval\(/);
   assert.doesNotMatch(agenda,/setTimeout\(/);
+});
+
+test('P0 #492 keeps governed Agenda RPC exposed through PostgREST',()=>{
+  assert.match(agExposure,/to_regprocedure\('public\.aos_agenda_set_status_v1\(text,text,text,text,text\)'\)/);
+  assert.match(agExposure,/grant execute on function public\.aos_agenda_set_status_v1\(text,text,text,text,text\)/);
+  assert.match(agExposure,/pg_notify\('pgrst','reload schema'\)/);
+  assert.match(agenda,/d&&\(d\.error\|\|d\.code\)/);
+  assert.match(agenda,/PGRST202/);
+  assert.match(f4,/agenda-governed-status-v1\.js\?v=20260910-p0-492-v1/);
 });
 
 test('P0 runtimes reuse the already-certified F4 observer instead of creating new recurrent network owners',()=>{
