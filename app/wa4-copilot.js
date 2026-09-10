@@ -54,11 +54,12 @@ function composePatientReply(reply,messages,inbound){
   return (APPROVED_FIRST_CONTACT_PREFIX+(body?'\n\n'+body:'')).slice(0,900);
 }
 function deterministicOwnerApprovedIntroDraft(runtime,inbound,messages){
-  if(hasApprovedIntro(messages))return null;
   const intents=new Set(runtime&&Array.isArray(runtime.intents)?runtime.intents:[]);
   if(isGreetingOnly(inbound)){
+    if(hasApprovedIntro(messages))return {reply:'Aquí sigo 😊 ¿En qué puedo ayudarte?',intent:'INFO',next_action:'REPLY',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'Conversational acknowledgement; no business facts asserted.'};
     return {reply:conversationStyle.firstContactOrganic(),intent:'INFO',next_action:'REPLY',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'Owner-approved organic first-contact copy.'};
   }
+  if(hasApprovedIntro(messages))return null;
   const treatment=String(runtime&&runtime.state&&runtime.state.treatment||'');
   const transactional=['TREATMENT_PRICE','CONSULTATION_PRICE','PRICE_PER_SESSION','PROMOTION_REQUEST','BOOKING','SCHEDULE','RESCHEDULE_INTENT','CONFIRM_BOOKING','PAYMENT'];
   if(treatment==='TOXINA_BOTULINICA'&&!transactional.some(x=>intents.has(x))){
@@ -277,9 +278,17 @@ function createCopilot(deps){
       if(!conv||!messages.length)return writeJson(res,409,{ok:false,error:'WA4_CONVERSATION_CONTEXT_REQUIRED'});
 
       const runtime=runtimeV2.buildRuntimeContext({messages,conversation:conv});
-      const inbound=String(runtime.semantic_turn&&runtime.semantic_turn.text||lastInbound(messages));
+      const inbound=String(runtime.semantic_turn&&(runtime.semantic_turn.combined_text||runtime.semantic_turn.text)||lastInbound(messages));
       if(!inbound.trim())return writeJson(res,409,{ok:false,error:'WA4_INBOUND_MESSAGE_REQUIRED'});
       const clinicalRisk=ai.personalizedClinicalRisk(inbound);
+
+      // A clinical handoff needs no catalog, campaign, identity or model request.
+      // Keep authorization/context reads above and the same downstream L4/L8 boundary.
+      if(clinicalRisk){
+        const reply=conversationStyle.clinicalHandoff();
+        Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_GUARD',safety_model:null,outcome:'HUMAN_REQUIRED',input_messages:messages.length,input_chars:inbound.length,output_chars:reply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'HUMAN_CLINICAL',safety_category:'PERSONALIZED_CLINICAL'})).catch(()=>{});
+        return writeJson(res,200,{ok:true,runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:null},suggestion:{reply,intent:'OTHER',next_action:'HUMAN_CLINICAL',confidence:1,cited_knowledge_ids:[],needs_human:true,reason:'Consulta clínica personalizada.'},needs_human:true,next_action:'HUMAN_CLINICAL',model:'DETERMINISTIC_GUARD',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
+      }
 
       const introDraft=!clinicalRisk?deterministicOwnerApprovedIntroDraft(runtime,inbound,messages):null;
       if(introDraft){
@@ -322,11 +331,6 @@ function createCopilot(deps){
       const bookingCtx=clinicalRisk?{prompt_context:{status:'NOT_REQUESTED',confirmation_allowed:false}}:await bookingResolver.resolve({runtime,processContexts:governed.processContexts,preferred_site:identityCtx.preferred_site});
       const contexts=adapterSummary(campaignCtx,identityCtx,bookingCtx);
       const pb=governed.playbook;
-      if(clinicalRisk){
-        const reply=conversationStyle.clinicalHandoff();
-        await log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_GUARD',safety_model:null,outcome:'HUMAN_REQUIRED',input_messages:messages.length,input_chars:inbound.length,output_chars:reply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'HUMAN_CLINICAL',safety_category:'PERSONALIZED_CLINICAL'});
-        return writeJson(res,200,{ok:true,playbook:pb,runtime:runtimeSummary(runtime),contexts,suggestion:{reply,intent:'OTHER',next_action:'HUMAN_CLINICAL',confidence:1,cited_knowledge_ids:[],needs_human:true,reason:'Consulta clínica personalizada.'},model:'DETERMINISTIC_GUARD',estimated_cost_usd:0,auto_send:false});
-      }
       if(runtime.booking_readiness==='HIGH'&&identityCtx.requires_human===true){
         const suggestion={reply:'Para continuar con la reserva necesito validar tus datos antes de confirmar la cita. Mantengo tu preferencia mientras hacemos esa validación.',intent:'BOOKING',next_action:'HUMAN_COMMERCIAL',confidence:1,cited_knowledge_ids:[],needs_human:true,reason:'Conflicto o indisponibilidad de identidad canónica.'};
         const quality=qualityCheck(suggestion.reply,runtime,contexts,inbound,governed.publicBundle);
