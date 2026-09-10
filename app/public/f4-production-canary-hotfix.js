@@ -221,7 +221,7 @@ function ensureAgendaGovernedPostload(){
     var old=document.getElementById('aos-agenda-governed-status-v1');if(old)old.remove();
     var s=document.createElement('script');
     s.id='aos-agenda-governed-status-v1';
-    s.src='/agenda-governed-status-v1.js?v=20260901-p0-v1';
+    s.src='/agenda-governed-status-v1.js?v=20260910-p0-492-v1';
     s.async=false;
     s.onerror=function(){console.error('[ASCENDA][AGENDA] governed status runtime failed');};
     (document.head||document.documentElement).appendChild(s);
