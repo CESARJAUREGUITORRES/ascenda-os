@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 root = Path(__file__).resolve().parents[2]
 bridge = (root / 'app/public/f4-revenue-ops.js').read_text(encoding='utf-8')
@@ -79,7 +80,7 @@ wa4_to_wa3 = (
     ("['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4)
     or (
         "['server-wa3-v2.js']" in wa4 and 'proxy(req,res)' in wa4
-        and "['server-wa3.js']" in wa3v2 and 'proxy(req,res)' in wa3v2
+        and "['server-wa3.js']" in wa3v2 and re.search(r"proxy\s*\(\s*req\s*,\s*res(?:\s*,|\s*\))", wa3v2) is not None
     )
 )
 
