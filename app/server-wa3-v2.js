@@ -1,10 +1,12 @@
 'use strict';
 // WA-3 V2 additive multiagent boundary.
-// Handles only readiness/queue/claim/team summary. Existing server-wa3.js remains ownership, routing and human-send authority.
+// Handles readiness/queue/claim/team summary and the P0 #485 outer auth availability guard.
+// Existing server-wa3.js remains ownership, routing and human-send authority.
 const http=require('http');
 const https=require('https');
 const crypto=require('crypto');
 const {spawn}=require('child_process');
+const {createActorResolver,createSuccessCache,shouldRemapInnerAuth}=require('./wa3-stability');
 
 const EXTERNAL_PORT=parseInt(process.env.PORT||'4173',10);
 const INNER_PORT=EXTERNAL_PORT===4200?4201:4200;
@@ -57,17 +59,17 @@ function sbRequest(method,endpoint,body,useService){
       apikey:key,
       Authorization:'Bearer '+key,
       'Content-Type':'application/json',
-      'User-Agent':'AscendaOS-WA3V2/1.0'
+      'User-Agent':'AscendaOS-WA3V2/1.1'
     };
     if(data)headers['Content-Length']=Buffer.byteLength(data);
     const q=https.request({hostname:sb.hostname,port:sb.port||443,path:endpoint,method,headers,timeout:12000},r=>{
       let raw='';r.on('data',c=>raw+=c);r.on('end',()=>{
         const out={status:r.statusCode||502,data:parseData(raw),raw};
         if(out.status>=200&&out.status<300)resolve(out);
-        else reject(Object.assign(new Error('WA3V2_DB_UNAVAILABLE'),{status:502,upstreamStatus:out.status,data:out.data}));
+        else reject(Object.assign(new Error('WA3V2_DB_UNAVAILABLE'),{status:503,upstreamStatus:out.status,data:out.data}));
       });
     });
-    q.on('timeout',()=>q.destroy(new Error('WA3V2_DB_TIMEOUT')));
+    q.on('timeout',()=>q.destroy(Object.assign(new Error('WA3V2_DB_TIMEOUT'),{status:503})));
     q.on('error',reject);
     if(data)q.write(data);
     q.end();
@@ -77,74 +79,95 @@ const sbRpc=(name,payload)=>sbRequest('POST','/rest/v1/rpc/'+name,payload,false)
 const serviceRpc=(name,payload)=>sbRequest('POST','/rest/v1/rpc/'+name,payload,true);
 const serviceGet=(endpoint)=>sbRequest('GET',endpoint,null,true);
 
-async function actor(req){
-  const token=strongToken(req);if(!token)return null;
-  try{
+// P0 #485: a transport/PostgREST outage is not an authentication denial.
+// Positive verification is short-lived; definitive denials are cached longer so stale clients
+// cannot hammer Supabase. Upstream failures are never negative-cached.
+const actorResolver=createActorResolver({
+  okTtlMs:5000,
+  denyTtlMs:30000,
+  maxEntries:1500,
+  verify:async function(token){
     const out=await sbRpc('aos_wa3_actor_v1',{p_token:token});
     const a=out.data;
     return a&&a.ok===true&&UUID_RE.test(String(a.actor_id||''))?a:null;
-  }catch(_){return null;}
+  }
+});
+const queueCache=createSuccessCache({ttlMs:10000,maxEntries:500});
+const teamCache=createSuccessCache({ttlMs:20000,maxEntries:100});
+
+async function actor(req){
+  return actorResolver.resolve(strongToken(req));
 }
 async function requireActor(req,res,adminOnly){
-  const a=await actor(req);
+  let a;
+  try{a=await actor(req);}catch(e){
+    writeJson(res,503,{ok:false,error:'WA3_AUTH_UPSTREAM_UNAVAILABLE',retryable:true});
+    return null;
+  }
   if(!a){writeJson(res,403,{ok:false,error:'WA3_2FA_PANEL_REQUIRED'});return null;}
   if(adminOnly&&a.is_admin!==true){writeJson(res,403,{ok:false,error:'WA3_ADMIN_REQUIRED'});return null;}
   return a;
 }
 async function queueSummary(a){
-  const out=await serviceRpc('aos_wa3_queue_summary_v1',{p_actor_id:a.actor_id});
-  return out.data||{ok:false,error:'WA3_QUEUE_SUMMARY_EMPTY'};
+  return queueCache.get('queue:'+String(a.actor_id),async function(){
+    const out=await serviceRpc('aos_wa3_queue_summary_v1',{p_actor_id:a.actor_id});
+    return out.data||{ok:false,error:'WA3_QUEUE_SUMMARY_EMPTY'};
+  });
 }
 async function getQueue(req,res){
   const a=await requireActor(req,res,false);if(!a)return;
   try{
     const d=await queueSummary(a);
     writeJson(res,d.ok===false?409:200,d);
-  }catch(e){writeJson(res,503,{ok:false,error:'WA3_QUEUE_SUMMARY_UNAVAILABLE'});}
+  }catch(e){writeJson(res,503,{ok:false,error:'WA3_QUEUE_SUMMARY_UNAVAILABLE',retryable:true});}
+}
+async function buildTeamSummary(){
+  const [members,users,assignments]=await Promise.all([
+    serviceGet('/rest/v1/aos_wa_box_members_v1?active=eq.true&select=box_id,user_id,max_active,priority,last_assigned_at'),
+    serviceGet('/rest/v1/aos_usuarios?activo=eq.true&select=id,nombre,rol,cargo,sede,nivel_jerarquia,paneles_acceso'),
+    serviceGet('/rest/v1/aos_wa_assignments_v1?state=eq.ACTIVE&select=owner_user_id,box_id')
+  ]);
+  const memberRows=Array.isArray(members.data)?members.data:[];
+  const userRows=Array.isArray(users.data)?users.data:[];
+  const assignmentRows=Array.isArray(assignments.data)?assignments.data:[];
+  const ids=new Set(memberRows.map(x=>String(x.user_id||'')));
+  const candidateUsers=userRows.filter(u=>ids.has(String(u.id)));
+  const agents=await Promise.all(candidateUsers.map(async u=>{
+    const effectiveOut=await serviceRpc('aos_wa3_effective_presence_v2',{p_actor_id:u.id});
+    const p=effectiveOut.data||{};
+    if(p.ok===false)throw new Error('WA3_EFFECTIVE_PRESENCE_UNAVAILABLE');
+    const boxes=memberRows.filter(m=>m.user_id===u.id).map(m=>({box_id:m.box_id,max_active:m.max_active,priority:m.priority}));
+    const activeLoad=assignmentRows.filter(x=>x.owner_user_id===u.id).length;
+    return {
+      id:u.id,
+      name:u.nombre||null,
+      role:u.rol||null,
+      cargo:u.cargo||null,
+      sede:u.sede||null,
+      effective_status:p.status||'OFFLINE',
+      labor_state:p.labor_state||null,
+      last_seen_at:p.last_seen_at||null,
+      available_since:p.available_since||null,
+      presence_source:p.presence_source||null,
+      active_load:activeLoad,
+      boxes:boxes
+    };
+  }));
+  agents.sort((x,y)=>String(x.name||'').localeCompare(String(y.name||''),'es'));
+  return {
+    ok:true,
+    agents:agents,
+    generated_at:new Date().toISOString(),
+    snapshot_source:'aos_wa3_effective_presence_v2',
+    privacy:'NO_CUSTOMER_DATA'
+  };
 }
 async function teamSummary(req,res){
   const a=await requireActor(req,res,true);if(!a)return;
   try{
-    const [members,users,assignments]=await Promise.all([
-      serviceGet('/rest/v1/aos_wa_box_members_v1?active=eq.true&select=box_id,user_id,max_active,priority,last_assigned_at'),
-      serviceGet('/rest/v1/aos_usuarios?activo=eq.true&select=id,nombre,rol,cargo,sede,nivel_jerarquia,paneles_acceso'),
-      serviceGet('/rest/v1/aos_wa_assignments_v1?state=eq.ACTIVE&select=owner_user_id,box_id')
-    ]);
-    const memberRows=Array.isArray(members.data)?members.data:[];
-    const userRows=Array.isArray(users.data)?users.data:[];
-    const assignmentRows=Array.isArray(assignments.data)?assignments.data:[];
-    const ids=new Set(memberRows.map(x=>String(x.user_id||'')));
-    const candidateUsers=userRows.filter(u=>ids.has(String(u.id)));
-    const agents=await Promise.all(candidateUsers.map(async u=>{
-      const effectiveOut=await serviceRpc('aos_wa3_effective_presence_v2',{p_actor_id:u.id});
-      const p=effectiveOut.data||{};
-      if(p.ok===false)throw new Error('WA3_EFFECTIVE_PRESENCE_UNAVAILABLE');
-      const boxes=memberRows.filter(m=>m.user_id===u.id).map(m=>({box_id:m.box_id,max_active:m.max_active,priority:m.priority}));
-      const activeLoad=assignmentRows.filter(x=>x.owner_user_id===u.id).length;
-      return {
-        id:u.id,
-        name:u.nombre||null,
-        role:u.rol||null,
-        cargo:u.cargo||null,
-        sede:u.sede||null,
-        effective_status:p.status||'OFFLINE',
-        labor_state:p.labor_state||null,
-        last_seen_at:p.last_seen_at||null,
-        available_since:p.available_since||null,
-        presence_source:p.presence_source||null,
-        active_load:activeLoad,
-        boxes:boxes
-      };
-    }));
-    agents.sort((x,y)=>String(x.name||'').localeCompare(String(y.name||''),'es'));
-    writeJson(res,200,{
-      ok:true,
-      agents:agents,
-      generated_at:new Date().toISOString(),
-      snapshot_source:'aos_wa3_effective_presence_v2',
-      privacy:'NO_CUSTOMER_DATA'
-    });
-  }catch(e){writeJson(res,503,{ok:false,error:'WA3_TEAM_SUMMARY_UNAVAILABLE'});}
+    const d=await teamCache.get('team:admin',buildTeamSummary);
+    writeJson(res,200,d);
+  }catch(e){writeJson(res,503,{ok:false,error:'WA3_TEAM_SUMMARY_UNAVAILABLE',retryable:true});}
 }
 async function presence(req,res){
   const a=await requireActor(req,res,false);if(!a)return;
@@ -178,7 +201,7 @@ async function presence(req,res){
     if(heartbeat){const prior=presenceHeartbeats.get(key);if(prior&&prior.promise)presenceHeartbeats.delete(key);}
     const p=e&&e.presence;
     if(p&&p.ok===false)return writeJson(res,409,p);
-    writeJson(res,503,{ok:false,error:'WA3_PRESENCE_UNAVAILABLE'});
+    writeJson(res,503,{ok:false,error:'WA3_PRESENCE_UNAVAILABLE',retryable:true});
   }
 }
 async function claimNext(req,res){
@@ -189,13 +212,14 @@ async function claimNext(req,res){
   try{
     const out=await serviceRpc('aos_wa3_claim_next_v2',{p_box_id:boxId,p_actor_id:a.actor_id});
     const d=out.data||{};
+    queueCache.clear('queue:'+String(a.actor_id));
+    teamCache.clear('team:admin');
     writeJson(res,d.ok===false?409:200,d);
-  }catch(e){writeJson(res,503,{ok:false,error:'WA3_CLAIM_UNAVAILABLE'});}
+  }catch(e){writeJson(res,503,{ok:false,error:'WA3_CLAIM_UNAVAILABLE',retryable:true});}
 }
 
-// Per-session limiter. The WA3V2 boundary sits behind multiple internal wrappers,
-// so socket.remoteAddress is normally loopback and MUST NOT be the primary key.
-// Reads and writes use independent buckets so UI polling can never block a human action.
+// Per-session limiter. Reads and writes use independent buckets so polling cannot block
+// a human mutation, while stale clients cannot create an unbounded request storm.
 const buckets=new Map();
 function rateIdentity(req){
   const token=strongToken(req);
@@ -206,7 +230,7 @@ function rateAllowed(req){
   const now=Date.now();
   const read=req.method==='GET'||req.method==='HEAD';
   const scope=read?'read':'write';
-  const limit=read?600:120;
+  const limit=read?240:120;
   const key=rateIdentity(req)+'|'+scope;
   let b=buckets.get(key);
   if(!b||now-b.start>60000){b={start:now,n:0};buckets.set(key,b);}
@@ -214,14 +238,26 @@ function rateAllowed(req){
   if(buckets.size>2000){for(const [k,v] of buckets)if(now-v.start>120000)buckets.delete(k);}
   return b.n<=limit;
 }
-function proxy(req,res){
+function proxy(req,res,prevalidated){
   const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});
   const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{
+    if(prevalidated&&r.statusCode===403){
+      const chunks=[];let total=0,overflow=false;
+      r.on('data',c=>{total+=c.length;if(total<=65536)chunks.push(Buffer.from(c));else overflow=true;});
+      r.on('end',()=>{
+        const body=Buffer.concat(chunks);
+        if(!overflow&&shouldRemapInnerAuth(r.statusCode,body,true)){
+          return writeJson(res,503,{ok:false,error:'WA3_AUTH_UPSTREAM_UNAVAILABLE',retryable:true});
+        }
+        res.writeHead(r.statusCode||502,r.headers);res.end(body);
+      });
+      return;
+    }
     res.writeHead(r.statusCode||502,r.headers);r.pipe(res);
   });
   q.on('error',e=>{
     console.error('[WA3V2] proxy',e.message);
-    if(!res.headersSent)writeJson(res,502,{ok:false,error:'WA3V2_INNER_UNAVAILABLE'});else res.end();
+    if(!res.headersSent)writeJson(res,502,{ok:false,error:'WA3V2_INNER_UNAVAILABLE',retryable:true});else res.end();
   });
   req.pipe(q);
 }
@@ -234,10 +270,17 @@ const server=http.createServer(async(req,res)=>{
   if(req.method==='GET'&&p==='/api/wa3/team-summary')return teamSummary(req,res);
   if(req.method==='POST'&&p==='/api/wa3/presence')return presence(req,res);
   if(req.method==='POST'&&p==='/api/wa3/claim-next')return claimNext(req,res);
-  return proxy(req,res);
+  if(p.startsWith('/api/wa3/')){
+    // Prevalidate once at the outer boundary. A genuine denial stays 403. If the inner
+    // legacy authority independently loses PostgREST after this successful check, its
+    // generic 403 is remapped to retryable 503; access remains fail-closed.
+    const a=await requireActor(req,res,false);if(!a)return;
+    return proxy(req,res,true);
+  }
+  return proxy(req,res,false);
 });
 server.on('clientError',(_,socket)=>socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'));
-server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[WA3V2] multiagent boundary listening',{external:EXTERNAL_PORT,inner:INNER_PORT}));
+server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[WA3V2] multiagent boundary listening',{external:EXTERNAL_PORT,inner:INNER_PORT,p0_485:true}));
 function shutdown(sig){
   console.log('[WA3V2] shutdown',sig);
   try{child.kill(sig);}catch(_){}
