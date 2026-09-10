@@ -1,5 +1,6 @@
 from pathlib import Path
 import json
+import re
 root = Path(__file__).resolve().parents[2]
 wa4 = (root/'app/server-wa4.js').read_text()
 wa3v2_path = root/'app/server-wa3-v2.js'
@@ -37,7 +38,7 @@ assert direct or f5_wrapped or phase_s_wrapped or s152_wrapped, 'Railway must st
 if normalized_start in (sentinel_phase_s, sentinel_phase_s_email, sentinel_s152, sentinel_s152_email):
     assert 'NODE_OPTIONS' not in str(rail.get('build',{}).get('buildCommand','')), 'Runtime preloads must not contaminate build'
 wa4_to_v1 = "['server-wa3.js']" in wa4 and 'proxy(req,res)' in wa4
-wa4_to_v2_to_v1 = "['server-wa3-v2.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa3.js']" in wa3v2 and 'proxy(req,res)' in wa3v2
+wa4_to_v2_to_v1 = "['server-wa3-v2.js']" in wa4 and 'proxy(req,res)' in wa4 and "['server-wa3.js']" in wa3v2 and re.search(r'proxy\(req,res(?:,(?:true|false))?\)', wa3v2)
 assert wa4_to_v1 or wa4_to_v2_to_v1, 'WA-4 must preserve the certified WA-3 authority directly or through explicit WA-3 V2 boundary'
 assert 'aos_wa4_authorize_copilot_v1' in wa4
 assert "auto_send:false" in wa4 or "auto_send: false" in wa4

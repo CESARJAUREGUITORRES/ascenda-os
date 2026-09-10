@@ -95,3 +95,4 @@ require('./retrieval-grounding-r3.test.js');
 require('./r4-continuity-presentation.test.js');
 require('./r6-conversation-ux-fastlane.test.js');
 require('./r7-conversation-product-contract.test.js');
+require('./r8-shortcuts.test.js');
