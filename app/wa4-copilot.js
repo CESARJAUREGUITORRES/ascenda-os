@@ -278,9 +278,10 @@ function createCopilot(deps){
       if(!conv||!messages.length)return writeJson(res,409,{ok:false,error:'WA4_CONVERSATION_CONTEXT_REQUIRED'});
 
       const runtime=runtimeV2.buildRuntimeContext({messages,conversation:conv});
-      const inbound=String(runtime.semantic_turn&&(runtime.semantic_turn.combined_text||runtime.semantic_turn.text)||lastInbound(messages));
+      const inbound=String(runtime.semantic_turn&&runtime.semantic_turn.text||lastInbound(messages));
       if(!inbound.trim())return writeJson(res,409,{ok:false,error:'WA4_INBOUND_MESSAGE_REQUIRED'});
-      const clinicalRisk=ai.personalizedClinicalRisk(inbound);
+      const clinicalScreen=String(runtime.semantic_turn&&runtime.semantic_turn.combined_text||inbound);
+      const clinicalRisk=ai.personalizedClinicalRisk(clinicalScreen);
 
       // A clinical handoff needs no catalog, campaign, identity or model request.
       // Keep authorization/context reads above and the same downstream L4/L8 boundary.

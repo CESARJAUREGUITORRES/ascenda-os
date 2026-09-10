@@ -25,3 +25,10 @@ PR #484 subsequently added the bounded V2 runtime VAPID path and one-recipient q
 Current lock at 9592ee3 restores WA-L10 after P0 #485 closure. This remains an isolated SAFE-OFF conversation candidate, not a replacement for the R7 activation gate. Run relevant exact-head CI and protected merge before release. Inspect Railway staged changes before any deployment; do not apply unrelated pending variables. Verify production readback, full conversation replay and human takeover; obtain fresh exact-conversation CANARY authorization before activation. This candidate does not claim a full real conversation PASS; the deployed R7 flow still requires the explicitly authorized one-conversation canary. Notification remediation belongs to PR #484.
 
 Rollback: revert the candidate code commit, redeploy the previous certified source through the governed pipeline. No schema, price, patient, appointment, delivery authority or model configuration changes.
+
+## Exact-head CI follow-up
+The first candidate CI exposed a cross-turn retrieval regression: using the entire burst for commercial retrieval could select an earlier PEN product when the latest request asked for a different USD product. Clinical screening now uses the combined burst while commercial retrieval retains the latest text and existing runtime-carried state. The full-local USD assertion is preserved and must pass on the revised head.
+
+The WA4 Python topology contract also still required the old two-argument WA3 V2 proxy call after P0 #485 introduced a third boolean. The assertion now accepts only the original call or the explicit true/false argument, while retaining the canonical child/wrapper checks.
+
+Owner authorized the one-conversation canary on 2026-09-10 in this chat. Activation is not yet executed: current Railway/main match at 9592ee3 and DB pressure is clear, but the remote browser provider-health request was blocked by the client (ERR_BLOCKED_BY_CLIENT). Fresh provider verification remains required. No authority flags or allowlist were changed.
