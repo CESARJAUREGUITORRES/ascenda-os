@@ -1,17 +1,17 @@
-/* ASCENDA OS — Marketing V4.2 stability controller
+/* ASCENDA OS — Marketing V4.3 value/reconciliation controller
  * Single remount-safe owner for Summary, Trace, History, LTV, Attribution and Intent.
  * Read-only. Annual RPCs are intentionally serialized to avoid anon timeout contention.
  */
 (function(){
 'use strict';
 
-var RELEASE='2026-08-31-v4.2.2-organic-paid-boundary';
+var RELEASE='2026-09-10-v4.3-value-reconciliation';
 if(window.__AOS_MKT4&&window.__AOS_MKT4.destroy){
   try{window.__AOS_MKT4.destroy();}catch(e){}
 }
 
 var alive=true, cycle=0, ctl=null, timers=[], wraps={};
-var S={kpi:null,summary:null,campaigns:[],history:[],ltv:[],attr:null,intent:[],intentDetail:[]};
+var S={kpi:null,summary:null,campaigns:[],history:[],ltv:[],valueMap:null,attr:null,intent:[],intentDetail:[]};
 
 function $id(x){return document.getElementById(x);}
 function N(v){var x=Number(v);return Number.isFinite(x)?x:0;}
@@ -141,7 +141,7 @@ function loading(){
   traceBox();insights();
   var g=$id('mk4-trace-grid');if(g)g.innerHTML='<div class="ld">Cargando trazabilidad…</div>';
   var h=$id('mk-hist');if(h)h.innerHTML='<div class="ld">Cargando histórico anual…</div>';
-  var l=$id('mk-ltv');if(l)l.innerHTML='<div class="ld">Esperando histórico para cargar LTV…</div>';
+  var l=$id('mk-ltv');if(l)l.innerHTML='<div class="ld">Esperando histórico para cargar mapa de valor…</div>';
   var t=$id('mk-ltv-tag');if(t)t.textContent='en cola…';
   var a=$id('mk4-attr');if(a)a.innerHTML='<div class="ld">Cargando atribución…</div>';
   var i=$id('mk4-intent');if(i)i.innerHTML='<div class="ld">Cargando intención…</div>';
@@ -229,27 +229,94 @@ function cell(v,st,c){
   return '<b style="color:'+c+'">'+M(v)+'</b>'+(st==='PARTIAL'?'<div style="font-size:7px;color:#D97706">parcial</div>':'');
 }
 
-function renderLtv(raw){
-  var rows=A(raw).sort(function(a,b){return N(a.mes)-N(b.mes);});
-  S.ltv=rows;
-  var b=$id('mk-ltv'),tag=$id('mk-ltv-tag');if(!b||!tag)return;
-  if(!rows.length){b.innerHTML='<div class="ld">Sin LTV</div>';tag.textContent='sin datos';return;}
+function sumRows(rows,key){return (rows||[]).reduce(function(s,x){return s+N(x&&x[key]);},0);}
 
-  var f=month()?rows.find(function(x){return N(x.mes)===C().m;}):null;
+function renderLtv(raw){
+  var vm=O(raw),rows=A(vm.acquisitionLtv).sort(function(a,b){return N(a.mes)-N(b.mes);});
+  var react=A(vm.reactivationLtv).sort(function(a,b){return N(a.mes)-N(b.mes);});
+  var recon=A(vm.reconciliation).sort(function(a,b){return N(a.mes)-N(b.mes);});
+  var lineage=A(vm.lineage);
+  S.valueMap=vm;S.ltv=rows;
+
+  var b=$id('mk-ltv'),tag=$id('mk-ltv-tag');if(!b||!tag)return;
+  if(!rows.length&&!recon.length){b.innerHTML='<div class="ld">Sin mapa de valor</div>';tag.textContent='sin datos';return;}
+
+  var selected=month()?C().m:null;
+  var rec=selected?recon.find(function(x){return N(x.mes)===selected;}):null;
+  if(!rec){
+    rec={
+      revenue_attributed:sumRows(recon,'revenue_attributed'),
+      acquisition:sumRows(recon,'acquisition'),
+      reactivation:sumRows(recon,'reactivation'),
+      historical_followup:sumRows(recon,'historical_followup'),
+      organic_revenue:sumRows(recon,'organic_revenue'),
+      clients:sumRows(recon,'clients'),
+      operations:sumRows(recon,'operations'),
+      acquisition_clients:sumRows(recon,'acquisition_clients'),
+      reactivation_clients:sumRows(recon,'reactivation_clients'),
+      historical_clients:sumRows(recon,'historical_clients'),
+      reconciliation_delta:sumRows(recon,'reconciliation_delta'),
+      status:'ANNUAL'
+    };
+  }
+
+  var reconciled=Math.abs(N(rec.reconciliation_delta))<0.01;
+  tag.textContent='V4.3 · '+(reconciled?'RECONCILIADO':'REVISAR')+' · '+M(rec.revenue_attributed);
+
+  var h='<div style="border:1px solid #DCE7F7;background:#F8FBFF;border-radius:10px;padding:11px;margin-bottom:12px">'+
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px">'+
+      '<div><b style="font-size:10px;color:#163A70">🧾 RECONCILIACIÓN DEL REVENUE ATRIBUIDO</b><div style="font-size:8px;color:#6B7BA8;margin-top:2px">Todo el revenue pagado del período debe vivir en una sola categoría, sin mezclarlo con LTV.</div></div>'+
+      '<div style="text-align:right"><div style="font-size:8px;color:#6B7BA8">REVENUE ATRIBUIDO PAGADO</div><div style="font-size:24px;font-weight:900;color:#0A4FBF">'+M(rec.revenue_attributed)+'</div><div style="font-size:7px;color:'+(reconciled?'#059669':'#DC2626')+'">'+(reconciled?'✓ Adquisición + reactivación + seguimiento = total':'⚠ Diferencia '+M(rec.reconciliation_delta))+'</div></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<div style="flex:1;min-width:160px;background:#EEF6FF;border-radius:8px;padding:9px"><div style="font-size:8px;color:#0A4FBF;font-weight:800">ADQUISICIÓN</div><div style="font-size:19px;font-weight:900;color:#0A4FBF">'+M(rec.acquisition)+'</div><div style="font-size:7px;color:#6B7BA8">'+N(rec.acquisition_clients)+' cliente(s) nuevo(s)</div></div>'+
+      '<div style="flex:1;min-width:160px;background:#ECFDF5;border-radius:8px;padding:9px"><div style="font-size:8px;color:#059669;font-weight:800">REACTIVACIÓN</div><div style="font-size:19px;font-weight:900;color:#059669">'+M(rec.reactivation)+'</div><div style="font-size:7px;color:#6B7BA8">'+N(rec.reactivation_clients)+' cliente(s) recuperado(s)</div></div>'+
+      '<div style="flex:1;min-width:160px;background:#FFF7ED;border-radius:8px;padding:9px"><div style="font-size:8px;color:#D97706;font-weight:800">SEGUIMIENTO HISTÓRICO</div><div style="font-size:19px;font-weight:900;color:#D97706">'+M(rec.historical_followup)+'</div><div style="font-size:7px;color:#6B7BA8">'+N(rec.historical_clients)+' cliente(s) de continuidad</div></div>'+
+    '</div>'+
+    '<div style="font-size:8px;color:#6B7BA8;margin-top:7px">'+N(rec.clients)+' clientes atribuidos · '+N(rec.operations)+' operaciones'+(N(rec.organic_revenue)>0?' · Orgánico fuera del KPI pagado: <b>'+M(rec.organic_revenue)+'</b>':'')+'</div>'+
+  '</div>';
+
+  var f=selected?rows.find(function(x){return N(x.mes)===selected;}):null;
   if(!f){
     var inv=0,m0=0,lt=0,ac=0,m1=0,m2=0,m3=0,m4=0;
     rows.forEach(function(x){inv+=N(x.inversion);m0+=N(x.m0);lt+=N(x.ltv_total);ac+=N(x.clientes_adquiridos);m1+=N(x.m1);m2+=N(x.m2);m3+=N(x.m3);m4+=N(x.m4plus);});
     f={m0:m0,ltv_total:lt,inversion:inv,clientes_adquiridos:ac,roas_ltv:inv?lt/inv:0,cac_adquisicion:ac?inv/ac:0,m1:m1,m2:m2,m3:m3,m4plus:m4};
   }
-
   var mult=N(f.m0)?N(f.ltv_total)/N(f.m0):0;
-  tag.textContent='LTV '+(mult?mult.toFixed(1)+'x':'—')+' · '+rows.length+' cohortes';
 
-  var h='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div style="flex:1;background:#F5F3FF;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#7C3AED">LTV / M0</div><div style="font-size:24px;font-weight:800;color:#7C3AED">'+(mult?mult.toFixed(1)+'x':'—')+'</div></div><div style="flex:1;background:#F0FDF4;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#059669">ROAS LTV</div><div style="font-size:24px;font-weight:800;color:#059669">'+N(f.roas_ltv).toFixed(2)+'x</div></div><div style="flex:1;background:#FFF7ED;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#D97706">CAC ADQUISICIÓN</div><div style="font-size:24px;font-weight:800;color:#D97706">'+M(f.cac_adquisicion)+'</div></div></div>';
+  h+='<div style="margin:4px 0 7px"><b style="font-size:10px;color:#5B21B6">📈 LTV DE ADQUISICIÓN</b><div style="font-size:8px;color:#6B7BA8">Solo clientes nuevos adquiridos por la cohorte. Sus compras posteriores acumulan M+1, M+2, M+3 y M+4+.</div></div>';
+  h+='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px"><div style="flex:1;background:#F5F3FF;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#7C3AED">LTV / M0</div><div style="font-size:24px;font-weight:800;color:#7C3AED">'+(mult?mult.toFixed(1)+'x':'—')+'</div></div><div style="flex:1;background:#F0FDF4;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#059669">ROAS LTV ADQUISICIÓN</div><div style="font-size:24px;font-weight:800;color:#059669">'+N(f.roas_ltv).toFixed(2)+'x</div></div><div style="flex:1;background:#FFF7ED;border-radius:8px;padding:10px;text-align:center"><div style="font-size:8px;color:#D97706">CAC ADQUISICIÓN</div><div style="font-size:24px;font-weight:800;color:#D97706">'+M(f.cac_adquisicion)+'</div></div></div>';
 
-  h+='<div style="overflow:auto"><table class="vt"><thead><tr><th>COHORTE</th><th>PERSONAS</th><th>ADQUIRIDOS</th><th>M0 CLIENTES</th><th>INV.</th><th>M0</th><th>M+1</th><th>M+2</th><th>M+3</th><th>M+4+</th><th>LTV TOTAL</th><th>ROAS LTV</th></tr></thead><tbody>'+rows.map(function(x){
-    return '<tr'+(month()&&N(x.mes)===C().m?' style="background:#F0F7FF;outline:1px solid #D9E8FF"':'')+'><td><b>'+MF[N(x.mes)].slice(0,3).toUpperCase()+'</b></td><td>'+N(x.personas_unicas)+'</td><td>'+N(x.clientes_adquiridos)+'</td><td>'+N(x.clientes_adquiridos_m0)+'</td><td>'+M(x.inversion)+'</td><td>'+cell(x.m0,x.m0_estado,'#0A4FBF')+'</td><td>'+cell(x.m1,x.m1_estado,'#00C9A7')+'</td><td>'+cell(x.m2,x.m2_estado,'#7C3AED')+'</td><td>'+cell(x.m3,x.m3_estado,'#D97706')+'</td><td>'+cell(x.m4plus,x.m4plus==null?'FUTURE':'COMPLETE','#6B7BA8')+'</td><td class="hi hi-g">'+M(x.ltv_total)+'</td><td class="hi hi-g">'+N(x.roas_ltv).toFixed(2)+'x</td></tr>';
-  }).join('')+'</tbody></table></div><div style="font-size:8px;color:#6B7BA8;margin-top:6px">M0 y LTV son magnitudes distintas. LTV acumula compras posteriores del cliente adquirido.</div>';
+  if(rows.length){
+    h+='<div style="overflow:auto"><table class="vt"><thead><tr><th>COHORTE</th><th>PERSONAS</th><th>ADQUIRIDOS</th><th>M0 CLIENTES</th><th>INV.</th><th>M0</th><th>M+1</th><th>M+2</th><th>M+3</th><th>M+4+</th><th>LTV TOTAL</th><th>ROAS LTV</th></tr></thead><tbody>'+rows.map(function(x){
+      return '<tr'+(selected===N(x.mes)?' style="background:#F0F7FF;outline:1px solid #D9E8FF"':'')+'><td><b>'+MF[N(x.mes)].slice(0,3).toUpperCase()+'</b></td><td>'+N(x.personas_unicas)+'</td><td>'+N(x.clientes_adquiridos)+'</td><td>'+N(x.clientes_adquiridos_m0)+'</td><td>'+M(x.inversion)+'</td><td>'+cell(x.m0,x.m0_estado,'#0A4FBF')+'</td><td>'+cell(x.m1,x.m1_estado,'#00C9A7')+'</td><td>'+cell(x.m2,x.m2_estado,'#7C3AED')+'</td><td>'+cell(x.m3,x.m3_estado,'#D97706')+'</td><td>'+cell(x.m4plus,x.m4plus==null?'FUTURE':'COMPLETE','#6B7BA8')+'</td><td class="hi hi-g">'+M(x.ltv_total)+'</td><td class="hi hi-g">'+N(x.roas_ltv).toFixed(2)+'x</td></tr>';
+    }).join('')+'</tbody></table></div>';
+  }
+
+  var reactShow=react.filter(function(x){return N(x.reactivated_clients)>0||(selected===N(x.mes));});
+  h+='<div style="margin:14px 0 7px;padding-top:10px;border-top:1px solid #EEF2F8"><b style="font-size:10px;color:#047857">♻️ VALOR POST-REACTIVACIÓN</b><div style="font-size:8px;color:#6B7BA8">Cliente existente recuperado por un nuevo touchpoint. R0 es el mes de reactivación; luego se acumula R+1, R+2, R+3 y R+4+ sin mezclarlo con adquisición.</div></div>';
+  if(!reactShow.length){
+    h+='<div class="ld">Aún no hay cohortes de reactivación en este período.</div>';
+  }else{
+    h+='<div style="overflow:auto"><table class="vt"><thead><tr><th>COHORTE</th><th>REACTIVADOS</th><th>R0 CLIENTES</th><th>R0</th><th>R+1</th><th>R+2</th><th>R+3</th><th>R+4+</th><th>VALOR TOTAL</th></tr></thead><tbody>'+reactShow.map(function(x){
+      return '<tr'+(selected===N(x.mes)?' style="background:#ECFDF5;outline:1px solid #A7F3D0"':'')+'><td><b>'+MF[N(x.mes)].slice(0,3).toUpperCase()+'</b></td><td>'+N(x.reactivated_clients)+'</td><td>'+N(x.reactivated_clients_r0)+'</td><td>'+cell(x.r0,x.r0_status,'#059669')+'</td><td>'+cell(x.r1,x.r1_status,'#0D9488')+'</td><td>'+cell(x.r2,x.r2_status,'#7C3AED')+'</td><td>'+cell(x.r3,x.r3_status,'#D97706')+'</td><td>'+cell(x.r4plus,x.r4plus_status,'#6B7BA8')+'</td><td class="hi hi-g">'+M(x.value_total)+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
+  }
+
+  if(month()){
+    h+='<div style="margin:14px 0 7px;padding-top:10px;border-top:1px solid #EEF2F8"><b style="font-size:10px;color:#163A70">🔎 AUDITORÍA DE ATRIBUCIÓN DEL MES</b><div style="font-size:8px;color:#6B7BA8">Mapea cada cliente a lead/campaña/anuncio. Teléfono enmascarado; método y confianza quedan visibles cuando la cadena directa no existe.</div></div>';
+    if(!lineage.length){
+      h+='<div class="ld">Sin ventas atribuibles para auditar.</div>';
+    }else{
+      h+='<div style="overflow:auto"><table class="vt"><thead><tr><th>CLIENTE</th><th>TIPO</th><th>LEAD / CAMPAÑA</th><th>ANUNCIO</th><th>TRAZA</th><th>CONFIANZA</th><th>OPS.</th><th>FACT.</th></tr></thead><tbody>'+lineage.map(function(x){
+        var typ=String(x.tipo_atribucion||'').toUpperCase(),tc=typ==='ADQUISICION'?'#0A4FBF':typ==='REACTIVACION'?'#059669':'#D97706';
+        var trace='📞 '+N(x.llamadas_vinculadas)+' · 📅 '+N(x.citas_vinculadas);
+        return '<tr><td><b>•••• '+E(x.telefono_ult4||'—')+'</b></td><td><span style="font-size:7px;font-weight:800;color:'+tc+'">'+E(typ)+'</span></td><td><b>#'+E(x.lead_id)+'</b> · '+E(x.lead_fecha)+'<div style="font-size:7px;color:#6B7BA8">'+E(x.campana)+'</div></td><td>'+E(x.anuncio||'—')+'</td><td>'+trace+'<div style="font-size:7px;color:#6B7BA8">'+E(x.lineage_strength)+' · '+E(x.metodo_match)+'</div></td><td><b style="color:'+(N(x.confidence)>=80?'#059669':'#D97706')+'">'+N(x.confidence)+'%</b></td><td>'+N(x.operaciones)+'</td><td class="hi hi-g">'+M(x.facturacion)+'</td></tr>';
+      }).join('')+'</tbody></table></div>';
+    }
+  }
+
+  h+='<div style="font-size:8px;color:#6B7BA8;margin-top:8px"><b>Lectura:</b> revenue atribuido explica el resultado del período; LTV de adquisición y valor post-reactivación siguen cohortes distintas y no deben sumarse entre sí para reconstruir el M0.</div>';
   b.innerHTML=h;
 }
 
@@ -342,9 +409,9 @@ function loadAll(){
 
   chain=chain.then(function(){
     var tag=$id('mk-ltv-tag');if(tag&&!stale(my))tag.textContent='cargando…';
-    return rpc('aos_marketing_ltv_public_v2',{p_anio:c.a},s)
+    return rpc('aos_marketing_value_map_public_v43',{p_anio:c.a,p_mes:month()?c.m:null},s)
       .then(function(x){if(!stale(my))renderLtv(x);})
-      .catch(function(e){if(e.name!=='AbortError'&&!stale(my))err('mk-ltv','Valor del Lead (LTV)',e);});
+      .catch(function(e){if(e.name!=='AbortError'&&!stale(my))err('mk-ltv','Valor atribuido y LTV',e);});
   });
 
   chain.catch(function(e){if(e&&e.name!=='AbortError')console.warn('[MKT4.2] pipeline',e);});
@@ -354,7 +421,7 @@ hook('rKPI',function(k){S.kpi=k||{};call(B.rKPI,[k]);if(S.summary)renderTop();})
 hook('rEmb',function(e){call(B.rEmb,[e]);if(S.summary)L(renderTop,5);});
 hook('rCamp',function(rows){S.campaigns=rows||[];call(B.rCamp,[rows]);L(styleOrganicRow,0);if(S.summary)L(renderTop,5);});
 hook('rHist',function(){if(S.history.length)renderHistory(S.history);});
-hook('rLTV',function(){if(S.ltv.length)renderLtv(S.ltv);});
+hook('rLTV',function(){if(S.valueMap)renderLtv(S.valueMap);});
 hook('mkL',function(){
   var r=call(B.mkL,arguments);
   L(loadAll,1200);
@@ -370,5 +437,5 @@ window.__AOS_MKT4={release:RELEASE,reload:loadAll,destroy:destroy,state:S};
 window.__AOS_MARKETING_V3_ACTIVE=false;
 window.__AOS_MARKETING_V3_CONSISTENCY_PATCH=false;
 traceBox();insights();L(loadAll,1200);L(styleOrganicRow,1400);
-console.log('[ASCENDA] Marketing V4.2 mounted — paid KPI boundary excludes ORGANICO');
+console.log('[ASCENDA] Marketing V4.3 mounted — revenue reconciliation + acquisition/reactivation cohorts');
 })();
