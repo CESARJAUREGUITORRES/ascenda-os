@@ -32,4 +32,9 @@ assert(!/recipient_(phone|number)|raw_content|message_body/i.test(migration),'L1
 assert(/grant execute on function public\.aos_wa_l10_status_v1\(text\) to service_role/i.test(migration));
 assert(/revoke all on function public\.aos_wa_l10_status_v1\(text\) from public,anon,authenticated/i.test(migration));
 
+const f4=fs.readFileSync('app/server-f4.js','utf8');
+assert(f4.includes("const metaCode=String(me.code||'').trim();"),'META_ERROR_CODE_OBSERVABILITY missing');
+assert(f4.includes("const metaSubcode=String(me.error_subcode||'').trim();"),'META_ERROR_SUBCODE_OBSERVABILITY missing');
+assert(f4.includes("new Error(errorCode)"),'META_ERROR_NORMALIZATION missing');
+assert(!f4.includes("metaDetails:"),'provider error audit must not persist raw Meta details');
 console.log('WA_L10_SAFE_OFF_STATIC_CONTRACT=PASS');
