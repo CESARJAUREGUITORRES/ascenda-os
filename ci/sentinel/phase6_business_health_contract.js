@@ -43,7 +43,7 @@ ok(c.live_preflight?.email_historical_records_live_state==='IGNORED_OUTSIDE_HORI
 
 ok(calls.includes("_rpc('aos_panel_asesor'"),'F6_CALLCENTER_PANEL_SOURCE_MISSING');
 ok(calls.includes("_rpc('aos_monitoreo_equipo'"),'F6_CALLCENTER_TEAM_SOURCE_MISSING');
-ok(calls.includes("_rpc('aos_siguiente_lead_v2'"),'F6_CALLCENTER_BACKLOG_SOURCE_MISSING');
+ok(calls.includes("_rpc('aos_siguiente_lead'"),'F6_CALLCENTER_BACKLOG_SOURCE_MISSING');
 ok(f4.includes("rpcName='aos_sales_intelligence_gateway'"),'F6_SALES_GATEWAY_SOURCE_MISSING');
 ok(wa2.includes('aos_wa_conversations_v1'),'F6_WA_CONVERSATION_SOURCE_MISSING');
 ok(wa3.includes('aos_wa_outbound_requests_v1'),'F6_WA_OUTBOUND_SOURCE_MISSING');

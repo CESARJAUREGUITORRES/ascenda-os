@@ -7,9 +7,11 @@ on:
       - 'app/public/app.html'
       - 'app/public/calls.html'
       - 'app/public/calls.js'
+      - 'app/public/calls-performance-v1.js'
       - 'app/public/calls-loop6.js'
       - 'app/public/f4-production-canary-hotfix.js'
       - 'supabase/migrations/*loop6*'
+      - 'supabase/rollbacks/*loop6*'
       - '.github/workflows/callcenter-governed-runtime-guard.yml'
   push:
     branches: [main, 'fix/**']
@@ -17,9 +19,11 @@ on:
       - 'app/public/app.html'
       - 'app/public/calls.html'
       - 'app/public/calls.js'
+      - 'app/public/calls-performance-v1.js'
       - 'app/public/calls-loop6.js'
       - 'app/public/f4-production-canary-hotfix.js'
       - 'supabase/migrations/*loop6*'
+      - 'supabase/rollbacks/*loop6*'
       - '.github/workflows/callcenter-governed-runtime-guard.yml'
   workflow_dispatch:
 
