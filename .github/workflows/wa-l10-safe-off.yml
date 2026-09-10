@@ -8,6 +8,7 @@ on:
       - 'supabase/rollbacks/*wa_l10*'
       - 'ci/wa-l10/**'
       - 'app/server-wa4.js'
+      - 'app/server-f4.js'
       - 'app/wa-l10-autonomous-bridge.js'
       - 'app/wa-l10-autonomous-bridge.test.js'
       - 'docs/control/WA_L10_*'
@@ -42,6 +43,7 @@ jobs:
         shell: powershell
         run: |
           node --check app/server-wa4.js
+          node --check app/server-f4.js
           node --check app/wa-l10-autonomous-bridge.js
           node --test app/wa-l10-autonomous-bridge.test.js
           node ci/wa-l10/autonomous_bridge_contract.test.js
