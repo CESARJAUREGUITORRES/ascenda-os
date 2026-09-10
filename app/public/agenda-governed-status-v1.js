@@ -26,7 +26,9 @@ function apiError(code){
     APPOINTMENT_NOT_FOUND:'La cita ya no existe o cambió. Recarga Agenda.',
     DOCTOR_AUTHORITY_REQUIRED:'La cita no tiene una doctora válida asignada.',
     ATTENDING_NURSE_REQUIRED:'Selecciona quién realizará la atención.',
-    INVALID_APPOINTMENT_STATUS:'Estado de cita no válido.'
+    INVALID_APPOINTMENT_STATUS:'Estado de cita no válido.',
+    PGRST202:'Agenda está actualizando su conexión segura. Recarga el panel y vuelve a guardar.',
+    HTTP_404:'Agenda no encontró el RPC gobernado. Recarga el panel; si persiste, reporta el código PGRST.'
   };
   return map[code]||code||'No se pudo actualizar la cita.';
 }
@@ -67,7 +69,10 @@ function install(){
         body:JSON.stringify({p_token:token,p_cita_id:String(AG.sel.id),p_estado:est,p_asistente:asistente,p_nota:nota})
       }).then(function(r){
         return r.json().catch(function(){return null;}).then(function(d){
-          if(!r.ok||!d||d.ok!==true){var code=d&&d.error?d.error:('HTTP_'+r.status);throw new Error(code);}
+          if(!r.ok||!d||d.ok!==true){
+            var code=d&&(d.error||d.code)?String(d.error||d.code):('HTTP_'+r.status);
+            throw new Error(code);
+          }
           return d;
         });
       });
@@ -88,7 +93,7 @@ function install(){
   governedSave.__agendaGovernedV1=true;
   governedSave.__legacy=window.agGuardarEstado;
   window.agGuardarEstado=governedSave;
-  window.__AOS_AGENDA_GOVERNED_STATUS_V1__='v1';
+  window.__AOS_AGENDA_GOVERNED_STATUS_V1__='v1.1-p0-492';
   console.log('[ASCENDA][AGENDA] governed status runtime active');
   return true;
 }
