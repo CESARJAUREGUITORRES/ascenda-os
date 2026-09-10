@@ -1,0 +1,28 @@
+name: P0-485 Production Recurrence Validation
+
+on:
+  push:
+    branches:
+      - 'p0-485-prod-validation-20260909'
+    paths:
+      - 'ci/p0-485/prod_validation.js'
+      - '.github/workflows/p0-485-prod-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prod-recurrence:
+    name: SAFE-OFF production recurrence/load
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Production bounded recurrence/load validation
+        env:
+          ASCENDA_PROD_BASE: https://ascenda-os-production.up.railway.app
+        run: node ci/p0-485/prod_validation.js
