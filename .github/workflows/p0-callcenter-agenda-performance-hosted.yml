@@ -12,6 +12,8 @@ on:
       - 'app/public/f4-production-canary-hotfix.js'
       - 'supabase/migrations/20260910212500_p0_agenda_postgrest_rpc_exposure_v1.sql'
       - 'supabase/rollbacks/20260910212500_p0_agenda_postgrest_rpc_exposure_v1_recovery.sql'
+      - 'supabase/migrations/20260910213500_p0_agenda_trigger_searchpath_v1.sql'
+      - 'supabase/rollbacks/20260910213500_p0_agenda_trigger_searchpath_v1_recovery.sql'
       - 'app/public/panel-access-authority-v1.js'
       - 'supabase/migrations/20260901033000_p0_callcenter_io_booking_fastpath_v1.sql'
       - 'supabase/migrations/20260901034000_p0_agenda_status_governed_v1.sql'
