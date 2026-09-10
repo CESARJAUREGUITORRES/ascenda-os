@@ -35,8 +35,9 @@ function backoffOpen(key){var x=failures.get(key);return !!(x&&Date.now()<x.unti
 function parseBody(body){try{return body?JSON.parse(body):{};}catch(_){return {};}}
 function trueAuthDenial(status,data){if(status!==401&&status!==403)return false;var e=String(data&&data.error||'');return e==='WA3_2FA_PANEL_REQUIRED'||e==='AOS_2FA_SESSION_MISSING'||e==='PUSH_APP_SESSION_REQUIRED';}
 function recentlyVerified(){return lastVerifiedAt&&Date.now()-lastVerifiedAt<RECENT_VERIFY_MS;}
-function serviceCode(code){var c=String(code||'');return c==='WA3_AUTH_UPSTREAM_UNAVAILABLE'||c==='WA3_INBOX_UNAVAILABLE'||c==='WA3_BOOTSTRAP_UNAVAILABLE'||c==='WA3_MESSAGES_UNAVAILABLE'||c==='WA3_TEAM_SUMMARY_UNAVAILABLE'||c==='WA3_QUEUE_SUMMARY_UNAVAILABLE'||c==='WA3V2_INNER_UNAVAILABLE'||/^HTTP_5\d\d$/.test(c);}
+function serviceCode(code){var c=String(code||'');return c==='WA3_AUTH_UPSTREAM_UNAVAILABLE'||c==='WA3_INBOX_UNAVAILABLE'||c==='WA3_BOOTSTRAP_UNAVAILABLE'||c==='WA3_MESSAGES_UNAVAILABLE'||c==='WA3_TEAM_SUMMARY_UNAVAILABLE'||c==='WA3_QUEUE_SUMMARY_UNAVAILABLE'||c==='WA3_SERVICE_BACKOFF'||c==='WA3V2_INNER_UNAVAILABLE'||/^HTTP_5\d\d$/.test(c);}
 function repairServiceCard(){
+  if(!document||typeof document.querySelector!=='function')return;
   var box=document.querySelector('.wa8-authbox');if(!box)return;
   var bold=box.querySelector('b'),code=String(bold&&bold.textContent||'').trim();if(!serviceCode(code))return;
   var h=box.querySelector('h3'),p=box.querySelector('p'),b=box.querySelector('button');
@@ -46,6 +47,7 @@ function repairServiceCard(){
   if(!box.dataset.aosP0485){box.dataset.aosP0485='1';metrics.service_card_patches++;}
 }
 function installServiceGuard(tries){
+  if(!document||typeof document.getElementById!=='function'||typeof MutationObserver!=='function')return;
   var ws=document.getElementById('workspace');if(!ws){if((tries||0)<80)setTimeout(function(){installServiceGuard((tries||0)+1);},250);return;}
   if(serviceObserver)serviceObserver.disconnect();serviceObserver=new MutationObserver(repairServiceCard);serviceObserver.observe(ws,{childList:true,subtree:true});repairServiceCard();
 }
