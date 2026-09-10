@@ -22,7 +22,7 @@ begin
      and (old.estado_cita is null or old.estado_cita <> 'ASISTIO') then
     v_numero := coalesce(
       new.numero_limpio,
-      pg_catalog.regexp_replace(coalesce(new.numero,''), '\\D', '', 'g')
+      pg_catalog.regexp_replace(coalesce(new.numero,''), '[^0-9]', '', 'g')
     );
     if v_numero is null or v_numero = '' then
       return new;
