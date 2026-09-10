@@ -5,6 +5,9 @@ on:
     branches: [main]
     paths:
       - 'app/public/calls-performance-v1.js'
+      - 'app/public/calls.js'
+      - 'supabase/migrations/20260910200500_mkt_loop6_p0_contact_debt_timestamp_sanity_v1.sql'
+      - 'supabase/rollbacks/20260910200500_mkt_loop6_p0_contact_debt_timestamp_sanity_v1_recovery.sql'
       - 'app/public/agenda-governed-status-v1.js'
       - 'app/public/panel-access-authority-v1.js'
       - 'supabase/migrations/20260901033000_p0_callcenter_io_booking_fastpath_v1.sql'
