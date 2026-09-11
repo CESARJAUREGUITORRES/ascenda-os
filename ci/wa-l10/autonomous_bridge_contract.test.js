@@ -55,6 +55,8 @@ assert(f4.includes('provider_error_code:providerError'),'typing boundary must ex
 assert(bridge.includes('await sendTyping(claim.provider_message_id)'),'typing provider gate must resolve before expensive AI work');
 assert(bridge.includes("META_(190|10|100|200)"),'definite Meta credential/asset failure classifier missing');
 assert(server.includes("internalPost('/api/wa/auto-typing',{provider_message_id:providerMessageId},1500)"),'typing just-in-time provider probe must be tightly bounded');
+assert(server.includes("serviceRpc('aos_wa_l10_internal_canary_authorize_v1'"),'internal CANARY authorization must be one server-only RPC');
+assert(!server.includes("serviceGet('/rest/v1/aos_wa_auto_allowlist_v1?subject_kind=eq.CONVERSATION"),'legacy internal CANARY auth fanout returned');
 assert(f4.includes("graph.facebook.com"),'canonical provider boundary must retain Meta transport');
 const typingAt=bridge.indexOf('sendTyping(claim.provider_message_id)');
 assert(typingAt>claimAt&&typingAt<suggestAt,'typing indicator must start after exact claim and before model work');
