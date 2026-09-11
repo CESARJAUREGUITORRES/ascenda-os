@@ -17,9 +17,9 @@ assert(shell.includes("CLOSEOUT_SRC='/wa-revenue-inbox-closeout.js?v=20260910-wa
 assert(shell.includes('function ensureCloseout()'));
 assert(shell.includes('return ensureCloseout();'));
 assert(shell.indexOf('return ensureMulti();') < shell.indexOf('return ensureCloseout();'));
-assert(closeout.includes('WA_R7_HEALTH_NOTICE_POLICY'));
-assert(!closeout.includes('Revenue Inbox · snapshot canónico activo'));
-assert(closeout.includes("if(h)h.remove()"));
+assert(p2.includes('WA_R7_HEALTH_NOTICE_POLICY'));
+assert(!p2.includes('Revenue Inbox · snapshot canónico activo'));
+assert(p2.includes("if(h)h.remove()"));
 assert(shell.includes('__wa35CloseoutP2'));
 
 // P0 + P1 remain additive foundations.
