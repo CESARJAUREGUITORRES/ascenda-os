@@ -111,6 +111,25 @@ test('eligible inbound requests real typing before governed suggestion and canon
   assert.equal(r.outcome,'SENT');assert.deepEqual(order,['typing:wamid.typing','suggest','send']);
 });
 
+test('definite Meta credential failure at typing gate stops before AI or outbound',async()=>{
+  let suggests=0,sends=0,handoffs=0;const events=[];
+  const bridge=createAutonomousBridge({
+    serviceRpc:async(name,p)=>{
+      if(name==='aos_wa_l10_bridge_claim_v1')return {data:claim(p.p_provider_message_id)};
+      if(name==='aos_wa_l10_bridge_event_v1'){events.push({type:p.p_event_type,reason:p.p_reason_code});return {data:{ok:true}};}
+      return {data:{ok:true}};
+    },
+    sendTyping:async()=>({status:502,body:{ok:false,error:'WA_TYPING_PROVIDER_UNAVAILABLE',provider_error_code:'META_190'}}),
+    suggestInternal:async()=>{suggests++;return safeSuggestion();},
+    autoSend:async()=>{sends++;return {status:200,body:{ok:true}};},
+    requestHandoff:async()=>{handoffs++;}
+  });
+  const r=await bridge.processProviderMessage('wamid.meta190');
+  assert.equal(r.outcome,'ERROR');assert.equal(r.reason,'META_190');assert.equal(r.provider_gate,true);
+  assert.equal(suggests,0);assert.equal(sends,0);assert.equal(handoffs,1);
+  assert.deepEqual(events,[{type:'ERROR',reason:'META_190'}]);
+});
+
 test('typing indicator failure is best-effort and never blocks governed reply',async()=>{
   let sends=0,handoffs=0;
   const bridge=createAutonomousBridge({
