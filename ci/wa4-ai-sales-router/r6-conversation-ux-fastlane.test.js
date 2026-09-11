@@ -74,5 +74,10 @@ test('R6 fast lane does not create a recurrent network owner in wa4-copilot',()=
   const src=fs.readFileSync(require.resolve('../../app/wa4-copilot'),'utf8');
   assert.equal(/\bsetTimeout\s*\(/.test(src),false);
   assert.equal(/\bsetInterval\s*\(/.test(src),false);
-  assert.ok(src.includes("searchKnowledge(serviceRpc,query,'PUBLIC_CLIENT',8,['CATALOG','CATEGORY'])"));
+  assert.ok(src.includes("serviceRpc('aos_wa4_toxin_price_fast_v1',{})"));
+  const fastStart=src.indexOf('async function buildFastPriceContext');
+  const fastEnd=src.indexOf('async function buildGovernedContext',fastStart);
+  const fastBody=src.slice(fastStart,fastEnd);
+  assert.equal(fastBody.includes('searchKnowledge('),false);
+  assert.equal(fastBody.includes('loadProcessContexts('),false);
 });
