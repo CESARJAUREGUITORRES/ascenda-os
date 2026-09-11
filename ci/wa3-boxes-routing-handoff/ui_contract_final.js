@@ -6,7 +6,7 @@ const panel=fs.readFileSync('app/public/wa-multiagent-final-panel.js','utf8');
 const server=fs.readFileSync('app/server-wa3-v2.js','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260822224500_wa3_presence_handoff_final_v3.sql','utf8');
 
-assert(/MULTI_SRC='\/wa-multiagent-final-panel\.js\?v=(?:20260822-wa3-final-p0[12]|20260824-wa35-[a-z0-9-]+)'/.test(shell));
+assert(/MULTI_SRC='\/wa-multiagent-final-panel\.js\?v=(?:20260822-wa3-final-p0[12]|20260824-wa35-[a-z0-9-]+|20260910-wa35-[a-z0-9-]+)'/.test(shell));
 assert(shell.includes('startGlobalPresence()'));
 assert(shell.includes('PRESENCE_HEARTBEAT_MS=30000'));
 assert(shell.includes('PRESENCE_BURST_GUARD_MS=10000'));
@@ -30,6 +30,9 @@ assert(panel.includes("/^24H\\s/i"));
 assert(panel.includes("boxNames.has(t)"));
 assert(panel.includes("d.error==='WA3_NOT_OWNER'"));
 assert(panel.includes("detail=statusLabel(a.effective_status)+laborSuffix(a)"));
+assert(panel.includes('WA_R7_COMPACT_INBOX_UI'));
+assert(panel.includes("var legacy=n.querySelector('.wa35-cardmeta');if(legacy)legacy.remove()"));
+assert(panel.includes("n.querySelector('.wa8-cardstate')"));
 
 assert(server.includes("serviceRpc('aos_wa3_effective_presence_v2',{p_actor_id:u.id})"));
 assert(server.includes("snapshot_source:'aos_wa3_effective_presence_v2'"));
