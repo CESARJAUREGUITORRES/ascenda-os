@@ -241,8 +241,9 @@ async function handleWaAutoTyping(req,res,body){
     await graphSend({messaging_product:'whatsapp',status:'read',message_id:messageId,typing_indicator:{type:'text'}});
     writeJson(res,200,{ok:true,typing:true,provider:'META'});
   }catch(e){
-    console.error('[WA-L10] typing indicator',l4.sanitizeReason(e&&e.message));
-    writeJson(res,e.status||502,{ok:false,error:'WA_TYPING_PROVIDER_UNAVAILABLE'});
+    const providerError=l4.sanitizeReason(e&&e.message||'WA_TYPING_PROVIDER_UNAVAILABLE');
+    console.error('[WA-L10] typing indicator',providerError);
+    writeJson(res,e.status||502,{ok:false,error:'WA_TYPING_PROVIDER_UNAVAILABLE',provider_error_code:providerError,provider_http_status:e.metaStatus||null});
   }
 }
 

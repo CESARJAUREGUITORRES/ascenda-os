@@ -35,6 +35,8 @@ expect('WA_SHARED_SNAPSHOT',waNative.includes('getInboxSnapshot')&&waNative.incl
 expect('WA_FALLBACK_CADENCE',waNative.includes('setInterval(function(){heartbeat(false);},2500)'),'native fallback cadence is not 2500ms');
 expect('WA_IDLE_TIMELINE',!waNative.includes('S.heartbeatTick%3===0'),'idle third-tick timeline refresh returned');
 expect('WA_HIDDEN_GUARD',waMulti.includes('X.busy||document.hidden'),'multiagent hidden-page guard missing');
+expect('WA_MULTIAGENT_ADAPTIVE_POLL',waMulti.includes('function nextPollDelay(')&&waMulti.includes('function scheduleRefresh(')&&waMulti.includes('X.pollDelayMs=nextPollDelay'),'multiagent adaptive queue/team polling missing');
+expect('WA_MULTIAGENT_NO_FIXED_5S',!waMulti.includes("setInterval(function(){refresh();},5000)"),'fixed 5s multiagent polling returned');
 
 const calls=read('app/public/calls.html');
 expect('CALLS_SINGLE_PANEL_OWNER',count(calls,/_rpc\('aos_panel_asesor'/g)===1,'Calls has more than one direct aos_panel_asesor owner');

@@ -32,7 +32,9 @@ assert(ui.includes("window.addEventListener('aos:wa3-inbox'"), 'must consume nat
 assert(ui.includes('getInboxSnapshot'), 'must reuse native inbox snapshot');
 assert(!ui.includes("api('/api/wa3/inbox"), 'multiagent P0 must not fetch inbox directly');
 assert(!ui.includes("fetch('/api/wa3/inbox"), 'multiagent P0 must not fetch inbox directly');
-assert(occurrences(ui, 'setInterval(') === 2, 'unexpected polling/timer added to multiagent layer');
+assert(occurrences(ui, 'setInterval(') === 1, 'only bounded enhancer bootstrap interval may remain');
+assert(ui.includes('function nextPollDelay(') && ui.includes('function scheduleRefresh('), 'adaptive queue/team refresh contract missing');
+assert(!ui.includes("setInterval(function(){refresh();},5000)"), 'fixed 5s queue/team polling returned');
 assert(native.includes("api('/api/wa3/inbox?limit=120')"), 'certified native inbox owner missing');
 
 // Canonical Revenue Inbox filters only.

@@ -25,6 +25,15 @@ function extractInboundProviderIds(raw){
 function dataOf(out){return out&&Object.prototype.hasOwnProperty.call(out,'data')?out.data:out;}
 function bodyOf(out){return out&&out.body&&typeof out.body==='object'?out.body:{};}
 function statusOf(out){const n=Number(out&&out.status);return Number.isFinite(n)?n:200;}
+function definiteProviderCode(value){
+  const code=cleanReason(value);
+  return /^META_(190|10|100|200)(?:_|$)/.test(code)?code:'';
+}
+function definiteTypingFailure(out){
+  if(statusOf(out)<400)return '';
+  const b=bodyOf(out);
+  return definiteProviderCode(b.provider_error_code||'');
+}
 
 function createAutonomousBridge(deps){
   const {serviceRpc,suggestInternal,autoSend,requestHandoff,sendTyping}=deps;
@@ -72,9 +81,23 @@ function createAutonomousBridge(deps){
 
     if(typeof sendTyping==='function'){
       try{
-        const typingPromise=sendTyping(claim.provider_message_id);
-        if(typingPromise&&typeof typingPromise.catch==='function')typingPromise.catch(e=>log.error&&log.error('[WA-L10-BRIDGE] typing indicator failed',cleanReason(e&&e.message)));
-      }catch(e){log.error&&log.error('[WA-L10-BRIDGE] typing indicator failed',cleanReason(e&&e.message));}
+        const typingResult=await sendTyping(claim.provider_message_id);
+        const providerBlock=definiteTypingFailure(typingResult);
+        if(providerBlock){
+          await handoff(claim,providerBlock);
+          await record(claim,'ERROR',providerBlock,{latency_ms:Date.now()-started});
+          return {ok:false,processed:true,outcome:'ERROR',reason:providerBlock,provider_gate:true};
+        }
+        if(statusOf(typingResult)>=400)log.error&&log.error('[WA-L10-BRIDGE] typing indicator best-effort failure',cleanReason(bodyOf(typingResult).error||'WA_TYPING_PROVIDER_UNAVAILABLE'));
+      }catch(e){
+        const providerBlock=definiteProviderCode(e&&e.message);
+        if(providerBlock){
+          await handoff(claim,providerBlock);
+          await record(claim,'ERROR',providerBlock,{latency_ms:Date.now()-started});
+          return {ok:false,processed:true,outcome:'ERROR',reason:providerBlock,provider_gate:true};
+        }
+        log.error&&log.error('[WA-L10-BRIDGE] typing indicator best-effort failure',cleanReason(e&&e.message));
+      }
     }
 
     try{

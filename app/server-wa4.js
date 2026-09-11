@@ -51,19 +51,8 @@ async function effectiveCanary(){
 async function authorizeInternalCanary(id){
   if(!UUID_RE.test(String(id||'')))return{ok:false,error:'WA_L10_CONVERSATION_ID_REQUIRED'};
   try{
-    const [a,c,r,conv,allow]=await Promise.all([
-      serviceGet('/rest/v1/aos_wa_auto_authority_v1?select=mode,kill_switch_engaged&id=eq.1'),
-      serviceGet('/rest/v1/aos_wa_ai_control_v1?select=copilot_enabled,auto_reply_enabled,max_context_messages,max_catalog_items&id=eq.1'),
-      serviceGet('/rest/v1/aos_wa_routing_control_v1?select=ai_send_enabled,auto_routing_enabled,human_send_enabled&id=eq.1'),
-      serviceGet('/rest/v1/aos_wa_conversations_v1?id=eq.'+encodeURIComponent(id)+'&select=id,state,owner_user_id,human_takeover_at,handoff_requested_at&limit=1'),
-      serviceGet('/rest/v1/aos_wa_auto_allowlist_v1?subject_kind=eq.CONVERSATION&subject_key=eq.'+encodeURIComponent(id)+'&active=eq.true&select=subject_key,expires_at&limit=5')
-    ]);
-    const aa=Array.isArray(a.data)?a.data[0]:null,cc=Array.isArray(c.data)?c.data[0]:null,rr=Array.isArray(r.data)?r.data[0]:null,cv=Array.isArray(conv.data)?conv.data[0]:null;
-    const rows=Array.isArray(allow.data)?allow.data:[],active=rows.some(x=>!x.expires_at||new Date(x.expires_at).getTime()>Date.now());
-    if(!(aa&&cc&&rr&&cv&&active))return{ok:false,error:'WA_L10_INTERNAL_CANARY_NOT_SCOPED'};
-    if(aa.mode!=='CANARY'||aa.kill_switch_engaged!==false||cc.copilot_enabled!==true||cc.auto_reply_enabled!==true||rr.ai_send_enabled!==true||rr.auto_routing_enabled!==false||rr.human_send_enabled!==true)return{ok:false,error:'WA_L10_INTERNAL_CANARY_NOT_EFFECTIVE'};
-    if(cv.state!=='AI_ACTIVE'||cv.owner_user_id!=null||cv.human_takeover_at!=null||cv.handoff_requested_at!=null)return{ok:false,error:'WA_L10_INTERNAL_HUMAN_BOUNDARY_ACTIVE'};
-    return{ok:true,actor_id:null,max_context_messages:Number(cc.max_context_messages||24),max_catalog_items:Number(cc.max_catalog_items||12),internal_canary:true};
+    const out=await serviceRpc('aos_wa_l10_internal_canary_authorize_v1',{p_conversation_id:id});
+    return out&&out.data&&typeof out.data==='object'?out.data:{ok:false,error:'WA_L10_INTERNAL_AUTH_EMPTY'};
   }catch(_){return{ok:false,error:'WA_L10_INTERNAL_AUTH_UNAVAILABLE'};}
 }
 async function authorize(req,id){
@@ -85,11 +74,11 @@ async function suggestInternal(conversationId){
     Promise.resolve(suggest(req,res,conversationId)).catch(e=>{status=503;raw=JSON.stringify({ok:false,error:String(e&&e.message||'WA4_INTERNAL_SUGGEST_FAILED')});finish();});
   });
 }
-function internalPost(pathname,body){
+function internalPost(pathname,body,timeoutMs){
   return new Promise((resolve,reject)=>{
     if(WA_L4_INTERNAL_TOKEN.length<32)return reject(new Error('WA_L4_INTERNAL_AUTH_NOT_CONFIGURED'));
-    const data=JSON.stringify(body||{});
-    const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:pathname,method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'X-AOS-WA-Auto-Token':WA_L4_INTERNAL_TOKEN,'User-Agent':'AscendaOS-WA-L10/1.0'},timeout:20000},r=>{let raw='';r.on('data',c=>raw+=c);r.on('end',()=>resolve({status:r.statusCode||502,body:parseData(raw)||{}}));});
+    const data=JSON.stringify(body||{}),timeout=Math.max(500,Math.min(Number(timeoutMs||20000),20000));
+    const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:pathname,method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'X-AOS-WA-Auto-Token':WA_L4_INTERNAL_TOKEN,'User-Agent':'AscendaOS-WA-L10/1.0'},timeout},r=>{let raw='';r.on('data',c=>raw+=c);r.on('end',()=>resolve({status:r.statusCode||502,body:parseData(raw)||{}}));});
     q.on('timeout',()=>q.destroy(new Error('WA_L10_INTERNAL_SEND_TIMEOUT')));q.on('error',reject);q.write(data);q.end();
   });
 }
@@ -102,7 +91,7 @@ const bridge=createAutonomousBridge({
   suggestInternal,
   autoSend:body=>internalPost('/api/wa/auto-send',body),
   requestHandoff,
-  sendTyping:providerMessageId=>internalPost('/api/wa/auto-typing',{provider_message_id:providerMessageId}),
+  sendTyping:providerMessageId=>internalPost('/api/wa/auto-typing',{provider_message_id:providerMessageId},1500),
   log:console
 });
 

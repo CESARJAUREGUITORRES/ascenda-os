@@ -39,7 +39,9 @@ assert(panel.includes('Ctrl/⌘+K buscar'));
 assert(panel.includes('getInboxSnapshot'));
 assert(panel.includes("window.addEventListener('aos:wa3-inbox'"));
 assert(!panel.includes("api('/api/wa3/inbox"));
-assert(count(panel,'setInterval(')===2,'P1 must not add polling timers');
+assert(count(panel,'setInterval(')===1,'only the bounded enhancer bootstrap interval may remain');
+assert(panel.includes('function nextPollDelay(')&&panel.includes('function scheduleRefresh('),'adaptive queue/team timer missing');
+assert(!panel.includes("setInterval(function(){refresh();},5000)"),'fixed 5s Revenue Inbox polling returned');
 
 // Existing authority/security must remain visible in source.
 for(const token of ['WA3_NOT_OWNER','/api/wa3/claim-next','/api/wa3/bootstrap','HUMAN_REQUESTED','WAITING_CUSTOMER'])assert(panel.includes(token),token);

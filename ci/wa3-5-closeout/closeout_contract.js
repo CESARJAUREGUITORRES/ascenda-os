@@ -12,7 +12,7 @@ const p0=read('ci/wa3-5-revenue-inbox/p0_contract.js');
 const p1=read('ci/wa3-5-advisor-productivity/p1a_contract.js');
 
 // Loader order + cache invalidation: certified P0/P1 must actually reach browsers.
-assert(shell.includes("MULTI_SRC='/wa-multiagent-final-panel.js?v=20260910-wa35-r7compact-p01'"));
+assert(shell.includes("MULTI_SRC='/wa-multiagent-final-panel.js?v=20260910-wa35-r8resilience-p01'"));
 assert(shell.includes("CLOSEOUT_SRC='/wa-revenue-inbox-closeout.js?v=20260910-wa35-r7clean-p01'"));
 assert(shell.includes('function ensureCloseout()'));
 assert(shell.includes('return ensureCloseout();'));
