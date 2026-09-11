@@ -79,9 +79,10 @@ function sourceContracts() {
   ]) assert(perf.includes(token), 'browser stability token missing: ' + token)
 
   assert(lock.includes('P0 #485:** `CLOSED / COMPLETED'), 'P0 closeout marker missing')
-  assert(lock.includes('WA-L10 #456 — R7 ONE-CONVERSATION CANARY ACTIVATION GATE'), 'R7 re-entry lock missing')
+  assert(lock.includes('CONV-001 #502 — ASCENDA CONVERSATIONS CORE V1'), 'CONV-001 active lock missing')
+  assert(lock.includes('WA-L10 #456:** `FROZEN · SAFE-OFF EVIDENCE ONLY'), 'legacy WA-L10 freeze marker missing')
   assert(lock.includes('AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF'), 'SAFE-OFF lock missing')
-  assert(lock.includes('FRESH EXPLICIT OWNER AUTHORIZATION REQUIRED'), 'fresh CANARY authorization gate missing')
+  assert(lock.includes('no autonomous CANARY reactivation while CONV-001 is active'), 'legacy CANARY freeze gate missing')
 
   assert.strictEqual(shouldRemapInnerAuth(403, JSON.stringify({ error: 'WA3_2FA_PANEL_REQUIRED' }), true), true)
   assert.strictEqual(shouldRemapInnerAuth(403, JSON.stringify({ error: 'WA3_ADMIN_REQUIRED' }), true), false)
