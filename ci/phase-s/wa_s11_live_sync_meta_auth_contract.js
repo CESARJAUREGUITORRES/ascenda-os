@@ -27,11 +27,11 @@ ok(w.includes("'PHONE_NUMBER_ID_INVALID_OR_INACCESSIBLE'"),'phone diagnosis miss
 ok(w.includes("'PERMISSION_OR_ASSET_ACCESS'"),'permission diagnosis missing');
 ok(w.includes("requireActor(req,res,true)"),'provider health must be admin protected');
 ok(!w.includes('access_token:WA_ACCESS_TOKEN'),'token must never be returned');
-ok(ph.includes('/wa-native-panel.js?v=20260910-wa-native-r7compact-p01'),'Phase S S11 native asset missing');
+ok(ph.includes('/wa-native-panel.js?v=20260817-wa-native-s11-p01'),'Phase S S11 native asset missing');
 ok(ph.includes('/wa-shell-integration.js?v=20260817-wa-shell-s11-p01'),'Phase S S11 shell asset missing');
 ok(ph.includes('/wa-performance-hardening.js?v=20260824-wa3-perf-p01'),'WA performance hardening asset missing');
-ok(ph.indexOf('/wa-performance-hardening.js?v=20260824-wa3-perf-p01')<ph.indexOf('/wa-native-panel.js?v=20260910-wa-native-r7compact-p01'),'performance shim must load before native WA panel');
-ok(sh.includes("NATIVE_SRC='/wa-native-panel.js?v=20260910-wa-native-r7compact-p01'"),'shell S11 fallback missing');
+ok(ph.indexOf('/wa-performance-hardening.js?v=20260824-wa3-perf-p01')<ph.indexOf('/wa-native-panel.js?v=20260817-wa-native-s11-p01'),'performance shim must load before native WA panel');
+ok(sh.includes("NATIVE_SRC='/wa-native-panel.js?v=20260817-wa-native-s11-p01'"),'shell S11 fallback missing');
 ok(perf.includes("u.pathname==='/api/wa3/inbox'"),'inbox coalescing missing');
 ok(perf.includes("u.pathname==='/api/wa3/queue-summary'"),'queue coalescing missing');
 ok(perf.includes("u.pathname==='/api/wa3/team-summary'"),'team coalescing missing');
