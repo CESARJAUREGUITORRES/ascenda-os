@@ -30,6 +30,9 @@ assert(panel.includes("/^24H\\s/i"));
 assert(panel.includes("boxNames.has(t)"));
 assert(panel.includes("d.error==='WA3_NOT_OWNER'"));
 assert(panel.includes("detail=statusLabel(a.effective_status)+laborSuffix(a)"));
+assert(panel.includes('WA_R7_COMPACT_INBOX_UI'));
+assert(panel.includes("var legacy=n.querySelector('.wa35-cardmeta');if(legacy)legacy.remove()"));
+assert(panel.includes("n.querySelector('.wa8-cardstate')"));
 
 assert(server.includes("serviceRpc('aos_wa3_effective_presence_v2',{p_actor_id:u.id})"));
 assert(server.includes("snapshot_source:'aos_wa3_effective_presence_v2'"));
