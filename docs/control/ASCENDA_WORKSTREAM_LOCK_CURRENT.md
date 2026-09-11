@@ -3,9 +3,10 @@
 **Captured:** 2026-09-11 America/Lima  
 **ACTIVE HIGH/CRITICAL LOCK:** `CONV-001 #502 — ASCENDA CONVERSATIONS CORE V1`  
 **Legacy WA-L10 #456:** `FROZEN · SAFE-OFF EVIDENCE ONLY · NO NEW FEATURE PATCHING`  
+**P0 #485:** `CLOSED / COMPLETED — PROD RECURRENCE+LOAD PASS`  
 **GitHub authority:** Issue `#502` = `OPEN`; Issue `#456` = `OPEN / FROZEN`  
 **Current main at pivot:** `60fd6b260c8abb4d71c8375f490ee05ef63252c3`  
-**Current production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · AI SEND OFF · AUTO ROUTING OFF`  
+**Current production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF · AI SEND OFF · AUTO ROUTING OFF`  
 **Active autonomous allowlist:** `0`  
 **L11/general autonomous PROD:** `NOT AUTHORIZED`
 
