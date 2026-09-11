@@ -6,7 +6,7 @@ const panel=fs.readFileSync('app/public/wa-multiagent-final-panel.js','utf8');
 const server=fs.readFileSync('app/server-wa3-v2.js','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260822224500_wa3_presence_handoff_final_v3.sql','utf8');
 
-assert(/MULTI_SRC='\/wa-multiagent-final-panel\.js\?v=(?:20260822-wa3-final-p0[12]|20260824-wa35-[a-z0-9-]+)'/.test(shell));
+assert(/MULTI_SRC='\/wa-multiagent-final-panel\.js\?v=(?:20260822-wa3-final-p0[12]|20260824-wa35-[a-z0-9-]+|20260910-wa35-[a-z0-9-]+)'/.test(shell));
 assert(shell.includes('startGlobalPresence()'));
 assert(shell.includes('PRESENCE_HEARTBEAT_MS=30000'));
 assert(shell.includes('PRESENCE_BURST_GUARD_MS=10000'));
