@@ -85,11 +85,11 @@ async function suggestInternal(conversationId){
     Promise.resolve(suggest(req,res,conversationId)).catch(e=>{status=503;raw=JSON.stringify({ok:false,error:String(e&&e.message||'WA4_INTERNAL_SUGGEST_FAILED')});finish();});
   });
 }
-function internalPost(pathname,body){
+function internalPost(pathname,body,timeoutMs){
   return new Promise((resolve,reject)=>{
     if(WA_L4_INTERNAL_TOKEN.length<32)return reject(new Error('WA_L4_INTERNAL_AUTH_NOT_CONFIGURED'));
-    const data=JSON.stringify(body||{});
-    const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:pathname,method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'X-AOS-WA-Auto-Token':WA_L4_INTERNAL_TOKEN,'User-Agent':'AscendaOS-WA-L10/1.0'},timeout:20000},r=>{let raw='';r.on('data',c=>raw+=c);r.on('end',()=>resolve({status:r.statusCode||502,body:parseData(raw)||{}}));});
+    const data=JSON.stringify(body||{}),timeout=Math.max(500,Math.min(Number(timeoutMs||20000),20000));
+    const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:pathname,method:'POST',headers:{'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'X-AOS-WA-Auto-Token':WA_L4_INTERNAL_TOKEN,'User-Agent':'AscendaOS-WA-L10/1.0'},timeout},r=>{let raw='';r.on('data',c=>raw+=c);r.on('end',()=>resolve({status:r.statusCode||502,body:parseData(raw)||{}}));});
     q.on('timeout',()=>q.destroy(new Error('WA_L10_INTERNAL_SEND_TIMEOUT')));q.on('error',reject);q.write(data);q.end();
   });
 }
@@ -102,7 +102,7 @@ const bridge=createAutonomousBridge({
   suggestInternal,
   autoSend:body=>internalPost('/api/wa/auto-send',body),
   requestHandoff,
-  sendTyping:providerMessageId=>internalPost('/api/wa/auto-typing',{provider_message_id:providerMessageId}),
+  sendTyping:providerMessageId=>internalPost('/api/wa/auto-typing',{provider_message_id:providerMessageId},1500),
   log:console
 });
 
