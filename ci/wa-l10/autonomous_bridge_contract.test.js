@@ -51,6 +51,10 @@ assert(f4.includes("pathname==='/api/wa/auto-typing'&&req.method==='POST'"),'can
 assert(f4.includes("typing_indicator:{type:'text'}"),'Meta typing indicator payload missing at canonical provider boundary');
 assert(f4.includes("status:'read'"),'typing indicator must mark the triggering inbound as read');
 assert(f4.includes('authorizeWaAutoRuntime(req)'),'typing route must require server-only internal authorization');
+assert(f4.includes('provider_error_code:providerError'),'typing boundary must expose only sanitized provider failure code');
+assert(bridge.includes('await sendTyping(claim.provider_message_id)'),'typing provider gate must resolve before expensive AI work');
+assert(bridge.includes("META_(190|10|100|200)"),'definite Meta credential/asset failure classifier missing');
+assert(server.includes("internalPost('/api/wa/auto-typing',{provider_message_id:providerMessageId},1500)"),'typing just-in-time provider probe must be tightly bounded');
 assert(f4.includes("graph.facebook.com"),'canonical provider boundary must retain Meta transport');
 const typingAt=bridge.indexOf('sendTyping(claim.provider_message_id)');
 assert(typingAt>claimAt&&typingAt<suggestAt,'typing indicator must start after exact claim and before model work');
