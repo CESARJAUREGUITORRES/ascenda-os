@@ -187,7 +187,7 @@ function createGoogleIntegration(config){
     const msg=ok?'Google conectado correctamente. Puedes cerrar esta ventana.':'No se pudo completar la conexión de Google.'
     const safeCode=clean(code).replace(/[^A-Z0-9_\-]/gi,'').slice(0,80)
     res.writeHead(ok?200:400,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'"})
-    res.end('<!doctype html><meta charset="utf-8"><title>ASCENDA Google</title><body style="font-family:system-ui;padding:40px;background:#f8fafc;color:#0f172a"><h2>'+msg+'</h2><p>'+safeCode+'</p><script>try{window.opener&&window.opener.postMessage({type:"ASCENDA_GOOGLE_OAUTH",ok:'+String(ok)+',code:"'+safeCode+'"},"*")}catch(e){}</script></body>')
+    res.end('<!doctype html><meta charset="utf-8"><title>ASCENDA Google</title><body style="font-family:system-ui;padding:40px;background:#f8fafc;color:#0f172a"><h2>'+msg+'</h2><p>'+safeCode+'</p><script>try{window.opener&&window.opener.postMessage({type:"ASCENDA_GOOGLE_OAUTH",ok:'+String(ok)+',code:"'+safeCode+'"},location.origin)}catch(e){}</script></body>')
   }
 
   async function oauthCallback(req,res,url){
@@ -217,6 +217,7 @@ function createGoogleIntegration(config){
       },'return=representation')
       const conn=Array.isArray(inserted)&&inserted[0]?inserted[0]:null
       if(conn)accessCache.set(conn.id,{token:t.access_token,expiresAt:Date.now()+Math.max(60,Number(t.expires_in||3600))*1000})
+      await sb('PATCH','/rest/v1/aos_integraciones?tipo=eq.google',{estado:'conectado',cuenta:String(info.email).toLowerCase()},'return=minimal')
       return callbackHtml(res,true,'CONNECTED')
     }catch(e){return callbackHtml(res,false,e.code||'GOOGLE_OAUTH_FAILED')}
   }
@@ -280,6 +281,7 @@ function createGoogleIntegration(config){
       await sb('PATCH','/rest/v1/aos_google_connections_v1?id=eq.'+encodeURIComponent(conn.id),{
         status:'DISCONNECTED',disconnected_at:new Date().toISOString(),updated_at:new Date().toISOString()
       },'return=minimal')
+      await sb('PATCH','/rest/v1/aos_integraciones?tipo=eq.google',{estado:'pendiente',cuenta:''},'return=minimal')
       accessCache.delete(conn.id)
       return writeJson(res,200,{ok:true,status:'DISCONNECTED'})
     }catch(e){return writeJson(res,e.status||503,safeError(e))}
@@ -294,20 +296,17 @@ function createGoogleIntegration(config){
     return Array.isArray(rows)&&rows[0]?rows[0]:null
   }
   async function durationMinutes(appt){
-    try{
-      const e=await agendaEvent(appt.id)
-      let treatmentId=e&&e.after_snapshot&&e.after_snapshot.treatment_id
-      if(!treatmentId&&appt.tratamiento){
-        const rows=await sb('GET','/rest/v1/aos_catalogo_servicios?nombre=eq.'+encodeURIComponent(appt.tratamiento)+'&estado=eq.ACTIVO&select=id&limit=2')
-        if(Array.isArray(rows)&&rows.length===1)treatmentId=rows[0].id
-      }
-      if(treatmentId){
-        const t=await serviceRpc('aos_booking_timing_for_service_v2',{p_treatment_id:treatmentId})
-        const n=Number(t&&t.execution_default_min)
-        if(Number.isFinite(n)&&n>=15&&n<=240)return n
-      }
-    }catch(_){}
-    return 60
+    const e=await agendaEvent(appt.id)
+    let treatmentId=e&&e.after_snapshot&&e.after_snapshot.treatment_id
+    if(!treatmentId&&appt.tratamiento){
+      const rows=await sb('GET','/rest/v1/aos_catalogo_servicios?nombre=eq.'+encodeURIComponent(appt.tratamiento)+'&estado=eq.ACTIVO&select=id&limit=2')
+      if(Array.isArray(rows)&&rows.length===1)treatmentId=rows[0].id
+    }
+    if(!treatmentId)throw Object.assign(new Error('GOOGLE_TREATMENT_AUTHORITY_UNRESOLVED'),{code:'GOOGLE_TREATMENT_AUTHORITY_UNRESOLVED'})
+    const t=await serviceRpc('aos_booking_timing_for_service_v2',{p_treatment_id:treatmentId})
+    const n=Number(t&&t.execution_default_min)
+    if(!Number.isFinite(n)||n<15||n>240)throw Object.assign(new Error('GOOGLE_DURATION_AUTHORITY_UNRESOLVED'),{code:'GOOGLE_DURATION_AUTHORITY_UNRESOLVED'})
+    return n
   }
   function localIso(date,time){
     const d=clean(date),t=(clean(time)||'09:00').slice(0,5)
@@ -495,6 +494,22 @@ function createGoogleIntegration(config){
   function startWorker(){ if(!timer)schedule(10000) }
   function stopWorker(){ if(timer)clearTimeout(timer);timer=null }
 
+  async function canaryCandidates(req,res){
+    try{
+      await configActor(req,true)
+      const today=new Date(Date.now()-5*60*60*1000).toISOString().slice(0,10)
+      const rows=await sb('GET','/rest/v1/aos_agenda_citas?fecha_cita=gte.'+encodeURIComponent(today)+'&estado_cita=in.(PENDIENTE,CITA%20CONFIRMADA)&select=id,fecha_cita,hora_cita,sede,tratamiento,nombre,apellido,correo,gcal_event_id&order=fecha_cita.asc,hora_cita.asc&limit=20')
+      const items=(Array.isArray(rows)?rows:[]).map(function(x){
+        return {
+          id:x.id,date:x.fecha_cita,time:clean(x.hora_cita).slice(0,5),site:x.sede||'',
+          treatment:x.tratamiento||'',display_name:[x.nombre,x.apellido].filter(Boolean).join(' '),
+          has_email:validEmail(x.correo),calendar_linked:!!clean(x.gcal_event_id)
+        }
+      })
+      return writeJson(res,200,{ok:true,items:items})
+    }catch(e){return writeJson(res,e.status||503,safeError(e))}
+  }
+
   async function canary(req,res){
     try{
       await configActor(req,true)
@@ -529,6 +544,7 @@ function createGoogleIntegration(config){
     if(url.pathname==='/api/google/calendars'&&req.method==='GET'){await calendars(req,res);return true}
     if(url.pathname==='/api/google/calendar/select'&&req.method==='POST'){await selectCalendar(req,res);return true}
     if(url.pathname==='/api/google/disconnect'&&req.method==='POST'){await disconnect(req,res);return true}
+    if(url.pathname==='/api/google/canary/candidates'&&req.method==='GET'){await canaryCandidates(req,res);return true}
     if(url.pathname==='/api/google/canary'&&req.method==='POST'){await canary(req,res);return true}
     if(url.pathname==='/api/google/backfill'&&req.method==='POST'){await backfill(req,res);return true}
     return false
