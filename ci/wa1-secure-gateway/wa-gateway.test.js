@@ -45,8 +45,10 @@ test('builds governed text/template/media outbound payloads',()=>{
   const img=wa.buildOutboundPayload({to:'51999999999',type:'image',link:'https://example.test/a.jpg',caption:'Demo'});assert.equal(img.image.link,'https://example.test/a.jpg');
 });
 
-test('rejects unsupported payloads and non-https media',()=>{
-  assert.throws(()=>wa.buildOutboundPayload({to:'51999999999',type:'video',link:'https://example.test/v.mp4'}),/UNSUPPORTED_MESSAGE_TYPE/);
+test('supports governed video and rejects unsupported payloads/non-https media',()=>{
+  const video=wa.buildOutboundPayload({to:'51999999999',type:'video',link:'https://example.test/v.mp4',caption:'Demo'});
+  assert.equal(video.type,'video');assert.equal(video.video.link,'https://example.test/v.mp4');
+  assert.throws(()=>wa.buildOutboundPayload({to:'51999999999',type:'sticker',link:'https://example.test/s.webp'}),/UNSUPPORTED_MESSAGE_TYPE/);
   assert.throws(()=>wa.buildOutboundPayload({to:'51999999999',type:'image',link:'http://example.test/a.jpg'}),/HTTPS_MEDIA_LINK_REQUIRED/);
 });
 

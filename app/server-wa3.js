@@ -13,11 +13,9 @@ const INNER_PORT=EXTERNAL_PORT===4196?4197:4196;
 const SB_URL=process.env.SUPABASE_URL||'https://ituyqwstonmhnfshnaqz.supabase.co';
 const SB_ANON_KEY=process.env.SUPABASE_ANON_KEY||'';
 const SB_SERVICE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
-const WA_ACCESS_TOKEN=process.env.WHATSAPP_ACCESS_TOKEN||'';
-const WA_PHONE_NUMBER_ID=process.env.WHATSAPP_PHONE_NUMBER_ID||'';
-const WA_GRAPH_VERSION=process.env.WHATSAPP_GRAPH_VERSION||'';
 const WA_CANARY_MODE=process.env.WA_CANARY_MODE||'true';
 const WA_CANARY_ALLOW_TO=process.env.WA_CANARY_ALLOW_TO||'';
+const WA_L4_INTERNAL_TOKEN=process.env.WA_L4_INTERNAL_TOKEN||'';
 const UUID_RE=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const child=spawn(process.execPath,['server-wa2.js'],{cwd:__dirname,env:Object.assign({},process.env,{PORT:String(INNER_PORT)}),stdio:['ignore','inherit','inherit']});
@@ -67,11 +65,45 @@ async function claimNext(req,res,body){if(!UUID_RE.test(String(body.box_id||''))
 async function release(req,res,id,body){if(!UUID_RE.test(id))return writeJson(res,400,{ok:false,error:'INVALID_CONVERSATION_ID'});await mutation(req,res,'aos_wa3_release_v1',{p_conversation_id:id,p_reason:String(body.reason||'HUMAN_RELEASE').slice(0,160)},false);}
 async function setMode(req,res,id,body){if(!UUID_RE.test(id))return writeJson(res,400,{ok:false,error:'INVALID_CONVERSATION_ID'});await mutation(req,res,'aos_wa3_set_mode_v1',{p_conversation_id:id,p_mode:String(body.mode||'').toUpperCase()},false);}
 
-function waConfigReadyOutbound(){return !!(WA_ACCESS_TOKEN&&WA_PHONE_NUMBER_ID&&/^v\d+\.\d+$/.test(WA_GRAPH_VERSION)&&SB_SERVICE_KEY);}
-function graphSend(payload){return new Promise((resolve,reject)=>{if(!waConfigReadyOutbound())return reject(Object.assign(new Error('WA_OUTBOUND_NOT_CONFIGURED'),{status:503,definite:true}));const data=JSON.stringify(payload);const q=https.request({hostname:'graph.facebook.com',path:'/'+WA_GRAPH_VERSION+'/'+encodeURIComponent(WA_PHONE_NUMBER_ID)+'/messages',method:'POST',headers:{Authorization:'Bearer '+WA_ACCESS_TOKEN,'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'User-Agent':'AscendaOS-WA3/1.0'},timeout:15000},r=>{let raw='';r.on('data',c=>raw+=c);r.on('end',()=>{const d=parseData(raw)||{};if(r.statusCode>=200&&r.statusCode<300)resolve(d);else {const me=d&&d.error||{};const mc=String(me.code||'').trim();const md=String((me.error_data&&me.error_data.details)||me.message||'').slice(0,700);reject(Object.assign(new Error(mc?('META_'+mc):'META_SEND_REJECTED'),{status:502,definite:true,metaStatus:r.statusCode,metaCode:mc||null,metaDetails:md||null}));}});});q.on('timeout',()=>q.destroy(Object.assign(new Error('META_SEND_TIMEOUT'),{status:504,ambiguous:true})));q.on('error',e=>reject(Object.assign(e,{status:e.status||502,ambiguous:e.definite!==true})));q.write(data);q.end();});}
-function graphProviderGet(suffix){return new Promise((resolve,reject)=>{if(!WA_ACCESS_TOKEN||!/^v\d+\.\d+$/.test(WA_GRAPH_VERSION))return reject(Object.assign(new Error('WA_PROVIDER_NOT_CONFIGURED'),{status:503,definite:true}));const q=https.request({hostname:'graph.facebook.com',path:'/'+WA_GRAPH_VERSION+'/'+suffix,method:'GET',headers:{Authorization:'Bearer '+WA_ACCESS_TOKEN,'Accept':'application/json','User-Agent':'AscendaOS-WA3/1.0'},timeout:12000},r=>{let raw='';r.on('data',c=>raw+=c);r.on('end',()=>{const d=parseData(raw)||{};if(r.statusCode>=200&&r.statusCode<300)return resolve(d);const me=d&&d.error||{},mc=String(me.code||'').trim(),md=String((me.error_data&&me.error_data.details)||me.message||'').slice(0,500);reject(Object.assign(new Error(mc?('META_'+mc):'META_PROVIDER_CHECK_FAILED'),{status:502,definite:true,metaStatus:r.statusCode,metaCode:mc||null,metaDetails:md||null}));});});q.on('timeout',()=>q.destroy(Object.assign(new Error('META_PROVIDER_TIMEOUT'),{status:504})));q.on('error',reject);q.end();});}
-function providerDiagnosis(e,stage){const c=String(e&&e.metaCode||'');if(c==='190')return 'TOKEN_INVALID_OR_EXPIRED';if(stage==='PHONE'&&c==='100')return 'PHONE_NUMBER_ID_INVALID_OR_INACCESSIBLE';if(c==='10'||c==='200')return 'PERMISSION_OR_ASSET_ACCESS';return 'META_PROVIDER_CHECK_FAILED';}
-async function providerHealth(req,res){const a=await requireActor(req,res,true);if(!a)return;if(!WA_ACCESS_TOKEN||!WA_PHONE_NUMBER_ID||!/^v\d+\.\d+$/.test(WA_GRAPH_VERSION))return writeJson(res,503,{ok:false,error:'WA_PROVIDER_NOT_CONFIGURED',diagnosis:'CONFIG_MISSING',access_token_present:!!WA_ACCESS_TOKEN,phone_number_id_present:!!WA_PHONE_NUMBER_ID,graph_version_present:/^v\d+\.\d+$/.test(WA_GRAPH_VERSION)});try{await graphProviderGet('me?fields=id');}catch(e){return writeJson(res,e.status||502,{ok:false,error:e.message||'META_AUTH_CHECK_FAILED',diagnosis:providerDiagnosis(e,'TOKEN'),provider_http_status:e.metaStatus||null,provider_code:e.metaCode||null,provider_details:e.metaDetails||null});}try{const d=await graphProviderGet(encodeURIComponent(WA_PHONE_NUMBER_ID)+'?fields=id%2Cdisplay_phone_number%2Cverified_name');return writeJson(res,200,{ok:true,provider:'META',diagnosis:'READY',graph_version:WA_GRAPH_VERSION,phone_number_id:WA_PHONE_NUMBER_ID,display_phone_number:d.display_phone_number||null,verified_name:d.verified_name||null});}catch(e){return writeJson(res,e.status||502,{ok:false,error:e.message||'META_PHONE_CHECK_FAILED',diagnosis:providerDiagnosis(e,'PHONE'),provider_http_status:e.metaStatus||null,provider_code:e.metaCode||null,provider_details:e.metaDetails||null});}}
+function waConfigReadyOutbound(){return !!(WA_L4_INTERNAL_TOKEN.length>=32&&SB_SERVICE_KEY);}
+function innerMetaRequest(method,endpoint,body,timeoutMs){
+  return new Promise((resolve,reject)=>{
+    if(!WA_L4_INTERNAL_TOKEN||WA_L4_INTERNAL_TOKEN.length<32)return reject(Object.assign(new Error('WA_META_INTERNAL_AUTH_NOT_CONFIGURED'),{status:503,definite:true}));
+    const data=body==null?'':JSON.stringify(body);
+    const headers={'x-aos-wa-auto-token':WA_L4_INTERNAL_TOKEN,'Accept':'application/json','Content-Type':'application/json','User-Agent':'AscendaOS-WA3-MetaCompat/1.0'};
+    if(data)headers['Content-Length']=Buffer.byteLength(data);
+    const q=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:endpoint,method,headers,timeout:Number(timeoutMs||17000)},r=>{
+      let raw='';r.on('data',d=>raw+=d);r.on('end',()=>resolve({status:r.statusCode||502,data:parseData(raw)||{}}));
+    });
+    q.on('timeout',()=>q.destroy(Object.assign(new Error('WA_META_INTERNAL_TIMEOUT'),{status:504,ambiguous:true})));
+    q.on('error',e=>reject(Object.assign(e,{status:e.status||502,ambiguous:e.ambiguous===true})));
+    if(data)q.write(data);q.end();
+  });
+}
+async function metaDispatch(payload){
+  const out=await innerMetaRequest('POST','/api/wa/meta/dispatch-internal',{payload},18000);
+  if(out.status>=200&&out.status<300&&out.data&&out.data.ok===true)return out.data;
+  const d=out.data||{};
+  throw Object.assign(new Error(String(d.error||'WA_META_DISPATCH_FAILED')),{status:out.status||502,definite:d.ambiguous!==true,ambiguous:d.ambiguous===true,metaStatus:d.provider_http_status||null,category:d.category||'UNKNOWN'});
+}
+async function providerHealth(req,res){
+  const a=await requireActor(req,res,true);if(!a)return;
+  try{
+    const out=await innerMetaRequest('GET','/api/wa/meta/health-internal',null,15000);
+    return writeJson(res,out.status||502,Object.assign({compatibility_route:'WA3_TO_META_CLOUD_ADAPTER'},out.data||{}));
+  }catch(e){
+    return writeJson(res,e.status||502,{ok:false,error:'WA_META_HEALTH_UNAVAILABLE',diagnosis:e.message||'WA_META_INTERNAL_UNAVAILABLE'});
+  }
+}
+async function providerTemplates(req,res){
+  const a=await requireActor(req,res,true);if(!a)return;
+  try{
+    const out=await innerMetaRequest('GET','/api/wa/meta/templates-internal',null,18000);
+    return writeJson(res,out.status||502,Object.assign({compatibility_route:'WA3_TO_META_CLOUD_ADAPTER'},out.data||{}));
+  }catch(e){
+    return writeJson(res,e.status||502,{ok:false,error:'WA_META_TEMPLATE_READ_UNAVAILABLE'});
+  }
+}
 
 function outboundRequest(body,to){const type=String(body&&body.type||'text').toLowerCase();if(!['text','interactive_buttons','interactive_list'].includes(type))throw Object.assign(new Error('WA3_MESSAGE_TYPE_NOT_ALLOWED'),{status:400});if(type==='text'){const text=String(body&&body.text||'').trim().slice(0,4096);if(!text)throw Object.assign(new Error('TEXT_REQUIRED'),{status:400});return wa.buildOutboundPayload({to,type:'text',text});}return interactive.build(Object.assign({},body,{to,type}));}
 function semanticType(payload){return payload&&payload.type==='text'?'text':interactive.messageType(payload);}
@@ -81,14 +113,14 @@ async function ownedSend(req,res,id,body){if(!UUID_RE.test(id))return writeJson(
   let auth;try{const out=await sbRpc('aos_wa3_human_send_authorize_v1',{p_token:token,p_conversation_id:id});auth=out.data||{};}catch(e){return writeJson(res,503,{ok:false,error:'WA3_SEND_AUTH_UNAVAILABLE'});}if(auth.ok!==true)return writeJson(res,403,{ok:false,error:auth.error||'WA3_SEND_FORBIDDEN'});
   let payload;try{payload=outboundRequest(body,auth.to_number);}catch(e){return writeJson(res,e.status||400,{ok:false,error:e.message});}if(!wa.canaryAllows(payload.to,WA_CANARY_MODE,WA_CANARY_ALLOW_TO))return writeJson(res,403,{ok:false,error:'WA_CANARY_RECIPIENT_BLOCKED'});
   const msgType=semanticType(payload),msgBody=semanticBody(payload);let reservation;try{reservation=await reserveOutbound(String(body.idempotency_key),auth.actor_id,payload,msgType);if(!reservation.owner){const row=reservation.row||{};return writeJson(res,row.state==='FAILED'?409:200,{ok:row.state!=='FAILED',idempotent:true,message_id:row.provider_message_id||null,status:row.state||'PENDING',error:row.state==='FAILED'?(row.error_code||'PREVIOUS_SEND_FAILED'):undefined});}
-    const meta=await graphSend(payload);const messageId=meta&&meta.messages&&meta.messages[0]&&meta.messages[0].id;if(!messageId)throw Object.assign(new Error('META_MESSAGE_ID_MISSING'),{status:502,ambiguous:true});const now=new Date().toISOString();
+    const meta=await metaDispatch(payload);const messageId=meta&&meta.message_id;if(!messageId)throw Object.assign(new Error('META_MESSAGE_ID_MISSING'),{status:502,ambiguous:true});const now=new Date().toISOString();
     await sbRequest('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'ACCEPTED',provider_message_id:String(messageId),error_code:null,updated_at:now},true,'return=minimal');
-    await sbRequest('POST','/rest/v1/aos_wa_messages_v1?on_conflict=provider_message_id',{provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),conversation_id:id,direction:'OUTBOUND',from_number:null,to_number:payload.to,phone_number_id:WA_PHONE_NUMBER_ID,contact_name:null,message_type:msgType,message_body:msgBody,media_id:null,status:'accepted',actor_id:auth.actor_id,received_at:now,updated_at:now},true,'resolution=merge-duplicates,return=minimal');
+    await sbRequest('POST','/rest/v1/aos_wa_messages_v1?on_conflict=provider_message_id',{provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),conversation_id:id,direction:'OUTBOUND',from_number:null,to_number:payload.to,phone_number_id:(meta&&meta.phone_number_id)||null,contact_name:null,message_type:msgType,message_body:msgBody,media_id:null,status:'accepted',actor_id:auth.actor_id,received_at:now,updated_at:now},true,'resolution=merge-duplicates,return=minimal');
     await sbRequest('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{event_key:'outbound:'+String(messageId),event_type:'message.accepted',provider_message_id:String(messageId),status:'accepted',payload:{actor_id:auth.actor_id,message_type:msgType,conversation_id:id,source:'WA3_OWNED_HUMAN'}},true,'resolution=ignore-duplicates,return=minimal');
     await sbRequest('POST','/rest/v1/aos_wa_routing_events_v1',{conversation_id:id,box_id:auth.box_id||null,event_type:'message.human_accepted',actor_id:auth.actor_id,payload:{provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),message_type:msgType}},true,'return=minimal');
     writeJson(res,200,{ok:true,idempotent:false,message_id:String(messageId),message_type:msgType,status:'ACCEPTED',conversation_id:id,canary:String(WA_CANARY_MODE).toLowerCase()==='true'});
   }catch(e){if(reservation&&reservation.owner&&e.definite===true){try{await sbRequest('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'FAILED',error_code:String(e.message||'WA3_SEND_FAILED').slice(0,128),updated_at:new Date().toISOString()},true,'return=minimal')}catch(_e){}}
-    const ambiguous=!!(reservation&&reservation.owner&&e.definite!==true);console.error('[WA3] outbound',e.message,ambiguous?'ambiguous_pending':'definite_failure');writeJson(res,e.status||502,{ok:false,error:e.message||'WA3_SEND_FAILED',status:ambiguous?'PENDING':'FAILED',retry_safe:false,provider_http_status:e.metaStatus||null,provider_code:e.metaCode||null,provider_details:e.metaDetails||null});}
+    const ambiguous=!!(reservation&&reservation.owner&&e.definite!==true);console.error('[WA3] outbound',e.message,ambiguous?'ambiguous_pending':'definite_failure');writeJson(res,e.status||502,{ok:false,error:e.message||'WA3_SEND_FAILED',status:ambiguous?'PENDING':'FAILED',retry_safe:false,provider_http_status:e.metaStatus||null,provider_category:e.category||null});}
 }
 
 const buckets=new Map();function rateAllowed(req){const key=String(req.socket.remoteAddress||'unknown');const now=Date.now();let b=buckets.get(key);if(!b||now-b.start>60000){b={start:now,n:0};buckets.set(key,b)}b.n++;if(buckets.size>2000){for(const [k,v] of buckets)if(now-v.start>120000)buckets.delete(k)}return b.n<=300;}
@@ -98,6 +130,7 @@ function proxy(req,res){const headers=Object.assign({},req.headers,{host:'127.0.
 const server=http.createServer(async(req,res)=>{let u;try{u=new URL(req.url,'http://localhost')}catch(e){return writeJson(res,400,{ok:false,error:'INVALID_URL'})}const p=u.pathname;if(req.method==='GET'&&p==='/admin-whatsapp.html'){serveWa3Page(res);return}if(p.startsWith('/api/wa3/')){if(!rateAllowed(req))return writeJson(res,429,{ok:false,error:'WA3_RATE_LIMIT'});try{
   if(req.method==='GET'&&p==='/api/wa3/bootstrap')return await bootstrap(req,res);
   if(req.method==='GET'&&p==='/api/wa3/provider-health')return await providerHealth(req,res);
+  if(req.method==='GET'&&p==='/api/wa3/provider-templates')return await providerTemplates(req,res);
   if(req.method==='GET'&&p==='/api/wa3/inbox')return await inbox(req,res,u);
   const mm=p.match(/^\/api\/wa3\/conversations\/([0-9a-f-]+)\/messages$/i);if(req.method==='GET'&&mm)return await messages(req,res,mm[1],u);
   const body=req.method==='POST'?await readJson(req):{};

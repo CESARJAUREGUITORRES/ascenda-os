@@ -4,6 +4,7 @@ const assert=require('assert');
 
 const server=fs.readFileSync('app/server-wa4.js','utf8');
 const f4=fs.readFileSync('app/server-f4.js','utf8');
+const meta=fs.readFileSync('app/meta-cloud-adapter.js','utf8');
 const bridge=fs.readFileSync('app/wa-l10-autonomous-bridge.js','utf8');
 const migration=fs.readFileSync('supabase/migrations/20260904204500_wa_l10_autonomous_bridge_v1.sql','utf8');
 const rollback=fs.readFileSync('supabase/rollbacks/20260904204500_wa_l10_autonomous_bridge_v1.rollback.sql','utf8');
@@ -48,8 +49,9 @@ assert(server.includes("internalPost('/api/wa/auto-typing'"),'WA4 typing must re
 assert(!/graph\.facebook\.com/i.test(server),'WA4 may not own Meta provider transport');
 assert(!/WHATSAPP_ACCESS_TOKEN|WHATSAPP_PHONE_NUMBER_ID|WHATSAPP_GRAPH_VERSION/.test(server),'WA4 may not own Meta transport secrets');
 assert(f4.includes("pathname==='/api/wa/auto-typing'&&req.method==='POST'"),'canonical WA-1/F4 typing route missing');
-assert(f4.includes("typing_indicator:{type:'text'}"),'Meta typing indicator payload missing at canonical provider boundary');
-assert(f4.includes("status:'read'"),'typing indicator must mark the triggering inbound as read');
+assert(f4.includes('META_ADAPTER.typing(messageId)'),'F4 typing route must delegate to MetaCloudAdapter')
+assert(meta.includes("typing_indicator:{type:'text'}"),'Meta typing indicator payload missing at canonical provider boundary')
+assert(meta.includes("status:'read'"),'typing indicator must mark the triggering inbound as read')
 assert(f4.includes('authorizeWaAutoRuntime(req)'),'typing route must require server-only internal authorization');
 assert(f4.includes('provider_error_code:providerError'),'typing boundary must expose only sanitized provider failure code');
 assert(bridge.includes('await sendTyping(claim.provider_message_id)'),'typing provider gate must resolve before expensive AI work');
@@ -57,7 +59,8 @@ assert(bridge.includes("META_(190|10|100|200)"),'definite Meta credential/asset 
 assert(server.includes("internalPost('/api/wa/auto-typing',{provider_message_id:providerMessageId},1500)"),'typing just-in-time provider probe must be tightly bounded');
 assert(server.includes("serviceRpc('aos_wa_l10_internal_canary_authorize_v1'"),'internal CANARY authorization must be one server-only RPC');
 assert(!server.includes("serviceGet('/rest/v1/aos_wa_auto_allowlist_v1?subject_kind=eq.CONVERSATION"),'legacy internal CANARY auth fanout returned');
-assert(f4.includes("graph.facebook.com"),'canonical provider boundary must retain Meta transport');
+assert(!/graph\.facebook\.com/i.test(f4),'F4 must not own raw Meta HTTPS after CONV-L1');
+assert(meta.includes("hostname:'graph.facebook.com'"),'MetaCloudAdapter must own canonical Meta transport');
 const typingAt=bridge.indexOf('sendTyping(claim.provider_message_id)');
 assert(typingAt>claimAt&&typingAt<suggestAt,'typing indicator must start after exact claim and before model work');
 assert(!/graph\.facebook\.com/i.test(bridge),'bridge itself may not become provider transport');

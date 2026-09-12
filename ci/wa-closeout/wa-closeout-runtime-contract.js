@@ -30,7 +30,8 @@ assert.equal(wa.buildOutboundPayload({to:'51999999999',type:'template',template_
 assert.equal(wa.buildOutboundPayload({to:'51999999999',type:'image',link:'https://example.test/i.jpg'}).type,'image');
 assert.equal(wa.buildOutboundPayload({to:'51999999999',type:'document',link:'https://example.test/d.pdf',filename:'brochure.pdf'}).document.filename,'brochure.pdf');
 assert.equal(wa.buildOutboundPayload({to:'51999999999',type:'audio',link:'https://example.test/a.ogg'}).type,'audio');
-assert.throws(()=>wa.buildOutboundPayload({to:'51999999999',type:'video',link:'https://example.test/v.mp4'}),/UNSUPPORTED_MESSAGE_TYPE/);
+assert.equal(wa.buildOutboundPayload({to:'51999999999',type:'video',link:'https://example.test/v.mp4'}).type,'video');
+assert.throws(()=>wa.buildOutboundPayload({to:'51999999999',type:'sticker',link:'https://example.test/s.webp'}),/UNSUPPORTED_MESSAGE_TYPE/);
 assert.equal(wa.canaryAllows('51911111111','true','51911111111'),true);
 assert.equal(wa.canaryAllows('51922222222','true','51911111111'),false);
 

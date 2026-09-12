@@ -227,7 +227,7 @@ function buildOutboundPayload(input){
     const body=trimText(d.text||d.body,1024);if(!body)throw Object.assign(new Error('CONTACT_REQUEST_TEXT_REQUIRED'),{status:400});
     out.type='interactive';out.interactive={type:'request_contact_info',body:{text:body},action:{name:'request_contact_info'}};
     Object.defineProperty(out,'_ascenda_message_type',{value:'request_contact_info',enumerable:false,writable:false});
-  }else if(['image','document','audio'].includes(type)){
+  }else if(['image','document','audio','video'].includes(type)){
     const link=trimText(d.link,2048);if(!/^https:\/\//i.test(link))throw Object.assign(new Error('HTTPS_MEDIA_LINK_REQUIRED'),{status:400});
     out[type]={link};if(type!=='audio'&&d.caption)out[type].caption=trimText(d.caption,1024);if(type==='document'&&d.filename)out.document.filename=trimText(d.filename,255);
   }else throw Object.assign(new Error('UNSUPPORTED_MESSAGE_TYPE'),{status:400});

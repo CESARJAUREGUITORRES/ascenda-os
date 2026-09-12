@@ -1,0 +1,48 @@
+'use strict';
+
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+
+function read(p){return fs.readFileSync(p,'utf8');}
+
+const meta=read('app/meta-cloud-adapter.js');
+const f4=read('app/server-f4.js');
+const wa3=read('app/server-wa3.js');
+const gateway=read('app/wa-gateway.js');
+const l0=read('docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md');
+const lock=read('docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md');
+
+assert(meta.includes("hostname:'graph.facebook.com'"),'MetaCloudAdapter must own Meta Graph transport');
+assert(meta.includes('verifyWebhook'),'MetaCloudAdapter webhook verify contract missing');
+assert(meta.includes('normalizeWebhook'),'MetaCloudAdapter normalization contract missing');
+assert(meta.includes('sendPayload'),'MetaCloudAdapter dispatch contract missing');
+assert(meta.includes('sendText'),'MetaCloudAdapter text contract missing');
+assert(meta.includes('sendMedia'),'MetaCloudAdapter media contract missing');
+assert(meta.includes('sendTemplate'),'MetaCloudAdapter template contract missing');
+assert(meta.includes('sendInteractive'),'MetaCloudAdapter interactive contract missing');
+assert(meta.includes('typing'),'MetaCloudAdapter typing contract missing');
+assert(meta.includes('listTemplates'),'MetaCloudAdapter template read-model contract missing');
+assert(meta.includes('whatsapp_business_management'),'provider permission health contract missing');
+assert(meta.includes('whatsapp_business_messaging'),'provider messaging permission health contract missing');
+
+assert(!f4.includes("hostname:'graph.facebook.com'"),'F4 may not own direct Meta Graph HTTPS after L1');
+assert(f4.includes("require('./meta-cloud-adapter')"),'F4 must delegate to MetaCloudAdapter');
+assert(f4.includes('/api/wa/meta/dispatch-internal'),'F4 internal provider dispatch boundary missing');
+assert(f4.includes('/api/wa/meta/health-internal'),'F4 internal provider health boundary missing');
+assert(f4.includes('/api/wa/meta/templates-internal'),'F4 internal provider template boundary missing');
+assert(f4.includes('META_ADAPTER.normalizeWebhook'),'F4 inbound normalization must use MetaCloudAdapter');
+assert(f4.includes('META_ADAPTER.verifyWebhook'),'F4 signature verification must use MetaCloudAdapter');
+
+assert(!wa3.includes('graph.facebook.com'),'WA3 may not call Meta directly');
+assert(!wa3.includes('WHATSAPP_ACCESS_TOKEN'),'WA3 may not read the Meta access token');
+assert(!wa3.includes('WHATSAPP_GRAPH_VERSION'),'WA3 may not own Graph version');
+assert(wa3.includes('/api/wa/meta/dispatch-internal'),'WA3 human-send compatibility path must use provider boundary');
+assert(wa3.includes('/api/wa/meta/health-internal'),'WA3 provider-health compatibility path must use provider boundary');
+assert(wa3.includes('/api/wa/meta/templates-internal'),'WA3 template compatibility path must use provider boundary');
+
+assert(gateway.includes("['image','document','audio','video']"),'governed media payloads must include video support');
+assert(lock.includes('CONV-L1 #505 — NATIVE META CHANNEL GATEWAY'),'CONV-L1 active workstream lock missing');
+assert(lock.includes('RUN UNTIL BLOCKED'),'CONV-L1 owner execution mode missing');
+assert(l0.includes('L1 OWNER AUTHORIZATION RECEIVED / ACTIVE'),'L0->L1 authorization transition missing');
+
+console.log('CONV_L1_META_GATEWAY_CONTRACT_PASS');

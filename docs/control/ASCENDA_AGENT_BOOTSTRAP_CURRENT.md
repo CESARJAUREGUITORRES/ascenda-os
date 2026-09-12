@@ -3,9 +3,9 @@
 **Captured:** 2026-09-11 America/Lima  
 **Canonical L0 closeout baseline:** `main@60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
 **ACTIVE PROGRAM:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
-**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
+**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY`  
+**OWNER MODE:** `RUN UNTIL BLOCKED + REAL META TEST limitado a zi vital`  
 **LAST CLOSED:** `CONV-L0 #504`  
-**NEXT ELIGIBLE:** `CONV-L1 #505 · NOT STARTED · NOT AUTHORIZED`  
 **PARENT:** `#502`  
 **LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
 **AUTONOMOUS CANARY:** `NOT AUTHORIZED`
@@ -22,11 +22,12 @@ Read in this order:
 6. `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`;
 7. `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`;
 8. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
-9. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
-10. exact GitHub `main` + active CONV PR/head;
-11. Railway exact deploy state if runtime is involved;
-12. live Supabase safety/performance readbacks if DB/runtime is involved;
-13. Notion WhatsApp Control Maestro CURRENT callout.
+9. `docs/control/ASCENDA_CONVERSATIONS_L1_READINESS_CURRENT.md`;
+10. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
+11. exact GitHub `main` + active CONV PR/head;
+12. Railway exact deploy state if runtime is involved;
+13. live Supabase safety/performance readbacks if DB/runtime is involved;
+14. Notion WhatsApp Control Maestro CURRENT callout.
 
 Historical WA docs remain evidence/reference only and never override these CURRENT files + live runtime evidence.
 
@@ -65,7 +66,7 @@ Nothing is deleted until replacement parity + no runtime references/callers + CI
 ## Loop order
 
 - `CONV-L0 #504` — **CLOSED** · Freeze / inventory / extraction map / benchmark freeze.
-- `CONV-L1 #505` — Native Meta Channel Gateway.
+- `CONV-L1 #505` — **ACTIVE** · Native Meta Channel Gateway.
 - `CONV-L2 #506` — Conversation Core + panel transport.
 - `CONV-L3 #507` — Sales Agent Runtime.
 - `CONV-L4 #508` — Business Tools + bounded RAG.

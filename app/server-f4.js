@@ -4,6 +4,7 @@ const http=require('http');
 const https=require('https');
 const {spawn}=require('child_process');
 const wa=require('./wa-gateway');
+const {createMetaCloudAdapter}=require('./meta-cloud-adapter');
 const l4=require('./wa-l4-authority');
 const {createEmailGateway}=require('./email-gateway');
 const EMAIL_GATEWAY=createEmailGateway();
@@ -21,6 +22,13 @@ const WA_GRAPH_VERSION=process.env.WHATSAPP_GRAPH_VERSION||'';
 const WA_CANARY_MODE=process.env.WA_CANARY_MODE||'true';
 const WA_CANARY_ALLOW_TO=process.env.WA_CANARY_ALLOW_TO||'';
 const WA_L4_INTERNAL_TOKEN=process.env.WA_L4_INTERNAL_TOKEN||'';
+const META_ADAPTER=createMetaCloudAdapter({
+  accessToken:WA_ACCESS_TOKEN,
+  phoneNumberId:WA_PHONE_NUMBER_ID,
+  graphVersion:WA_GRAPH_VERSION,
+  appSecret:WA_APP_SECRET,
+  businessAccountId:process.env.WHATSAPP_BUSINESS_ACCOUNT_ID||''
+});
 
 // Least privilege: WA/service-role/provider/L4 authority secrets belong only to this front proxy.
 // The legacy/product child does not need them and must never inherit them.
@@ -31,6 +39,7 @@ delete childEnv.WHATSAPP_APP_SECRET;
 delete childEnv.WHATSAPP_ACCESS_TOKEN;
 delete childEnv.WHATSAPP_PHONE_NUMBER_ID;
 delete childEnv.WHATSAPP_GRAPH_VERSION;
+delete childEnv.WHATSAPP_BUSINESS_ACCOUNT_ID;
 delete childEnv.WA_CANARY_MODE;
 delete childEnv.WA_CANARY_ALLOW_TO;
 delete childEnv.WA_L4_INTERNAL_TOKEN;
@@ -97,8 +106,8 @@ async function handleRevenueRead(req,res,body,kind){
   catch(e){console.error('[F4-PROXY] revenue read',kind,e.message);writeJson(res,502,{ok:false,error:'F4_REVENUE_UPSTREAM_UNAVAILABLE'});}
 }
 
-function waConfigReadyInbound(){return !!(WA_VERIFY_TOKEN&&WA_APP_SECRET&&SB_SERVICE_KEY);}
-function waConfigReadyOutbound(){return !!(waConfigReadyInbound()&&WA_ACCESS_TOKEN&&WA_PHONE_NUMBER_ID&&/^v\d+\.\d+$/.test(WA_GRAPH_VERSION));}
+function waConfigReadyInbound(){return !!(WA_VERIFY_TOKEN&&META_ADAPTER.webhookConfigured()&&SB_SERVICE_KEY);}
+function waConfigReadyOutbound(){return !!(META_ADAPTER.transportConfigured()&&SB_SERVICE_KEY);}
 function handleWaVerify(req,res){
   if(!WA_VERIFY_TOKEN){writeJson(res,503,{ok:false,error:'WA_VERIFY_TOKEN_NOT_CONFIGURED'});return;}
   const u=new URL(req.url,'http://localhost');const mode=u.searchParams.get('hub.mode');const token=u.searchParams.get('hub.verify_token');const challenge=u.searchParams.get('hub.challenge')||'';
@@ -118,28 +127,15 @@ async function handleWaWebhook(req,res){
   if(!waConfigReadyInbound()){writeJson(res,503,{ok:false,error:'WA_GATEWAY_NOT_CONFIGURED'});return;}
   try{
     const raw=await readRaw(req,1024*1024);const signature=req.headers['x-hub-signature-256'];
-    if(!wa.verifyMetaSignature(raw,signature,WA_APP_SECRET)){writeJson(res,401,{ok:false,error:'INVALID_META_SIGNATURE'});return;}
+    if(!META_ADAPTER.verifyWebhook(raw,signature)){writeJson(res,401,{ok:false,error:'INVALID_META_SIGNATURE'});return;}
     let payload;try{payload=JSON.parse(raw.toString('utf8'));}catch(e){writeJson(res,400,{ok:false,error:'INVALID_JSON'});return;}
-    const envelope=wa.extractWebhook(payload);await persistWaEnvelope(envelope);
+    const envelope=META_ADAPTER.normalizeWebhook(payload);await persistWaEnvelope(envelope);
     res.writeHead(200,{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store','X-Ascenda-WA-Gateway':'v1'});res.end('EVENT_RECEIVED');
   }catch(e){console.error('[WA-GATEWAY] webhook',e.message);writeJson(res,e.status||503,{ok:false,error:e.message==='PAYLOAD_TOO_LARGE'?'PAYLOAD_TOO_LARGE':'WA_WEBHOOK_UNAVAILABLE'});}
 }
-function graphSend(payload){
-  return new Promise((resolve,reject)=>{
-    if(!waConfigReadyOutbound()){reject(Object.assign(new Error('WA_OUTBOUND_NOT_CONFIGURED'),{status:503,definite:true}));return;}
-    const data=JSON.stringify(payload);const q=https.request({hostname:'graph.facebook.com',path:'/'+WA_GRAPH_VERSION+'/'+encodeURIComponent(WA_PHONE_NUMBER_ID)+'/messages',method:'POST',headers:{Authorization:'Bearer '+WA_ACCESS_TOKEN,'Content-Type':'application/json','Content-Length':Buffer.byteLength(data),'User-Agent':'AscendaOS-WA-Gateway/1.0'},timeout:15000},r=>{let out='';r.on('data',c=>out+=c);r.on('end',()=>{
-      let parsed={};try{parsed=out?JSON.parse(out):{};}catch(e){}
-      if(r.statusCode>=200&&r.statusCode<300){resolve(parsed);return;}
-      const me=parsed&&parsed.error||{};
-      const metaCode=String(me.code||'').trim();
-      const metaSubcode=String(me.error_subcode||'').trim();
-      const errorCode=metaCode?('META_'+metaCode+(metaSubcode?'_'+metaSubcode:'')):'META_SEND_REJECTED';
-      reject(Object.assign(new Error(errorCode),{status:502,metaStatus:r.statusCode,metaCode:metaCode||null,metaSubcode:metaSubcode||null,definite:true}));
-    });});
-    q.on('timeout',()=>q.destroy(Object.assign(new Error('META_SEND_TIMEOUT'),{status:504,ambiguous:true})));
-    q.on('error',err=>reject(Object.assign(err,{status:err.status||502,ambiguous:err.definite!==true})));
-    q.write(data);q.end();
-  });
+async function graphSend(payload){
+  const receipt=await META_ADAPTER.sendPayload(payload);
+  return {messages:receipt.providerMessageId?[{id:receipt.providerMessageId}]:[],_receipt:receipt};
 }
 async function reserveOutbound(idempotencyKey,actor,payload,meta){
   const m=meta||{};const recipientKind=wa.recipientKind(payload);const recipientAddress=wa.recipientAddress(payload);
@@ -238,12 +234,43 @@ async function handleWaAutoTyping(req,res,body){
   if(!/^wamid\.[A-Za-z0-9._~:/+=-]{8,500}$/.test(messageId)){writeJson(res,400,{ok:false,error:'WA_TYPING_PROVIDER_MESSAGE_ID_REQUIRED'});return;}
   if(!waConfigReadyOutbound()){writeJson(res,503,{ok:false,error:'WA_OUTBOUND_NOT_CONFIGURED'});return;}
   try{
-    await graphSend({messaging_product:'whatsapp',status:'read',message_id:messageId,typing_indicator:{type:'text'}});
+    await META_ADAPTER.typing(messageId);
     writeJson(res,200,{ok:true,typing:true,provider:'META'});
   }catch(e){
     const providerError=l4.sanitizeReason(e&&e.message||'WA_TYPING_PROVIDER_UNAVAILABLE');
     console.error('[WA-L10] typing indicator',providerError);
     writeJson(res,e.status||502,{ok:false,error:'WA_TYPING_PROVIDER_UNAVAILABLE',provider_error_code:providerError,provider_http_status:e.metaStatus||null});
+  }
+}
+
+async function handleMetaInternalHealth(req,res){
+  if(!WA_L4_INTERNAL_TOKEN||WA_L4_INTERNAL_TOKEN.length<32)return writeJson(res,503,{ok:false,error:'WA_META_INTERNAL_AUTH_NOT_CONFIGURED'});
+  if(!authorizeWaAutoRuntime(req))return writeJson(res,403,{ok:false,error:'WA_META_INTERNAL_AUTH_REQUIRED'});
+  try{
+    const health=await META_ADAPTER.health();
+    return writeJson(res,health.ok?200:503,Object.assign({gateway:'META_CLOUD_ADAPTER_V1'},health));
+  }catch(e){
+    return writeJson(res,e.status||502,{ok:false,error:'WA_META_HEALTH_UNAVAILABLE',provider_error_code:String(e.errorCode||e.message||'META_PROVIDER_ERROR').slice(0,128),provider_http_status:e.providerHttpStatus||null});
+  }
+}
+async function handleMetaInternalDispatch(req,res,body){
+  if(!WA_L4_INTERNAL_TOKEN||WA_L4_INTERNAL_TOKEN.length<32)return writeJson(res,503,{ok:false,error:'WA_META_INTERNAL_AUTH_NOT_CONFIGURED'});
+  if(!authorizeWaAutoRuntime(req))return writeJson(res,403,{ok:false,error:'WA_META_INTERNAL_AUTH_REQUIRED'});
+  try{
+    const receipt=await META_ADAPTER.sendPayload(body&&body.payload);
+    return writeJson(res,200,{ok:true,gateway:'META_CLOUD_ADAPTER_V1',message_id:receipt.providerMessageId||null,phone_number_id:receipt.phoneNumberId||null,provider_latency_ms:receipt.latencyMs||0,status:'ACCEPTED'});
+  }catch(e){
+    return writeJson(res,e.status||502,{ok:false,error:String(e.errorCode||e.message||'META_DISPATCH_FAILED').slice(0,128),category:e.category||'UNKNOWN',provider_http_status:e.providerHttpStatus||null,ambiguous:e.ambiguous===true,retry_safe:false,status:e.ambiguous===true?'PENDING':'FAILED'});
+  }
+}
+async function handleMetaInternalTemplates(req,res){
+  if(!WA_L4_INTERNAL_TOKEN||WA_L4_INTERNAL_TOKEN.length<32)return writeJson(res,503,{ok:false,error:'WA_META_INTERNAL_AUTH_NOT_CONFIGURED'});
+  if(!authorizeWaAutoRuntime(req))return writeJson(res,403,{ok:false,error:'WA_META_INTERNAL_AUTH_REQUIRED'});
+  try{
+    const out=await META_ADAPTER.listTemplates();
+    return writeJson(res,200,Object.assign({gateway:'META_CLOUD_ADAPTER_V1'},out));
+  }catch(e){
+    return writeJson(res,e.status||502,{ok:false,error:String(e.errorCode||e.message||'META_TEMPLATE_READ_FAILED').slice(0,128),provider_http_status:e.providerHttpStatus||null});
   }
 }
 
@@ -262,6 +289,9 @@ const server=http.createServer(async(req,res)=>{
   if(pathname==='/api/resend-webhook'){EMAIL_GATEWAY.handleWebhook(req,res);return;}
   if((pathname==='/webhook'||pathname==='/webhook/')&&req.method==='GET'){handleWaVerify(req,res);return;}
   if((pathname==='/webhook'||pathname==='/webhook/')&&req.method==='POST'){await handleWaWebhook(req,res);return;}
+  if(pathname==='/api/wa/meta/health-internal'&&req.method==='GET'){await handleMetaInternalHealth(req,res);return;}
+  if(pathname==='/api/wa/meta/templates-internal'&&req.method==='GET'){await handleMetaInternalTemplates(req,res);return;}
+  if(pathname==='/api/wa/meta/dispatch-internal'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleMetaInternalDispatch(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/wa/send'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleWaSend(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/wa/auto-send'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleWaAutoSend(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/wa/auto-typing'&&req.method==='POST'){try{const parsed=await readJson(req,16*1024);await handleWaAutoTyping(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
@@ -283,4 +313,7 @@ function proxyBuffered(req,res,raw){const headers=Object.assign({},req.headers,{
 function proxyStream(req,res){const headers=Object.assign({},req.headers,{host:'127.0.0.1:'+INNER_PORT});const up=http.request({hostname:'127.0.0.1',port:INNER_PORT,path:req.url,method:req.method,headers},r=>{res.writeHead(r.statusCode||502,r.headers);r.pipe(res);});up.on('error',e=>{if(!res.headersSent)writeJson(res,502,{ok:false,error:'UPSTREAM_UNAVAILABLE'});else res.end();console.error('[F4-PROXY] stream',e.message);});req.pipe(up);}
 function shutdown(sig){console.log('[F4-PROXY] shutdown',sig);server.close(()=>process.exit(0));if(!child.killed)child.kill(sig);setTimeout(()=>process.exit(1),5000).unref();}
 process.on('SIGTERM',()=>shutdown('SIGTERM'));process.on('SIGINT',()=>shutdown('SIGINT'));
-server.listen(EXTERNAL_PORT,'0.0.0.0',()=>console.log('[F4-PROXY] listening on :'+EXTERNAL_PORT+' -> :'+INNER_PORT+' | WA gateway v1 + L4 authority AUTO_OFF-by-default'));
+server.listen(EXTERNAL_PORT,'0.0.0.0',()=>{
+  console.log('[F4-PROXY] listening on :'+EXTERNAL_PORT+' -> :'+INNER_PORT+' | MetaCloudAdapter v1 + L4 authority AUTO_OFF-by-default');
+  META_ADAPTER.health().then(h=>console.log('[CONV-L1] meta provider health',{ok:h.ok,diagnosis:h.diagnosis,credentialState:h.credentialState,assetState:h.assetState,permissionsState:h.permissionsState,businessAccountAvailable:h.businessAccountAvailable===true})).catch(e=>console.error('[CONV-L1] meta provider health',{ok:false,error:String(e.errorCode||e.message||'META_HEALTH_FAILED').slice(0,128)}));
+});
