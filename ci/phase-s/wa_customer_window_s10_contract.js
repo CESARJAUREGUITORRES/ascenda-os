@@ -12,8 +12,9 @@ ok(phase.includes("/send$/i.test(p))return handleCustomerWindowSend"),'send inte
 ok(native.includes('Ventana de WhatsApp cerrada (>24 h)'),'native composer window gate missing');
 ok(native.includes("24H '+(windowOpen?'ABIERTA':'CERRADA')"),'native window chip missing');
 ok(native.includes('r.last_inbound_at'),'native last inbound policy missing');
-ok(wa3.includes('metaDetails'),'Meta error details preservation missing');
-ok(wa3.includes("mc?('META_'+mc):'META_SEND_REJECTED'"),'Meta provider code preservation missing');
+ok(!wa3.includes('graph.facebook.com'),'WA3 must not own direct Meta transport after CONV-L1');
+ok(!wa3.includes('metaDetails'),'WA3 must not expose raw Meta provider details after CONV-L1');
+ok(wa3.includes('/api/wa/meta/dispatch-internal'),'WA3 must preserve provider dispatch through MetaCloudAdapter compatibility boundary');
 ok(wa3.includes('provider_http_status:e.metaStatus'),'provider HTTP diagnostic missing');
-ok(wa3.includes('provider_details:e.metaDetails'),'provider details response missing');
+ok(wa3.includes('provider_category:e.category'),'sanitized provider category diagnostic missing');
 console.log('WA_CUSTOMER_WINDOW_S10_CONTRACT_PASS');
