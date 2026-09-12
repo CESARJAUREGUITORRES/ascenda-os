@@ -49,6 +49,14 @@ function sendNoShowEmail(c){
       });
     }).catch(function(){});
 }
+function queueGoogleAppointment(id){
+  if(!id)return;
+  fetch(window.location.origin+'/api/google/appointment/queue',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
+    body:JSON.stringify({appointment_id:String(id)})
+  }).catch(function(){});
+}
 function install(){
   if(typeof window.agGuardarEstado!=='function'||!window.AG||!window._SB||!window._SK)return false;
   if(window.agGuardarEstado.__agendaGovernedV1)return true;
@@ -78,6 +86,7 @@ function install(){
       });
     }).then(function(d){
       AG._guardando=false;
+      queueGoogleAppointment(AG.sel&&AG.sel.id);
       toast('Estado actualizado',est,'');
       if((est==='ASISTIO'||est==='EFECTIVA')&&d.attentionId)toast('✅ Atención sincronizada','Registro clínico creado/actualizado','');
       if(est==='NO ASISTIO')sendNoShowEmail(AG.sel);

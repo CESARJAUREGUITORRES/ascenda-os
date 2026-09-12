@@ -1,5 +1,6 @@
 // agenda.js v2 — Agenda Global | AscendaOS v1 | 100% Supabase
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+function aosClientUuid(){if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16);});}
 var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
 // ===== EMAIL AUTOMÁTICO AL CREAR/REAGENDAR CITA =====
@@ -17,10 +18,18 @@ function enviarEmailConfirmacionCita(d) {
   } catch(e) {}
   fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
     method: 'POST', headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
-    body: JSON.stringify({ to: correo, template: 'confirmacion_cita', nombre: nombre, tratamiento: d.tratamiento || 'Consulta', hora: d.hora_cita || '', sede: d.sede || '', fecha: fechaLabel, dni: d.dni || '', telefono: d.numero_limpio || d.numero || '', email: correo })
+    body: JSON.stringify({ to: correo, template: d.email_template || 'confirmacion_cita', appointment_id:d.id||'', nombre: nombre, tratamiento: d.tratamiento || 'Consulta', hora: d.hora_cita || '', sede: d.sede || '', fecha: fechaLabel, dni: d.dni || '', telefono: d.numero_limpio || d.numero || '', email: correo })
   }).then(function(r) { return r.json(); }).then(function(res) {
     if (res && (res.ok || res.id)) { if (window.AOS_showToast) AOS_showToast('📧 Email enviado', correo, ''); }
   }).catch(function() {});
+}
+function aosQueueGoogleAppointment(id,forceAction){
+  if(!id)return Promise.resolve({ok:false,skipped:true});
+  return fetch(window.location.origin+'/api/google/appointment/queue',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
+    body:JSON.stringify({appointment_id:String(id),force_action:forceAction||''})
+  }).then(function(r){return r.json().catch(function(){return {ok:false};});}).catch(function(){return {ok:false};});
 }
 function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(fail||function(e){console.error('[SB]',fn,e);});}
 function _rest(path,opts){return fetch(_SB+'/rest/v1/'+path,Object.assign({headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'}},opts||{}));}
@@ -490,6 +499,7 @@ function agGuardarEstado(){
   if(nota!==(AG.sel.obs||''))upd.obs=nota;
   _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'PATCH',body:JSON.stringify(upd)}).then(function(r){
     if(!r.ok){AG._guardando=false;throw new Error('HTTP '+r.status);}
+    aosQueueGoogleAppointment(AG.sel.id,'');
     if(window.AOS_showToast)AOS_showToast('Estado actualizado',est,'');
 
     /* ===== ASISTIÓ / EFECTIVA: eliminar vieja + crear nueva ===== */
@@ -598,6 +608,7 @@ function agEliminar(){
     function(){
       _rest('aos_agenda_citas?id=eq.'+AG.sel.id,{method:'DELETE'}).then(function(r){
         if(!r.ok)throw new Error('HTTP '+r.status);
+        aosQueueGoogleAppointment(AG.sel.id,'CALENDAR_DELETE');
         /* Limpiar todo lo asociado a este paciente+fecha */
         if(numP&&fechaC){
           fetch(_SB+'/rest/v1/aos_atenciones?numero_limpio=eq.'+numP+'&fecha=eq.'+fechaC,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}});
@@ -776,26 +787,31 @@ function _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now) {
   if(AG.reagendando && AG.reagendaOrigId){
     // REAGENDAR: marcar original como REAGENDADA + crear nueva cita
     var origPatch={estado_cita:'REAGENDADA',obs:(el('ed-obs').value.trim()?el('ed-obs').value.trim()+' | ':'')+'Reagendada a '+fecha,ts_actualizado:now.toISOString()};
-    row.ts_creado=now.toISOString();row.origen_cita='REAGENDADA';row.estado_cita='PENDIENTE';
+    row.id=aosClientUuid();row.ts_creado=now.toISOString();row.origen_cita='REAGENDADA';row.estado_cita='PENDIENTE';row.email_template='reprogramacion';
     Promise.all([
       _rest('aos_agenda_citas?id=eq.'+AG.reagendaOrigId,{method:'PATCH',body:JSON.stringify(origPatch)}),
       _rest('aos_agenda_citas',{method:'POST',body:JSON.stringify(row)})
     ]).then(function(results){
       var allOk=results.every(function(r){return r.ok;});
       if(!allOk)throw new Error('Error al reagendar');
+      var oldId=AG.reagendaOrigId;
       AG.reagendando=false;AG.reagendaOrigId=null;
+      aosQueueGoogleAppointment(oldId,'CALENDAR_DELETE');
+      aosQueueGoogleAppointment(row.id,'');
       enviarEmailConfirmacionCita(row);
       if(window.AOS_showToast)AOS_showToast('Cita reagendada','Original marcada + nueva creada en '+fecha,'toast-venta');agCloseEdit();agLoad();
     }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
   } else if(AG.editId){
     _rest('aos_agenda_citas?id=eq.'+AG.editId,{method:'PATCH',body:JSON.stringify(row)}).then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);
+      aosQueueGoogleAppointment(AG.editId,'');
       if(window.AOS_showToast)AOS_showToast('Cita actualizada','','');agCloseEdit();agLoad();
     }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
   } else {
-    row.ts_creado=now.toISOString();row.origen_cita='AGENDA';
+    row.id=aosClientUuid();row.ts_creado=now.toISOString();row.origen_cita='AGENDA';
     _rest('aos_agenda_citas',{method:'POST',body:JSON.stringify(row)}).then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);
+      aosQueueGoogleAppointment(row.id,'');
       enviarEmailConfirmacionCita(row);
       if(window.AOS_showToast)AOS_showToast('Cita creada','','toast-venta');agCloseEdit();agLoad();
     }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});

@@ -3,7 +3,13 @@ const https = require('https')
 const fs   = require('fs')
 const path = require('path')
 const { createEmailGateway } = require('./email-gateway')
+const { createGoogleIntegrationV1 } = require('./google-integration-v1')
 const EMAIL_GATEWAY = createEmailGateway()
+const GOOGLE_INTEGRATION = createGoogleIntegrationV1({
+  verifyApp: function(token) { return EMAIL_GATEWAY.verifyApp(token) },
+  supabaseUrl: process.env.SUPABASE_URL,
+  serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY
+})
 const PORT = parseInt(process.env.PORT || '4173', 10)
 // Servir siempre desde public/ (archivos HTML estáticos editados directamente)
 // El build de vite no aplica a estos archivos
@@ -936,6 +942,8 @@ function serve(f, res) {
 // ═══ SERVER ═══
 http.createServer(function(req, res) {
   var p = req.url.split('?')[0]
+  // INT-GOOGLE-001: OAuth, Calendar and Contacts are server-side only.
+  if (p.indexOf('/api/google/') === 0) return GOOGLE_INTEGRATION.handle(req, res)
   // F16: all admin Email writes and provider webhooks enter through a server-authoritative boundary.
   if (p === '/api/email-gateway') return EMAIL_GATEWAY.handleAdmin(req, res)
   if (p === '/api/send-email') return EMAIL_GATEWAY.handleAdmin(req, res)
@@ -1575,6 +1583,7 @@ http.createServer(function(req, res) {
           subject = '✅ Cita confirmada — ' + (d.sede || '') + ' · ' + (d.hora || '') + ' — ' + BRAND.nombre_empresa
           html = buildFromTemplate('confirmacion_cita', vars, function() { return buildEmailConfirmacionCita(d.nombre||'Paciente', d.tratamiento||'Consulta', d.hora||'', d.sede||'', d.fecha||'', {dni: d.dni, email: d.email || d.to, telefono: d.telefono}) }, tplCtx)
           html += emailFirmaMedica(d.doctora || d.atendio || '')
+          html = GOOGLE_INTEGRATION.injectEmailCalendarButton(html, d.appointment_id || d.cita_id || d.agenda_id || '')
         } else if (tipo === 'recibo_venta') {
           subject = '🧾 Recibo de pago — ' + BRAND.nombre_empresa
           html = buildFromTemplate('recibo_venta', vars, function() { return buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', d.metodo||'', d.sede||'', d.fecha||'', d.venta_id||'') }), tplCtx
@@ -1616,6 +1625,7 @@ http.createServer(function(req, res) {
           subject = '🔄 Tu cita ha sido reprogramada — ' + BRAND.nombre_empresa
           html = buildFromTemplate('reprogramacion', vars, function() { return buildEmailReprogramacion ? buildEmailReprogramacion(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'') : emailShell('Cita reprogramada', '<p>Tu cita ha sido reprogramada.</p>') }), tplCtx
           html += emailFirmaMedica(d.doctora || d.atendio || '')
+          html += GOOGLE_INTEGRATION.emailCalendarButton(d.appointment_id || d.cita_id || d.agenda_id || '')
         } else {
           res.writeHead(400); res.end('{"error":"template no reconocido: ' + tipo + '"}'); return
         }
@@ -2022,6 +2032,7 @@ http.createServer(function(req, res) {
     if (_autoTickRunning || !bgCanRun()) return
     _autoTickRunning = true
     try { autoTick() } catch(e) { bgFail(); console.error('[TICK] Guard error:', e.message) }
+    GOOGLE_INTEGRATION.processQueueOnce().catch(function(e){ console.error('[GOOGLE-WORKER]',e&&e.message||e) })
     setTimeout(function(){ _autoTickRunning = false }, 50000)
   }
   setInterval(guardedAutoTick, 60000)

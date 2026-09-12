@@ -1608,7 +1608,123 @@ function renderIntegCatalog(items){var html='';CAT_ORDER.forEach(function(cat){v
     if(r.multi_cuenta)html+='<div style="font-size:8px;color:#7C3AED;margin-top:3px;">🔄 Soporta múltiples cuentas</div>';
     html+='</div>';
   });html+='</div></div>';});el('cfg-ig-list').innerHTML=html||'<div style="text-align:center;padding:20px;color:#CBD5E1;">Sin resultados</div>';}
-function desactivarInteg(id){if(!confirm('¿Desactivar este conector?'))return;sbPatch('/rest/v1/aos_integraciones?id=eq.'+id,{estado:'pendiente',api_key:'',api_secret:'',cuenta:''}).then(function(){showToast('Desactivado','');loadIntegraciones();});}
+
+var _activeInteg=null,_guideIndex=0,_googleState=null;
+function cfgSession(){return sessionStorage.getItem('aos_app_token')||'';}
+function googleApi(path,opt){
+  opt=opt||{};
+  var headers=Object.assign({'X-ASCENDA-Session':cfgSession()},opt.headers||{});
+  if(opt.body&&typeof opt.body!=='string'){headers['Content-Type']='application/json';opt.body=JSON.stringify(opt.body);}
+  return fetch(RW+path,{method:opt.method||'GET',headers:headers,body:opt.body}).then(function(r){return r.json().catch(function(){return {ok:false,error:'HTTP_'+r.status};}).then(function(b){if(!r.ok||!b||b.ok===false)throw new Error((b&&b.error)||('HTTP_'+r.status));return b;});});
+}
+function closeIntegModal(){el('m-integ').classList.remove('open');_activeInteg=null;_googleState=null;}
+function renderGuide(){
+  var steps=(_activeInteg&&_activeInteg.pasos_guia)||[];
+  if(!Array.isArray(steps))steps=[];
+  if(!steps.length){el('mi-steps').innerHTML='<div style="color:#94A3B8;font-size:11px;">Sin guía adicional.</div>';el('mi-dots').innerHTML='';return;}
+  _guideIndex=Math.max(0,Math.min(_guideIndex,steps.length-1));
+  var st=steps[_guideIndex]||{};
+  el('mi-steps').innerHTML='<div style="font-size:10px;color:#0A4FBF;font-weight:800;margin-bottom:8px;">PASO '+(_guideIndex+1)+' DE '+steps.length+'</div><div style="font-size:15px;font-weight:800;margin-bottom:8px;">'+h(st.titulo||'Configuración')+'</div><div style="font-size:11px;line-height:1.6;color:#64748B;">'+h(st.texto||'')+'</div>';
+  el('mi-dots').innerHTML=steps.map(function(_,i){return '<span style="display:inline-block;width:6px;height:6px;border-radius:50%;margin:0 2px;background:'+(i===_guideIndex?'#0A4FBF':'#CBD5E1')+';"></span>';}).join('');
+  el('mi-prev').disabled=_guideIndex===0;el('mi-next').disabled=_guideIndex===steps.length-1;
+}
+function guideNav(d){_guideIndex+=d;renderGuide();}
+function openIntegModal(id){
+  var r=INTEG_DATA.find(function(x){return String(x.id)===String(id);});
+  if(!r)return;
+  _activeInteg=r;_guideIndex=0;
+  el('mi-ico').innerHTML=h(r.icono||'🔌');el('mi-title').textContent=r.nombre||'Integración';el('mi-desc').textContent=r.descripcion||'';
+  el('mi-badge').innerHTML='<span style="font-size:9px;padding:4px 9px;border-radius:8px;background:'+(r.estado==='conectado'?'#F0FDF4':'#FFF7ED')+';color:'+(r.estado==='conectado'?'#059669':'#D97706')+';font-weight:800;">'+(r.estado==='conectado'?'✓ Conectado':'○ Pendiente')+'</span>';
+  renderGuide();el('m-integ').classList.add('open');
+  if(r.tipo==='google'&&r.nombre==='Google Calendar + Contacts')renderGoogleIntegration();
+  else{
+    el('mi-fields').innerHTML='<div style="font-size:11px;color:#64748B;line-height:1.6;">Este conector conserva su configuración existente. La gestión de secretos no se realiza desde el navegador.</div>'+(r.cuenta?'<div style="margin-top:12px;padding:10px;background:#F8FAFC;border-radius:10px;font-size:11px;"><b>Cuenta:</b> '+h(r.cuenta)+'</div>':'');
+    el('mi-status').innerHTML='';
+  }
+}
+function renderGoogleIntegration(){
+  el('mi-fields').innerHTML='<div style="padding:18px;text-align:center;color:#64748B;font-size:11px;">Consultando conexión Google…</div>';
+  googleApi('/api/google/status').then(function(st){_googleState=st;drawGoogleState();}).catch(function(e){el('mi-fields').innerHTML='<div style="padding:14px;background:#FEF2F2;color:#B91C1C;border-radius:10px;font-size:11px;">'+h(e.message)+'</div>';});
+}
+function drawGoogleState(){
+  var st=_googleState||{}, conns=st.connections||[], c=conns.find(function(x){return x.is_primary&&x.status==='CONNECTED';})||conns.find(function(x){return x.status==='CONNECTED';});
+  var safe='<div style="padding:9px 11px;border-radius:10px;background:'+(st.integration_enabled?'#F0FDF4':'#FFF7ED')+';font-size:10px;color:'+(st.integration_enabled?'#047857':'#B45309')+';margin-bottom:12px;"><b>Motor Google:</b> '+(st.integration_enabled?'habilitado para conexión':'SAFE-OFF')+' · Calendar auto '+(st.calendar_sync_enabled?'ON':'OFF')+' · Contacts auto '+(st.contact_sync_enabled?'ON':'OFF')+'</div>';
+  if(!c){
+    el('mi-fields').innerHTML=safe+'<div style="border:1px solid #E2E8F0;border-radius:12px;padding:16px;"><div style="font-weight:800;font-size:13px;margin-bottom:5px;">Google Workspace</div><div style="font-size:10px;color:#64748B;margin-bottom:14px;">Autoriza una cuenta Google. ASCENDA no recibe ni guarda la contraseña.</div><button class="mbtn mbtn-p" onclick="googleConnect()" '+(!st.integration_enabled?'disabled style="opacity:.45"':'')+'>🔗 Conectar con Google</button></div>';
+    return;
+  }
+  var calName=c.selected_calendar_name||c.selected_calendar_id||'primary';
+  el('mi-fields').innerHTML=safe+
+    '<div style="border:1px solid #BBF7D0;background:#FAFFFC;border-radius:12px;padding:14px;margin-bottom:10px;">'+
+      '<div style="font-size:9px;color:#64748B;">CUENTA CONECTADA</div><div style="font-size:13px;font-weight:800;margin-top:3px;">'+h(c.account_email)+'</div>'+
+      '<div style="font-size:9px;color:#059669;margin-top:4px;">● OAuth activo</div></div>'+
+    '<div class="rc-field"><label>Calendario de citas</label><div style="display:flex;gap:6px;"><select class="mi" id="google-calendar-select"><option value="'+h(c.selected_calendar_id||'primary')+'">'+h(calName)+'</option></select><button class="mbtn mbtn-o" onclick="googleLoadCalendars()">↻</button></div></div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">'+
+      '<label style="padding:10px;border:1px solid #E2E8F0;border-radius:10px;font-size:10px;"><input type="checkbox" id="google-cal-enabled" '+(c.calendar_enabled?'checked':'')+' '+(!st.calendar_sync_enabled?'disabled':'')+'> Sincronizar Calendar</label>'+
+      '<label style="padding:10px;border:1px solid #E2E8F0;border-radius:10px;font-size:10px;"><input type="checkbox" id="google-contact-enabled" '+(c.contacts_enabled?'checked':'')+' '+(!st.contact_sync_enabled?'disabled':'')+'> Sincronizar Contacts</label>'+
+    '</div>'+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">'+
+      '<button class="mbtn mbtn-p" onclick="googleSaveSettings()">💾 Guardar Calendar</button>'+
+      '<button class="mbtn mbtn-o" onclick="googleConnect()">🔄 Cambiar cuenta</button>'+
+      '<button class="mbtn mbtn-o" onclick="googleTestCalendar()">🧪 Probar Calendar</button>'+
+      '<button class="mbtn mbtn-o" onclick="googleTestContact()">🧪 Probar Contacto</button>'+
+      '<button class="mbtn mbtn-d" onclick="googleDisconnect()">Desconectar</button>'+
+    '</div>'+
+    '<div style="font-size:9px;color:#94A3B8;margin-top:10px;">Último OK: '+h(c.last_success_at||'—')+(c.last_error?' · Error: '+h(c.last_error):'')+'</div>';
+}
+function googleConnect(){
+  if(!_googleState||!_googleState.integration_enabled){showToast('Google SAFE-OFF','Primero debe habilitarse el canary del motor Google.',true);return;}
+  googleApi('/api/google/oauth/start').then(function(r){
+    var w=window.open(r.auth_url,'ascenda_google_oauth','width=620,height=760');
+    if(!w)showToast('Popup bloqueado','Permite ventanas emergentes para conectar Google.',true);
+  }).catch(function(e){showToast('No se pudo conectar',e.message,true);});
+}
+window.addEventListener('message',function(ev){if(ev&&ev.data&&ev.data.type==='ASCENDA_GOOGLE_OAUTH'){setTimeout(function(){renderGoogleIntegration();loadIntegraciones();},600);}});
+function googleLoadCalendars(){
+  var c=(_googleState.connections||[]).find(function(x){return x.is_primary&&x.status==='CONNECTED';});
+  if(!c)return;
+  googleApi('/api/google/calendars?connection_id='+encodeURIComponent(c.id)).then(function(r){
+    var sel=el('google-calendar-select');if(!sel)return;
+    sel.innerHTML=(r.calendars||[]).map(function(x){return '<option value="'+h(x.id)+'" '+(x.id===c.selected_calendar_id?'selected':'')+'>'+h(x.summary)+(x.primary?' (principal)':'')+'</option>';}).join('');
+  }).catch(function(e){showToast('Calendar',e.message,true);});
+}
+function googleSaveSettings(){
+  var c=(_googleState.connections||[]).find(function(x){return x.is_primary&&x.status==='CONNECTED';});if(!c)return;
+  var sel=el('google-calendar-select'),opt=sel&&sel.options[sel.selectedIndex];
+  var body={connection_id:c.id,selected_calendar_id:sel?sel.value:c.selected_calendar_id,selected_calendar_name:opt?opt.text:''};
+  if(_googleState.calendar_sync_enabled)body.calendar_enabled=!!(el('google-cal-enabled')&&el('google-cal-enabled').checked);
+  if(_googleState.contact_sync_enabled)body.contacts_enabled=!!(el('google-contact-enabled')&&el('google-contact-enabled').checked);
+  googleApi('/api/google/settings',{method:'POST',body:body}).then(function(){showToast('Google guardado','Calendario actualizado');renderGoogleIntegration();}).catch(function(e){showToast('Google',e.message,true);});
+}
+function googleDisconnect(){
+  var c=(_googleState.connections||[]).find(function(x){return x.is_primary&&x.status==='CONNECTED';});if(!c||!confirm('¿Desconectar esta cuenta Google de ASCENDA?'))return;
+  googleApi('/api/google/disconnect',{method:'POST',body:{connection_id:c.id}}).then(function(){showToast('Google desconectado','La autorización fue revocada');renderGoogleIntegration();loadIntegraciones();}).catch(function(e){showToast('Google',e.message,true);});
+}
+function googleTestCalendar(){
+  var c=(_googleState.connections||[]).find(function(x){return x.is_primary&&x.status==='CONNECTED';});if(!c)return;
+  var email=prompt('Correo invitado para el canary Calendar (puede ser tu Gmail):',c.account_email||'');if(email===null)return;
+  googleApi('/api/google/test/calendar',{method:'POST',body:{connection_id:c.id,attendee_email:email}}).then(function(r){showToast('Calendar PASS',r.attendee_invited?'Evento creado e invitación enviada':'Evento creado');}).catch(function(e){showToast('Calendar FAIL',e.message,true);});
+}
+function googleTestContact(){
+  var c=(_googleState.connections||[]).find(function(x){return x.is_primary&&x.status==='CONNECTED';});if(!c)return;
+  var name=prompt('Nombre del contacto de prueba:','ASCENDA CANARY - TEST');if(name===null)return;
+  var email=prompt('Email opcional del contacto:','')||'';
+  googleApi('/api/google/test/contact',{method:'POST',body:{connection_id:c.id,name:name,email:email}}).then(function(){showToast('Contacts PASS','Contacto canary creado');}).catch(function(e){showToast('Contacts FAIL',e.message,true);});
+}
+function saveInteg(){
+  if(_activeInteg&&_activeInteg.tipo==='google')return googleSaveSettings();
+  showToast('Sin cambios','Este conector no usa configuración de secretos desde el navegador.');
+}
+function testInteg(){
+  if(_activeInteg&&_activeInteg.tipo==='google')return renderGoogleIntegration();
+  showToast('Conector','No hay prueba server-side definida para este conector.');
+}
+function desactivarInteg(id){
+  var r=INTEG_DATA.find(function(x){return String(x.id)===String(id);});
+  if(r&&r.tipo==='google'){openIntegModal(id);setTimeout(googleDisconnect,300);return;}
+  if(!confirm('¿Desactivar este conector?'))return;
+  sbPatch('/rest/v1/aos_integraciones?id=eq.'+id,{estado:'pendiente',api_key:'',api_secret:'',cuenta:''}).then(function(){showToast('Desactivado','');loadIntegraciones();});
+}
 
 // ═══ AUTO-INIT: cargar datos al abrir el panel ═══
 loadConfig();loadEmails();

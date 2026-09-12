@@ -210,12 +210,22 @@ function vcCargarHistorial(num){
   },function(){box.innerHTML='<div style="color:#DC2626;font-size:10px;">Error al cargar</div>';});
 }
 
+function aosQueueGoogleAppointment(id,forceAction){
+  if(!id)return Promise.resolve({ok:false,skipped:true});
+  return fetch(window.location.origin+'/api/google/appointment/queue',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
+    body:JSON.stringify({appointment_id:String(id),force_action:forceAction||''})
+  }).then(function(r){return r.json().catch(function(){return {ok:false};});}).catch(function(){return {ok:false};});
+}
+
 function vcCerrarModal(){var m=document.getElementById('vc-modal');if(m)m.classList.remove('open');}
 
 function vcCambiarEstado(nuevoEstado){
   var c=VC._citaSel;if(!c||!c.id)return;
   fetch(_SB+'/rest/v1/aos_agenda_citas?id=eq.'+c.id,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({estado_cita:nuevoEstado,ts_actualizado:new Date().toISOString()})}).then(function(r){
     if(!r.ok)throw new Error('HTTP '+r.status);
+    aosQueueGoogleAppointment(c.id,'');
     if(window.AOS_showToast)AOS_showToast('Estado actualizado',nuevoEstado,'');
     vcCerrarModal();vcReload();
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
@@ -226,6 +236,7 @@ function vcEliminarCita(){
   if(!confirm('¿Eliminar esta cita? Esta acción no se puede deshacer.'))return;
   fetch(_SB+'/rest/v1/aos_agenda_citas?id=eq.'+c.id,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Prefer':'return=minimal'}}).then(function(r){
     if(!r.ok)throw new Error('HTTP '+r.status);
+    aosQueueGoogleAppointment(c.id,'CALENDAR_DELETE');
     if(window.AOS_showToast)AOS_showToast('Cita eliminada','','');
     vcCerrarModal();vcReload();
   }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});

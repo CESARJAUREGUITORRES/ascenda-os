@@ -1054,7 +1054,8 @@ function guardarProgSesion(sesionId,tratNombre){
   if(saldo>0)obsText+=' | Saldo: S/'+saldo.toFixed(0);
 
   /* Crear cita en agenda con info financiera */
-  sbW('aos_agenda_citas',{
+  var citaId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(ch){var r=Math.random()*16|0,v=ch==='x'?r:(r&3|8);return v.toString(16);});
+  sbW('aos_agenda_citas',{id:citaId,
     numero_limpio:c.numero_limpio,nombre:c.nombre||'',apellido:c.apellido||'',
     fecha_cita:fecha,hora_cita:hora,sede:sede,
     tipo_cita:tipoCita,tipo_atencion:'ENFERMERIA',
@@ -1063,6 +1064,7 @@ function guardarProgSesion(sesionId,tratNombre){
     sesion_numero:sesData?sesData.sesion_numero:null,
     obs:obsText
   }).then(function(r){
+    aosQueueGoogleAppointment(citaId);
     /* Actualizar sesión con fecha programada */
     sbPatch('aos_sesiones_tratamiento','id=eq.'+sesionId,{
       estado:'PROGRAMADO',fecha_programado:fecha,hora_programado:hora,
@@ -1076,7 +1078,7 @@ function guardarProgSesion(sesionId,tratNombre){
       if(pacEmail&&pacEmail.indexOf('@')>-1){
         var pacNom=((c.nombre||'')+' '+(c.apellido||'')).trim();
         fetch(window.location.origin+'/api/send-template',{method:'POST',headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
-          body:JSON.stringify({to:pacEmail,template:'confirmacion_cita',nombre:pacNom,tratamiento:tratNombre,hora:hora,sede:sede,fecha:fecha,telefono:c.numero_limpio||''})
+          body:JSON.stringify({to:pacEmail,template:'confirmacion_cita',appointment_id:citaId,nombre:pacNom,tratamiento:tratNombre,hora:hora,sede:sede,fecha:fecha,telefono:c.numero_limpio||''})
         }).then(function(r){return r.json()}).then(function(d){
           if(d&&(d.ok||d.id)&&window.AOS_showToast)AOS_showToast('📧 Email cita enviado',pacEmail,'');
         }).catch(function(e){console.error('[PROG-EMAIL]',e);});
@@ -1086,6 +1088,14 @@ function guardarProgSesion(sesionId,tratNombre){
   });
 }
 
+function aosQueueGoogleAppointment(id){
+  if(!id)return;
+  fetch(window.location.origin+'/api/google/appointment/queue',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
+    body:JSON.stringify({appointment_id:String(id)})
+  }).catch(function(){});
+}
 function abrirModalProg(trat,tipoCita){
   var c=AT.sel;if(!c)return;
   var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
