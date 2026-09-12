@@ -1615,7 +1615,17 @@ function googleApi(path,opt){
   opt=opt||{};
   var headers=Object.assign({'X-ASCENDA-Session':cfgSession()},opt.headers||{});
   if(opt.body&&typeof opt.body!=='string'){headers['Content-Type']='application/json';opt.body=JSON.stringify(opt.body);}
-  return fetch(RW+path,{method:opt.method||'GET',headers:headers,body:opt.body}).then(function(r){return r.json().catch(function(){return {ok:false,error:'HTTP_'+r.status};}).then(function(b){if(!r.ok||!b||b.ok===false)throw new Error((b&&b.error)||('HTTP_'+r.status));return b;});});
+  return fetch(RW+path,{method:opt.method||'GET',headers:headers,body:opt.body}).then(function(r){
+    return r.json().catch(function(){return {ok:false,error:'HTTP_'+r.status};}).then(function(b){
+      if(r.status===401){
+        var e=new Error('SESSION_EXPIRED');
+        e.code='SESSION_EXPIRED';
+        throw e;
+      }
+      if(!r.ok||!b||b.ok===false)throw new Error((b&&b.error)||('HTTP_'+r.status));
+      return b;
+    });
+  });
 }
 function closeIntegModal(){el('m-integ').classList.remove('open');_activeInteg=null;_googleState=null;}
 function renderGuide(){
@@ -1644,7 +1654,13 @@ function openIntegModal(id){
 }
 function renderGoogleIntegration(){
   el('mi-fields').innerHTML='<div style="padding:18px;text-align:center;color:#64748B;font-size:11px;">Consultando conexión Google…</div>';
-  googleApi('/api/google/status').then(function(st){_googleState=st;drawGoogleState();}).catch(function(e){el('mi-fields').innerHTML='<div style="padding:14px;background:#FEF2F2;color:#B91C1C;border-radius:10px;font-size:11px;">'+h(e.message)+'</div>';});
+  googleApi('/api/google/status').then(function(st){_googleState=st;drawGoogleState();}).catch(function(e){
+    if(e&&e.code==='SESSION_EXPIRED'){
+      el('mi-fields').innerHTML='<div style="padding:14px;background:#FFF7ED;color:#9A3412;border-radius:10px;font-size:11px;line-height:1.55;"><b>Tu sesión de ASCENDA expiró.</b><br>La cuenta Google sigue conectada; vuelve a iniciar sesión para continuar con el canary.<div style="margin-top:10px;"><a class="mbtn mbtn-p" href="/login.html">🔐 Volver a iniciar sesión</a></div></div>';
+      return;
+    }
+    el('mi-fields').innerHTML='<div style="padding:14px;background:#FEF2F2;color:#B91C1C;border-radius:10px;font-size:11px;">'+h(e.message)+'</div>';
+  });
 }
 function drawGoogleState(){
   var st=_googleState||{}, conns=st.connections||[], c=conns.find(function(x){return x.is_primary&&x.status==='CONNECTED';})||conns.find(function(x){return x.status==='CONNECTED';});
