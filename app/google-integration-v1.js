@@ -654,6 +654,53 @@ function createGoogleIntegrationV1(opts) {
     } catch(e){json(res,502,{ok:false,error:e.message})}
   }
 
+  async function queueAppointmentForSync(appointmentId, options) {
+    options=options||{}
+    if(!MASTER_ON()) return {queued:0,reason:'GOOGLE_INTEGRATION_SAFE_OFF'}
+    var conn=await primaryConnection()
+    if(!conn || conn.status!=='CONNECTED') return {queued:0,reason:'GOOGLE_CONNECTION_NOT_FOUND'}
+    var ar=await sb('/rest/v1/aos_agenda_citas?select=*&id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
+    var appt=ar.status<300&&Array.isArray(ar.body)&&ar.body[0]?ar.body[0]:null
+    if(!appt && options.force_action!=='CALENDAR_DELETE') throw new Error('APPOINTMENT_NOT_FOUND')
+    var status=String(appt&&appt.estado_cita||'').toUpperCase()
+    var action=options.force_action==='CALENDAR_DELETE'||['CANCELADA','REAGENDADA'].indexOf(status)>=0?'CALENDAR_DELETE':'CALENDAR_UPSERT'
+    var revision=appt?scheduleHash(appt):sha(String(appointmentId)+':DELETE')
+    var queued=0
+    if(CAL_ON()&&conn.calendar_enabled) {
+      var cr=await sb('/rest/v1/aos_google_sync_outbox_v1','POST',{
+        idempotency_key:'gcal:'+conn.id+':'+appointmentId+':'+action+':'+revision,
+        connection_id:conn.id,entity_type:'APPOINTMENT',entity_id:String(appointmentId),action:action,
+        payload:{revision:revision,source:'authenticated_server_boundary'}
+      },'resolution=ignore-duplicates,return=minimal')
+      if(cr.status>=300) throw new Error('GOOGLE_CALENDAR_QUEUE_FAILED_'+cr.status)
+      queued++
+    }
+    if(action!=='CALENDAR_DELETE'&&CONTACT_ON()&&conn.contacts_enabled) {
+      var pr=await sb('/rest/v1/aos_google_sync_outbox_v1','POST',{
+        idempotency_key:'gcontact-appt:'+conn.id+':'+appointmentId+':'+revision,
+        connection_id:conn.id,entity_type:'APPOINTMENT',entity_id:String(appointmentId),action:'CONTACT_UPSERT',
+        payload:{revision:revision,source:'authenticated_server_boundary'}
+      },'resolution=ignore-duplicates,return=minimal')
+      if(pr.status>=300) throw new Error('GOOGLE_CONTACT_QUEUE_FAILED_'+pr.status)
+      queued++
+    }
+    return {queued:queued,calendar_action:action,connection_id:conn.id}
+  }
+
+  async function queueAppointmentRoute(req,res) {
+    var a=await auth(req,res); if(!a) return
+    var d
+    try { d=await readBody(req) } catch(e){return json(res,400,{ok:false,error:e.message})}
+    var id=String(d.appointment_id||'').trim()
+    if(!id) return json(res,400,{ok:false,error:'APPOINTMENT_ID_REQUIRED'})
+    var force=String(d.force_action||'').toUpperCase()
+    if(force&&force!=='CALENDAR_DELETE') return json(res,400,{ok:false,error:'INVALID_FORCE_ACTION'})
+    try {
+      var result=await queueAppointmentForSync(id,{force_action:force||null})
+      json(res,200,{ok:true,result:result})
+    } catch(e){json(res,500,{ok:false,error:String(e&&e.message||'GOOGLE_QUEUE_FAILED')})}
+  }
+
   async function backfillAppointments(req,res) {
     var a=await auth(req,res); if(!a) return
     var d
@@ -734,6 +781,7 @@ function createGoogleIntegrationV1(opts) {
       if(p==='/api/google/test/calendar'&&req.method==='POST') return testCalendar(req,res)
       if(p==='/api/google/test/contact'&&req.method==='POST') return testContact(req,res)
       if(p==='/api/google/worker/run-once'&&req.method==='POST') return runOnceRoute(req,res)
+      if(p==='/api/google/appointment/queue'&&req.method==='POST') return queueAppointmentRoute(req,res)
       if(p==='/api/google/backfill/appointments'&&req.method==='POST') return backfillAppointments(req,res)
       if(p==='/api/google/appointment-link'&&req.method==='GET') return appointmentLink(req,res,url)
       return json(res,404,{ok:false,error:'GOOGLE_ROUTE_NOT_FOUND'})
@@ -748,6 +796,7 @@ function createGoogleIntegrationV1(opts) {
   return {
     handle:handle,
     processQueueOnce:processQueueOnce,
+    queueAppointmentForSync:queueAppointmentForSync,
     emailCalendarButton:emailCalendarButton,
     injectEmailCalendarButton:injectEmailCalendarButton,
     calendarPublicUrl:calendarPublicUrl,
