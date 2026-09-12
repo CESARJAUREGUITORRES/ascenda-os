@@ -88,7 +88,7 @@
 
 <script>
 // citas.js INLINE — Mis Citas | AscendaOS v1 | 100% Supabase
-var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+function aosClientUuid(){if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16);});}\nvar _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
 var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
 // ===== ENVÍO AUTOMÁTICO DE EMAIL AL REAGENDAR CITA =====
@@ -106,7 +106,7 @@ function enviarEmailConfirmacionCita(datosCita) {
   } catch(e) {}
   fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
     method: 'POST', headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
-    body: JSON.stringify({ to: correo, template: 'confirmacion_cita', nombre: nombre, tratamiento: datosCita.tratamiento || 'Consulta', hora: datosCita.hora_cita || '', sede: datosCita.sede || '', fecha: fechaLabel, dni: datosCita.dni || '', telefono: datosCita.numero_limpio || '', email: correo })
+    body: JSON.stringify({ to: correo, template: datosCita.email_template || 'confirmacion_cita', appointment_id:datosCita.id||'', nombre: nombre, tratamiento: datosCita.tratamiento || 'Consulta', hora: datosCita.hora_cita || '', sede: datosCita.sede || '', fecha: fechaLabel, dni: datosCita.dni || '', telefono: datosCita.numero_limpio || '', email: correo })
   }).then(function(r) { return r.json(); }).then(function(d) {
     if (d && (d.ok || d.id)) { if (window.AOS_showToast) AOS_showToast('📧 Email enviado', correo, ''); }
     else { console.log('[EMAIL-CITA] Error:', d); }
@@ -215,10 +215,10 @@ function vcReagendarCita(){
   var now=new Date();
   Promise.all([
     fetch(_SB+'/rest/v1/aos_agenda_citas?id=eq.'+c.id,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({estado_cita:'REAGENDADA',obs:(c.obs?c.obs+' | ':'')+'Reagendada a '+nf,ts_actualizado:now.toISOString()})}),
-    fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({nombre:el('vc-e-nombre').value.trim(),apellido:el('vc-e-apellido').value.trim(),numero:c.numero||'',numero_limpio:c.numero_limpio||'',dni:el('vc-e-dni').value.trim(),correo:el('vc-e-correo').value.trim(),sede:el('vc-e-sede').value,tipo_atencion:el('vc-e-tipoat').value,fecha_cita:nf,hora_cita:el('vc-e-hora').value,tratamiento:el('vc-e-trat').value,doctora:el('vc-e-doctora').value,tipo_cita:c.tipo_cita||'',asesor:c.asesor||'',id_asesor:c.id_asesor||'',estado_cita:'PENDIENTE',origen_cita:'REAGENDADA',obs:el('vc-e-obs').value.trim(),ts_creado:now.toISOString()})})
+    fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({id:nuevaCitaId,nombre:el('vc-e-nombre').value.trim(),apellido:el('vc-e-apellido').value.trim(),numero:c.numero||'',numero_limpio:c.numero_limpio||'',dni:el('vc-e-dni').value.trim(),correo:el('vc-e-correo').value.trim(),sede:el('vc-e-sede').value,tipo_atencion:el('vc-e-tipoat').value,fecha_cita:nf,hora_cita:el('vc-e-hora').value,tratamiento:el('vc-e-trat').value,doctora:el('vc-e-doctora').value,tipo_cita:c.tipo_cita||'',asesor:c.asesor||'',id_asesor:c.id_asesor||'',estado_cita:'PENDIENTE',origen_cita:'REAGENDADA',obs:el('vc-e-obs').value.trim(),ts_creado:now.toISOString()})})
   ]).then(function(){
     // Enviar email de confirmación de la nueva cita
-    enviarEmailConfirmacionCita({nombre:el('vc-e-nombre').value.trim(),apellido:el('vc-e-apellido').value.trim(),correo:el('vc-e-correo').value.trim(),fecha_cita:nf,hora_cita:el('vc-e-hora').value,tratamiento:el('vc-e-trat').value,sede:el('vc-e-sede').value,dni:el('vc-e-dni').value.trim(),numero_limpio:c.numero_limpio||''});
+    enviarEmailConfirmacionCita({id:nuevaCitaId,email_template:'reprogramacion',nombre:el('vc-e-nombre').value.trim(),apellido:el('vc-e-apellido').value.trim(),correo:el('vc-e-correo').value.trim(),fecha_cita:nf,hora_cita:el('vc-e-hora').value,tratamiento:el('vc-e-trat').value,sede:el('vc-e-sede').value,dni:el('vc-e-dni').value.trim(),numero_limpio:c.numero_limpio||''});
     if(window.AOS_showToast)AOS_showToast('Reagendada','Original marcada + nueva en '+nf,'toast-venta');vcCerrarModal();vcReload();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
 }
 function vcEliminarCita(){var c=VC._citaSel;if(!c||!c.id||!confirm('Eliminar esta cita?'))return;fetch(_SB+'/rest/v1/aos_agenda_citas?id=eq.'+c.id,{method:'DELETE',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Prefer':'return=minimal'}}).then(function(r){if(!r.ok)throw new Error('HTTP '+r.status);if(window.AOS_showToast)AOS_showToast('Cita eliminada','','');vcCerrarModal();vcReload();}).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});}
