@@ -56,6 +56,30 @@ test('health checks token permissions and phone asset without exposing token',as
   assert.doesNotMatch(JSON.stringify(h),/secret-token-never-return/);
 });
 
+
+test('health fails closed when WABA asset access cannot be resolved',async()=>{
+  const calls=[];
+  const denied=Object.assign(new Error('META_100'),{status:400,errorCode:'META_100',providerHttpStatus:400,diagnosis:'PERMISSION_OR_ASSET_ACCESS'});
+  const a=createMetaCloudAdapter({
+    accessToken:'tok',phoneNumberId:'pn1',graphVersion:'v99.0',
+    requester:async(method,path,body)=>{
+      calls.push({method,path,body});
+      if(path==='me?fields=id')return {status:200,data:{id:'u1'}};
+      if(path==='me/permissions')return {status:200,data:{data:[{permission:'whatsapp_business_management',status:'granted'},{permission:'whatsapp_business_messaging',status:'granted'}]}};
+      if(path.startsWith('pn1?fields=id%2Cdisplay_phone_number'))return {status:200,data:{id:'pn1',verified_name:'Zi Vital'}};
+      if(path.startsWith('pn1?fields=whatsapp_business_account'))throw denied;
+      throw new Error('unexpected '+path);
+    }
+  });
+  const h=await a.health();
+  assert.equal(h.ok,false);
+  assert.equal(h.credentialState,'READY');
+  assert.equal(h.assetState,'READY');
+  assert.equal(h.permissionsState,'READY');
+  assert.equal(h.businessAccountAvailable,false);
+  assert.equal(h.diagnosis,'WABA_ASSET_ACCESS_MISSING');
+});
+
 test('sendPayload returns normalized dispatch receipt',async()=>{
   const calls=[];
   const a=createMetaCloudAdapter({
@@ -122,6 +146,7 @@ test('normalizes provider error categories and definite/transient semantics',()=
   assert.equal(e.definite,false);
   assert.equal(providerCategory('132001',400),'TEMPLATE');
   assert.equal(providerCategory('130429',429),'RATE');
+  assert.equal(providerCategory('131005',403),'PERMISSION');
 });
 
 test('rejects invalid direct payload types at provider boundary',async()=>{
