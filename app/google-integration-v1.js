@@ -465,11 +465,10 @@ function createGoogleIntegration(config){
     try{
       const conn=await activeConnection()
       if(!conn)return {skipped:true,reason:'GOOGLE_NOT_CONNECTED'}
-      const rows=await sb('GET','/rest/v1/aos_google_sync_outbox_v1?state=in.(DORMANT,FAILED)&available_at=lte.'+encodeURIComponent(new Date().toISOString())+'&select=*&order=created_at.asc&limit=10')
+      const claimed=await serviceRpc('aos_google_sync_claim_v1',{p_limit:5,p_calendar:f.calendar,p_contacts:f.contacts})
+      const rows=claimed&&Array.isArray(claimed.items)?claimed.items:[]
       let done=0,failed=0,review=0
-      for(const row of Array.isArray(rows)?rows:[]){
-        if((row.operation.indexOf('CALENDAR_')===0&&!f.calendar)||(row.operation==='CONTACT_UPSERT'&&!f.contacts))continue
-        await markOutbox(row.id,'CLAIMED',{attempt_count:Number(row.attempt_count||0)+1,last_attempt_at:new Date().toISOString(),lease_until:new Date(Date.now()+60000).toISOString()})
+      for(const row of rows){
         try{
           let result
           if(row.operation==='CALENDAR_UPSERT')result=await upsertCalendar(conn,row.entity_ref,row.source_revision)
@@ -483,7 +482,7 @@ function createGoogleIntegration(config){
           failed++;await markOutbox(row.id,'FAILED',{last_error_code:clean(e.code)||'GOOGLE_SYNC_FAILED',lease_until:null,available_at:new Date(Date.now()+Math.min(15,Number(row.attempt_count||0)+1)*60000).toISOString()})
         }
       }
-      return {ok:true,scanned:Array.isArray(rows)?rows.length:0,done:done,failed:failed,review:review}
+      return {ok:true,scanned:rows.length,done:done,failed:failed,review:review}
     }finally{busy=false}
   }
   function schedule(delay){
