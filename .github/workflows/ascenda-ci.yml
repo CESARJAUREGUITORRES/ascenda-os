@@ -162,10 +162,17 @@ jobs:
           }
           Write-Host 'Production-critical files present'
 
+      - name: CONV-L0 architecture evidence contract
+        shell: powershell
+        run: |
+          node ci/conv-l0/audit_contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Report architecture mode
         shell: powershell
         run: |
-          Write-Host 'Ascenda production runtime: node app/server.js'
+          Write-Host 'Ascenda Railway outer runtime: node app/server-phase-s-f17.js (see app/railway.json)'
+          Write-Host 'Lower/core API server remains app/server.js; it is not the Railway outer entrypoint'
           Write-Host 'Frontend source of truth: app/public/'
           Write-Host 'FAST CI compute: self-hosted Windows ascenda-fast'
           Write-Host 'DB CI + Zero-Cost policy remain on self-hosted Linux ascenda-zero-cost-v2'
