@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ASCENDA · Dispositivos y Notificaciones</title>
+<style>
+:root{--navy:#071D4A;--blue:#0A4FBF;--green:#00C9A7;--bg:#F5F7FB;--muted:#6B7BA8;--line:#DDE4F5;--danger:#DC2626;--warn:#D97706}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#0D1B3E}
+.wrap{max-width:1080px;margin:auto;padding:22px 18px 70px}.top{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:18px}
+h1{font-size:24px;margin:0;color:var(--navy)}.sub{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.45}.pill{font-size:10px;font-weight:800;padding:7px 10px;border-radius:99px;background:#E8FFF9;color:#087A68;white-space:nowrap}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:14px}.card{background:white;border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:0 7px 24px rgba(7,29,74,.05);margin-bottom:14px}
+.card h2{font-size:14px;margin:0 0 12px}.hero{display:flex;gap:14px;align-items:center}.ico{width:52px;height:52px;border-radius:16px;background:#EEF4FF;display:grid;place-items:center;font-size:25px}.grow{flex:1}.title{font-size:14px;font-weight:850}.meta{font-size:10px;color:var(--muted);margin-top:4px}.health{font-size:10px;font-weight:850;padding:5px 8px;border-radius:99px;background:#E8FFF9;color:#087A68}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}.k{border:1px solid var(--line);border-radius:12px;padding:10px}.k b{display:block;font-size:11px}.k span{font-size:9px;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:13px}.btn{border:0;border-radius:10px;padding:9px 12px;font-weight:800;font-size:10px;cursor:pointer;background:var(--navy);color:white}.btn.sec{background:#EEF3FC;color:var(--navy)}.btn.red{background:#FEECEC;color:var(--danger)}.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #EEF1F7}.row:last-child{border-bottom:0}.rtitle{font-size:11px;font-weight:800}.rsub{font-size:9px;color:var(--muted);margin-top:3px}.toggle{width:38px;height:22px;border-radius:20px;background:#CDD5E6;position:relative;cursor:pointer;flex:none}.toggle:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:white;left:3px;top:3px;transition:.15s}.toggle.on{background:var(--green)}.toggle.on:after{left:19px}
+.device{border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:8px}.device:last-child{margin-bottom:0}.dhead{display:flex;align-items:center;gap:10px}.dicon{font-size:22px}.dname{font-size:11px;font-weight:850}.dmeta{font-size:9px;color:var(--muted);margin-top:2px}.tag{margin-left:auto;font-size:8px;font-weight:850;padding:4px 7px;border-radius:99px;background:#F1F5F9;color:#475569}.tag.me{background:#E8FFF9;color:#087A68}
+.notice{font-size:10px;line-height:1.5;padding:10px 12px;border-radius:12px;background:#FFF8E8;color:#8A5B00;margin-bottom:12px}.err{background:#FEECEC;color:#991B1B}.ok{background:#E8FFF9;color:#087A68}
+.empty{font-size:10px;color:var(--muted);text-align:center;padding:20px}.foot{font-size:9px;color:#8A98B6;text-align:center;margin-top:20px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.top{flex-direction:column}.kpis{grid-template-columns:1fr 1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>Dispositivos y Notificaciones</h1><div class="sub">Controla esta instalación de ASCENDA, los canales de alerta y la salud del push.</div></div>
+    <div class="pill">ASCENDA PWA V2</div>
+  </div>
+  <div id="notice" class="notice" style="display:none"></div>
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>Este dispositivo</h2>
+        <div class="hero">
+          <div class="ico" id="currentIcon">💻</div>
+          <div class="grow"><div class="title" id="currentName">Detectando…</div><div class="meta" id="currentMeta">—</div></div>
+          <div class="health" id="currentHealth">REVISANDO</div>
+        </div>
+        <div class="kpis">
+          <div class="k"><b id="pushState">—</b><span>Push</span></div>
+          <div class="k"><b id="permState">—</b><span>Permiso</span></div>
+          <div class="k"><b id="installState">—</b><span>Instalación</span></div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="registerBtn">Registrar / actualizar</button>
+          <button class="btn sec" id="localTestBtn">Probar notificación local</button>
+          <button class="btn sec" id="reloadBtn">Actualizar estado</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Mis dispositivos</h2>
+        <div id="devices"><div class="empty">Aún no se cargaron dispositivos.</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Canales y alertas</h2>
+        <div class="sub" style="margin-bottom:8px">Preferencias para este dispositivo. Las políticas críticas de la organización pueden prevalecer.</div>
+        <div id="channels"></div>
+        <div class="actions"><button class="btn" id="savePrefsBtn">Guardar preferencias</button></div>
+      </div>
+      <div class="card">
+        <h2>Capacidades</h2>
+        <div id="caps"></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot">La notificación es un canal de aviso. Ventas, citas, chats, tareas y llamadas continúan funcionando aunque el push falle.</div>
+</div>
+<script src="/aos-device-runtime-v2.js"></script>
+<script>
+(function(){
+'use strict';
+var CHANNELS=[
+ ['WHATSAPP','WhatsApp','Conversaciones asignadas y mensajes nuevos'],
+ ['SALES','Ventas','Ventas registradas y eventos comerciales'],
+ ['COMMISSION','Comisiones','Cambios de comisión y metas'],
+ ['AGENDA','Agenda','Citas nuevas, cambios y alertas'],
+ ['CHAT','Coordinación / Chat','Mensajes internos y coordinaciones'],
+ ['TASKS','Tareas','Asignaciones, vencimientos y confirmaciones'],
+ ['AGENTS','Agentes','Alertas relevantes de agentes ASCENDA'],
+ ['SENTINEL','Sentinel','Alertas operativas y de seguridad'],
+ ['SYSTEM','Sistema','Actualizaciones y avisos de ASCENDA']
+];
+var state={snap:null,devices:[],current:null,prefs:{}};
+function e(id){return document.getElementById(id)}
+function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function msg(text,kind){var n=e('notice');n.className='notice '+(kind||'');n.textContent=text;n.style.display='block';clearTimeout(n._t);n._t=setTimeout(function(){n.style.display='none'},5000)}
+function token(){
+ try{var t=sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||'';if(t)return Promise.resolve(t)}catch(_){}
+ if(!('caches'in window))return Promise.resolve('');
+ return caches.open('aos-phase2-auth').then(function(c){return c.match('/__aos_app_token')}).then(function(r){return r?r.text():''}).catch(function(){return ''})
+}
+function api(path,opt){
+ opt=opt||{};return token().then(function(t){if(!t||t.length<32)throw new Error('SESSION_REQUIRED');
+  var h=new Headers(opt.headers||{});h.set('X-AOS-App-Token',t);h.set('Accept','application/json');if(opt.body!=null)h.set('Content-Type','application/json');
+  return fetch(path,{method:opt.method||'GET',headers:h,body:opt.body==null?undefined:JSON.stringify(opt.body),cache:'no-store',credentials:'same-origin'});
+ }).then(function(r){return r.json().catch(function(){return {ok:false,error:'INVALID_JSON'}}).then(function(d){if(!r.ok||d.ok===false){var x=new Error(d.error||('HTTP_'+r.status));x.status=r.status;throw x}return d})})
+}
+function icon(s){return s.form_factor==='MOBILE'?'📱':s.form_factor==='TABLET'?'📟':'💻'}
+function label(s){return [s.os_family||'DISPOSITIVO',s.runtime_surface||'WEB'].join(' · ')}
+function capRow(name,value){return '<div class="row"><div><div class="rtitle">'+esc(name)+'</div></div><div class="tag">'+esc(value)+'</div></div>'}
+function renderSnapshot(){
+ var s=state.snap=AOS_DEVICE_RUNTIME_V2.snapshot();
+ e('currentIcon').textContent=icon(s);e('currentName').textContent=(s.os_family||'Dispositivo')+' '+(s.form_factor==='MOBILE'?'móvil':s.form_factor==='TABLET'?'tablet':'escritorio');
+ e('currentMeta').textContent=label(s)+' · '+s.installation_id.slice(0,8);
+ e('pushState').textContent=s.push_supported?'COMPATIBLE':'NO';e('permState').textContent=String(s.notification_permission||'—').toUpperCase();e('installState').textContent=s.standalone?'INSTALADA':'NAVEGADOR';
+ var healthy=s.push_supported&&s.notification_permission==='granted';e('currentHealth').textContent=healthy?'ÓPTIMO':s.push_supported?'PENDIENTE':'LIMITADO';e('currentHealth').style.background=healthy?'#E8FFF9':'#FFF8E8';e('currentHealth').style.color=healthy?'#087A68':'#8A5B00';
+ e('caps').innerHTML=[
+  capRow('Service Worker',s.service_worker_supported?'Sí':'No'),
+  capRow('Web Push',s.push_supported?'Sí':'No'),
+  capRow('Badge de app',s.badge_supported?'Sí':'No'),
+  capRow('Marcador telefónico',s.tel_supported?'Sí':'No'),
+  capRow('Modo instalado',s.standalone?'Sí':'No'),
+  capRow('Superficie',s.runtime_surface),
+  capRow('Ventana visible',s.visible===null?'—':s.visible?'Sí':'No'),
+  capRow('Ventana enfocada',s.focused===null?'—':s.focused?'Sí':'No')
+ ].join('');
+}
+function defaultName(){var s=state.snap;return 'ASCENDA '+(s.form_factor==='MOBILE'?'Móvil':'Equipo')+' · '+s.os_family}
+function register(){
+ renderSnapshot();var s=state.snap;var payload=Object.assign({},s,{device_name:defaultName(),app_version:'PWA-V2-517'});
+ return api('/api/devices/register',{method:'POST',body:payload}).then(function(d){msg('Dispositivo registrado correctamente.','ok');return load()}).catch(function(x){msg('No se pudo registrar: '+x.message,'err')})
+}
+function renderDevices(){
+ var root=e('devices');if(!state.devices.length){root.innerHTML='<div class="empty">No hay dispositivos registrados todavía.</div>';return}
+ root.innerHTML=state.devices.map(function(d){
+  var me=state.snap&&d.installation_id===state.snap.installation_id;
+  var last=d.last_seen_at?new Date(d.last_seen_at).toLocaleString('es-PE'):'Sin actividad';
+  return '<div class="device"><div class="dhead"><div class="dicon">'+(d.form_factor==='MOBILE'?'📱':'💻')+'</div><div><div class="dname">'+esc(d.device_name||d.os_family||'Dispositivo')+'</div><div class="dmeta">'+esc((d.os_family||'')+' · '+(d.runtime_surface||''))+' · '+esc(last)+'</div></div><div class="tag '+(me?'me':'')+'">'+(me?'ESTE':'REGISTRADO')+'</div></div></div>'
+ }).join('')
+}
+function renderChannels(){
+ var p=state.prefs||{};e('channels').innerHTML=CHANNELS.map(function(x){var on=p[x[0]]!==false;return '<div class="row"><div><div class="rtitle">'+esc(x[1])+'</div><div class="rsub">'+esc(x[2])+'</div></div><div class="toggle '+(on?'on':'')+'" data-channel="'+x[0]+'"></div></div>'}).join('');
+ e('channels').querySelectorAll('.toggle').forEach(function(t){t.onclick=function(){this.classList.toggle('on');state.prefs[this.getAttribute('data-channel')]=this.classList.contains('on')}})
+}
+function load(){
+ renderSnapshot();return api('/api/devices').then(function(d){
+  state.devices=d.rows||[];state.current=state.devices.find(function(x){return x.installation_id===state.snap.installation_id})||null;
+  state.prefs=Object.assign({},state.current&&state.current.channel_preferences||{});renderDevices();renderChannels();
+ }).catch(function(x){renderDevices();renderChannels();msg('El centro todavía no está activado en este entorno: '+x.message,'')})
+}
+function savePrefs(){
+ if(!state.current){msg('Primero registra este dispositivo.','');return}
+ api('/api/devices/preferences',{method:'POST',body:{device_id:state.current.id,channel_preferences:state.prefs,quiet_hours:{}}}).then(function(){msg('Preferencias guardadas.','ok');load()}).catch(function(x){msg('No se pudieron guardar: '+x.message,'err')})
+}
+function localTest(){
+ if(!('Notification'in window)){msg('Este dispositivo no soporta Notification API.','err');return}
+ function show(){try{new Notification('ASCENDA · Prueba local',{body:'Las notificaciones del dispositivo están disponibles.',icon:'/icons/icon-192x192.png'})}catch(_){msg('No se pudo abrir la prueba local.','err')}}
+ if(Notification.permission==='granted')return show();
+ if(Notification.permission==='default')Notification.requestPermission().then(function(p){renderSnapshot();if(p==='granted')show();else msg('Permiso de notificaciones no concedido.','')});
+ else msg('Las notificaciones están bloqueadas en el navegador/sistema.','err')
+}
+e('registerBtn').onclick=register;e('reloadBtn').onclick=load;e('savePrefsBtn').onclick=savePrefs;e('localTestBtn').onclick=localTest;
+renderSnapshot();renderChannels();load();
+})();
+</script>
+</body>
+</html>
