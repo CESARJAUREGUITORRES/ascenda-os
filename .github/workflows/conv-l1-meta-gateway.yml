@@ -9,6 +9,7 @@ on:
       - 'app/wa-gateway.js'
       - 'app/server-f4.js'
       - 'app/server-wa3.js'
+      - 'app/conv-l1-real-meta-probe.js'
       - 'ci/conv-l1/**'
       - 'ci/wa1-secure-gateway/wa-gateway.test.js'
       - 'docs/control/ASCENDA_CONVERSATIONS_*'
@@ -42,6 +43,7 @@ jobs:
           node --check app/server-f4.js
           node --check app/server-wa3.js
           node --check app/wa-gateway.js
+          node --check app/conv-l1-real-meta-probe.js
       - name: MetaCloudAdapter unit contracts
         shell: powershell
         run: |

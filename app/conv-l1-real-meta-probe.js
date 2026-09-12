@@ -101,7 +101,7 @@ async function sendOnce(target,suffix,payload,messageType,messageBody){
   if(!r.owner){const row=r.row||{};if(row.state==='ACCEPTED')return {kind:suffix,idempotent:true,message_id:row.provider_message_id||null,status:'ACCEPTED'};throw new Error('OUTBOUND_RESERVATION_'+String(row.state||'UNKNOWN'));}
   let out;try{out=await provider('POST','/api/wa/meta/dispatch-internal',{payload});}catch(e){throw Object.assign(new Error('PROVIDER_TRANSPORT_AMBIGUOUS'),{cause:e});}
   const d=out.data||{};
-  if(out.status>=200&&out.status<300&&d.ok===true&&d.message_id){await markRequest(key,'ACCEPTED',String(d.message_id),null);await persistAccepted(key,target,messageType,messageBody,d);return {kind:suffix,idempotent:false,message_id:String(d.message_id),status:'ACCEPTED',provider_latency_ms:d.provider_latency_ms||0};}
+  if(out.status>=200&&out.status<300&&d.ok===true&&d.message_id){await markRequest(key,'ACCEPTED',String(d.message_id),null);await persistAccepted(key,target,messageType,messageBody,d);await provider('POST','/api/wa/meta/reconcile-internal',{provider_message_id:String(d.message_id)});return {kind:suffix,idempotent:false,message_id:String(d.message_id),status:'ACCEPTED',provider_latency_ms:d.provider_latency_ms||0};}
   if(d.ambiguous===true)throw new Error('PROVIDER_AMBIGUOUS_PENDING');
   await markRequest(key,'FAILED',null,String(d.error||'PROVIDER_REJECTED').slice(0,128));
   throw Object.assign(new Error('PROVIDER_REJECTED'),{detail:{status:out.status,error:d.error||null,category:d.category||null}});
