@@ -2,7 +2,7 @@
 
 **Program:** #502  
 **Immediate loop:** #504  
-**State:** EXECUTED · TECHNICAL EXIT CANDIDATE · CI/ANTI-DRIFT PENDING  
+**State:** **TECHNICAL PASS / CLOSED** · L1 REQUIRES SEPARATE OWNER AUTHORIZATION  
 **Production:** legacy autonomy SAFE-OFF
 
 ## Purpose
@@ -136,7 +136,8 @@ Every material design decision needs:
 - [x] 40-case benchmark frozen;
 - [x] target contracts frozen;
 - [x] protected-module regression baseline captured;
-- [ ] owner receives L0 closeout and explicitly authorizes L1 implementation.
+- [x] L0 closeout package persisted and ready for owner review.
+- [ ] owner separately authorizes CONV-L1 #505 implementation.
 
 ## Stop conditions
 
@@ -171,4 +172,17 @@ Routine conversational semantic turn:
 - `ASCENDA_CONVERSATIONS_BENCHMARK_V1.md` frozen
 - `ASCENDA_CONVERSATIONS_L0_IMPACT_REPORT_CURRENT.md`
 
-Technical exit remains conditional on exact-head CI + anti-drift. L1 is not authorized by technical completion.
+Technical evidence:
+- PR #513 exact head `b0b7d8cdcc218987abb8e44867c6ea28fb774869`;
+- Ascenda CI = SUCCESS;
+- dedicated `CONV_L0_AUDIT_CONTRACT_PASS`;
+- Phase 4 Revenue Operations sibling regression = SUCCESS;
+- anti-drift before merge = exact base `81e3e5559b4427dcada03ecb0fc03203ecf0a478`;
+- merge = `60b987f75e5efe8906c2eed0d8c560ff449de3b7`;
+- post-merge Ascenda CI = SUCCESS;
+- production safety readback remained AUTO_OFF / kill ON / AI send OFF / allowlist 0;
+- active DB queries >2s=0 / >5s=0 at post-merge readback.
+
+An unrelated F16 workflow invocation on the merge SHA failed without jobs and is not a CONV-L0 gate. It did not modify L0 evidence or runtime.
+
+**L1 remains NOT AUTHORIZED by L0 completion.**
