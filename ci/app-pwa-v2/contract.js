@@ -43,6 +43,11 @@ ok(panel.includes('/api/devices/preferences'),'device preference UI missing')
 ok(!panel.includes('supabase.co'),'device center must not call Supabase directly')
 ok(!panel.includes('graph.facebook.com'),'device center must not call Meta')
 
+const shell=read('app/public/app.html')
+ok(shell.includes("id:'devices-notifications',ico:'settings',lbl:'Dispositivos y avisos',requiresPanel:true"),'device center must be panel-gated')
+ok(shell.includes("viewId === 'devices-notifications' && (AOS.ctx.paneles_acceso || []).indexOf('devices-notifications') < 0"),'direct device-center navigation must be canary-gated')
+ok(shell.includes("SIDEBAR_ASESOR.filter(function(it) { return !it.requiresPanel; })"),'advisor default sidebar must hide gated panels')
+
 ok(contract.includes('Notifications are side effects'),'side-effect isolation contract missing')
 ok(contract.includes('No mass replay.'),'backlog anti-replay gate missing')
 ok(contract.includes('time_outside_app_sec'),'call duration semantics gate missing')
