@@ -1,15 +1,15 @@
 # ASCENDA OS — PROJECT PORTFOLIO CURRENT
 
-**Captured:** 2026-09-11 America/Lima  
+**Captured:** 2026-09-12 America/Lima  
 **Current main at L0 technical closeout:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
-**ACTIVE PORTFOLIO OWNER:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
-**ACTIVE HIGH/CRITICAL GATE:** `CONV-L2 #506 — Conversation Core + event-driven panel transport`  
-**OWNER MODE:** `RUN UNTIL BLOCKED hasta la siguiente prueba · WhatsApp humano activo · AI autonomy SAFE-OFF`  
-**LAST CLOSED:** `CONV-L1 #505 — PROVIDER CERTIFIED`
+**ACTIVE PORTFOLIO OWNER:** `INT-GOOGLE-001 — GOOGLE CALENDAR + CONTACTS`  
+**ACTIVE HIGH/CRITICAL GATE:** `GC-0/GC-1 — OAuth + secure connection foundation`  
+**OWNER MODE:** `PROCEDE · implementar todo en el sistema · RUN UNTIL BLOCKED hasta canary humano`  
+**PAUSED LANE:** `CONV-001 / CONV-L2 — evidence preserved, no competing HIGH/CRITICAL mutations`
 
 ## Current owner state
 
-CONV-001 remains the active portfolio program. CONV-L2 #506 is the sole HIGH/CRITICAL mutable lane.
+Owner authorization on 2026-09-12 transfers the sole HIGH/CRITICAL mutable lane to INT-GOOGLE-001. CONV-001 / CONV-L2 is paused for competing mutations while its current evidence and SAFE-OFF production posture are preserved.
 
 Legacy WA-L10 #456 is FROZEN / SAFE-OFF evidence only. No new conversational feature patching is permitted on the legacy hot path except narrowly scoped P0 security/privacy/data-loss/production-break remediation.
 
@@ -17,7 +17,8 @@ Legacy WA-L10 #456 is FROZEN / SAFE-OFF evidence only. No new conversational fea
 
 | Program | Preserved input | Current state |
 |---|---|---|
-| CONV-001 Conversations Core V1 | existing panel, WA evidence, Meta integration knowledge, canonical ASCENDA business authorities | **ACTIVE / CONV-L2 MUTABLE OWNER** |
+| INT-GOOGLE-001 Google Calendar + Contacts | Agenda authority, patient identity, existing integration catalog, Resend templates | **ACTIVE / GC-0/GC-1 MUTABLE OWNER** |
+| CONV-001 Conversations Core V1 | existing panel, WA evidence, Meta integration knowledge, canonical ASCENDA business authorities | **PAUSED / EVIDENCE PRESERVED** |
 | Legacy WhatsApp Revenue Hub WA-* | WA3/3.5 UI, L4 authority, L5 booking, L6 attribution, L7 cost, L8 security, L9/L10 evidence | **FROZEN / EVIDENCE + EXTRACTION SOURCE** |
 | Revenue REV-* | patient/product/revenue identity and 360 authorities | READ-ONLY dependency source |
 | Agenda / Call Center / Marketing | current operational systems | PROTECTED regression dependencies |
