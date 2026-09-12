@@ -4,13 +4,14 @@ const assert=require('assert');
 const {
   AGENT_RUNTIME_VERSION,
   clipMemory,
+  semanticTurn,
   detectBoundary,
   validateToolCalls,
   createAgentRuntime
 }=require('../../app/conversation-agent-runtime');
 
 (async()=>{
-  assert.strictEqual(AGENT_RUNTIME_VERSION,'CONV-L3-SHADOW-V1');
+  assert.strictEqual(AGENT_RUNTIME_VERSION,'CONV-L3-SHADOW-V2');
 
   const memory=clipMemory([
     {direction:'INBOUND',message_body:'hola'},
@@ -19,6 +20,16 @@ const {
   ],2,1000);
   assert.strictEqual(memory.length,2);
   assert.strictEqual(memory[1].body,'quiero precio');
+  assert.strictEqual(semanticTurn([
+    {direction:'INBOUND',body:'quiero precio de toxina'},
+    {direction:'OUTBOUND',body:'te ayudo'},
+    {direction:'INBOUND',body:'antes dime dónde queda San Isidro'}
+  ]),'antes dime dónde queda San Isidro');
+  assert.strictEqual(semanticTurn([
+    {direction:'INBOUND',body:'hola'},
+    {direction:'INBOUND',body:'quiero saber precio'},
+    {direction:'INBOUND',body:'de toxina'}
+  ]),'hola\nquiero saber precio\nde toxina');
 
   assert.deepStrictEqual(detectBoundary([{direction:'INBOUND',body:'STOP'}]),{kind:'STOP',reason:'customer_stop_or_suppression'});
   assert.deepStrictEqual(detectBoundary([{direction:'INBOUND',body:'¿qué dosis me recomiendas?'}]),{kind:'HANDOFF',reason:'clinical_sensitive'});
@@ -75,6 +86,7 @@ const {
   assert.strictEqual(planned.tool_calls.length,1);
   assert.strictEqual(planned.tool_calls[0].name,'get_prices');
   assert.strictEqual(planned.provider_send_eligible,false);
+  assert.strictEqual(seenInput.current_turn,'¿Cuánto cuesta la toxina botulínica?');
   assert.strictEqual(seenInput.constraints.provider_send,false);
   assert.strictEqual(seenInput.constraints.direct_sql,false);
   assert.strictEqual(seenInput.constraints.direct_meta,false);
