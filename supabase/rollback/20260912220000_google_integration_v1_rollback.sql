@@ -1,5 +1,10 @@
 -- INT-GOOGLE-001 emergency rollback.
 -- Production use is destructive for Google connection metadata and requires owner approval + export/backup first.
+drop trigger if exists trg_aos_google_booking_operation_v1 on public.aos_booking_operations_v2;
+drop trigger if exists trg_aos_google_wa4_booking_action_v1 on public.aos_wa4_booking_actions_v1;
+drop function if exists public.aos_google_booking_operation_trigger_v1();
+drop function if exists public.aos_google_wa4_booking_action_trigger_v1();
+drop function if exists public.aos_google_enqueue_authorized_appointment_v1(text,text,text);
 drop trigger if exists trg_aos_google_enqueue_agenda_v1 on public.aos_agenda_citas;
 drop trigger if exists trg_aos_google_enqueue_patient_v1 on public.aos_pacientes;
 drop function if exists public.aos_google_enqueue_agenda_v1();
