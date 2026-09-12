@@ -79,9 +79,9 @@ function sourceContracts() {
   ]) assert(perf.includes(token), 'browser stability token missing: ' + token)
 
   assert(lock.includes('P0 #485:** `CLOSED / COMPLETED'), 'P0 closeout marker missing')
-  assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`'), 'CONV-L2 active lock missing')
+  assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L3 #507 — SALES AGENT RUNTIME`'), 'CONV-L3 active lock missing')
   assert(lock.includes('RUN UNTIL BLOCKED'), 'current owner authorization missing')
-  assert(lock.includes('**LAST CLOSED:** `CONV-L1 #505'), 'CONV-L1 closeout marker missing')
+  assert(lock.includes('**LAST CLOSED:** `CONV-L2 #506'), 'CONV-L2 closeout marker missing')
   assert(lock.includes('WA-L10 #456:** `FROZEN · SAFE-OFF EVIDENCE ONLY'), 'legacy WA-L10 freeze marker missing')
   assert(lock.includes('AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF'), 'SAFE-OFF lock missing')
   assert(lock.includes('no autonomous CANARY reactivation while CONV-001 is active'), 'legacy CANARY freeze gate missing')
