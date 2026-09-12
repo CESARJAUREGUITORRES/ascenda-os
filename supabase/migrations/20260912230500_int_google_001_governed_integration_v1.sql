@@ -87,6 +87,11 @@ create index if not exists idx_aos_google_sync_outbox_v1_work
 create index if not exists idx_aos_google_sync_outbox_v1_entity
   on public.aos_google_sync_outbox_v1(entity_kind,entity_ref,created_at desc);
 
+create index if not exists idx_aos_google_sync_outbox_v1_claim_lease
+  on public.aos_google_sync_outbox_v1(lease_until)
+  where state='CLAIMED';
+
+
 alter table public.aos_google_oauth_states_v1 enable row level security;
 alter table public.aos_google_oauth_states_v1 force row level security;
 alter table public.aos_google_connections_v1 enable row level security;
@@ -176,6 +181,51 @@ create trigger trg_aos_google_enqueue_cancel_v1
 after update of estado_cita on public.aos_agenda_citas
 for each row execute function public.aos_google_enqueue_cancel_v1();
 
+create or replace function public.aos_google_sync_claim_v1(
+  p_limit integer default 5,
+  p_calendar boolean default false,
+  p_contacts boolean default false
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path='pg_catalog','public','pg_temp'
+as $
+declare
+  v_limit integer:=greatest(1,least(coalesce(p_limit,5),20));
+  v_items jsonb;
+begin
+  with candidates as (
+    select o.id
+    from public.aos_google_sync_outbox_v1 o
+    where (
+      (o.state in ('DORMANT','FAILED') and o.available_at<=now())
+      or (o.state='CLAIMED' and o.lease_until<now())
+    )
+      and (
+        (coalesce(p_calendar,false) and o.operation in ('CALENDAR_UPSERT','CALENDAR_DELETE'))
+        or (coalesce(p_contacts,false) and o.operation='CONTACT_UPSERT')
+      )
+    order by o.created_at,o.id
+    for update skip locked
+    limit v_limit
+  ), claimed as (
+    update public.aos_google_sync_outbox_v1 o
+    set state='CLAIMED',
+        attempt_count=o.attempt_count+1,
+        last_attempt_at=now(),
+        lease_until=now()+interval '90 seconds',
+        updated_at=now()
+    from candidates c
+    where o.id=c.id
+    returning to_jsonb(o.*) as item
+  )
+  select coalesce(jsonb_agg(item),'[]'::jsonb) into v_items from claimed;
+
+  return jsonb_build_object('ok',true,'items',coalesce(v_items,'[]'::jsonb));
+end
+$;
+
 create or replace function public.aos_google_future_backfill_v1(p_limit integer default 500)
 returns jsonb
 language plpgsql
@@ -236,10 +286,12 @@ select jsonb_build_object(
 );
 $$;
 
+revoke all on function public.aos_google_sync_claim_v1(integer,boolean,boolean) from public,anon,authenticated;
 revoke all on function public.aos_google_future_backfill_v1(integer) from public,anon,authenticated;
 revoke all on function public.aos_google_integration_audit_v1() from public,anon,authenticated;
 revoke all on function public.aos_google_enqueue_agenda_event_v1() from public,anon,authenticated;
 revoke all on function public.aos_google_enqueue_cancel_v1() from public,anon,authenticated;
+grant execute on function public.aos_google_sync_claim_v1(integer,boolean,boolean) to service_role;
 grant execute on function public.aos_google_future_backfill_v1(integer) to service_role;
 grant execute on function public.aos_google_integration_audit_v1() to service_role;
 
