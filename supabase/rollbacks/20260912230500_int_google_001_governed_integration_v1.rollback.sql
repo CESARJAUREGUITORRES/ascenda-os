@@ -3,6 +3,7 @@ drop trigger if exists trg_aos_google_enqueue_cancel_v1 on public.aos_agenda_cit
 drop trigger if exists trg_aos_google_enqueue_agenda_event_v1 on public.aos_agenda_events_v2;
 drop function if exists public.aos_google_enqueue_cancel_v1();
 drop function if exists public.aos_google_enqueue_agenda_event_v1();
+drop function if exists public.aos_google_sync_claim_v1(integer,boolean,boolean);
 drop function if exists public.aos_google_future_backfill_v1(integer);
 drop function if exists public.aos_google_integration_audit_v1();
 drop table if exists public.aos_google_sync_outbox_v1;
