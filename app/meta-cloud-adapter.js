@@ -149,8 +149,10 @@ function createMetaCloudAdapter(config){
       result.providerErrorCode=String(e.errorCode||e.message||'META_PHONE_CHECK_FAILED').slice(0,128);
       result.providerHttpStatus=e.providerHttpStatus||null;return result;
     }
-    result.ok=result.credentialState==='READY'&&result.assetState==='READY'&&result.permissionsState!=='INVALID';
-    result.diagnosis=result.ok?'READY':(result.permissionsState==='INVALID'?'PERMISSION_OR_ASSET_ACCESS':'PROVIDER_CHECK_INCOMPLETE');
+    result.ok=result.credentialState==='READY'&&result.assetState==='READY'&&result.permissionsState!=='INVALID'&&result.businessAccountAvailable===true;
+    result.diagnosis=result.ok?'READY':
+      (result.permissionsState==='INVALID'?'PERMISSION_OR_ASSET_ACCESS':
+      (result.businessAccountAvailable!==true?'WABA_ASSET_ACCESS_MISSING':'PROVIDER_CHECK_INCOMPLETE'));
     return result;
   }
 
