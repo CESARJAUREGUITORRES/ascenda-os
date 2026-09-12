@@ -23,6 +23,8 @@ const extraction = read('docs/control/ASCENDA_CONVERSATIONS_L0_EXTRACTION_MATRIX
 const authority = read('docs/control/ASCENDA_CONVERSATIONS_L0_AUTHORITY_MAP_CURRENT.md')
 const contracts = read('docs/control/ASCENDA_CONVERSATIONS_TARGET_CONTRACTS_V1.md')
 const benchmark = read('docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md')
+const lock = read('docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md')
+const readiness = read('docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md')
 
 assert(railway.includes('server-phase-s-f17.js'), 'Railway outer runtime evidence drifted')
 assert(outer.includes("server-f5.js") && outer.includes("server-f17.js"), 'F17 spawn rewrite evidence drifted')
@@ -55,5 +57,9 @@ assert(contracts.includes('interface OutboundPolicy'), 'OutboundPolicy contract 
 assert(contracts.includes('interface ConversationJob'), 'JobOutbox contract missing')
 assert(benchmark.includes('FROZEN V1 BY CONV-L0'), '40-case benchmark is not frozen')
 assert(audit.includes('RC-1 — Deep proxy/process chain'), 'Root-cause audit missing')
+assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `NONE`'), 'L0 closeout must release the global lock')
+assert(lock.includes('CONV-L1 #505 — NATIVE META CHANNEL GATEWAY · NOT STARTED · NOT AUTHORIZED'), 'L1 explicit owner gate missing')
+assert(readiness.includes('TECHNICAL PASS / CLOSED'), 'L0 technical closeout marker missing')
+assert(readiness.includes('L1 remains NOT AUTHORIZED'), 'L1 must remain blocked after L0')
 
 console.log('CONV_L0_AUDIT_CONTRACT_PASS')
