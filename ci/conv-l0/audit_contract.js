@@ -61,7 +61,7 @@ assert(contracts.includes('interface OutboundPolicy'), 'OutboundPolicy contract 
 assert(contracts.includes('interface ConversationJob'), 'JobOutbox contract missing')
 assert(benchmark.includes('FROZEN V1 BY CONV-L0'), '40-case benchmark is not frozen')
 assert(audit.includes('RC-1 — Deep proxy/process chain'), 'Root-cause audit missing')
-assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`'), 'CONV-L2 active lock missing')
+assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L3 #507 — SALES AGENT RUNTIME`'), 'CONV-L3 active lock missing')
 assert(lock.includes('RUN UNTIL BLOCKED'), 'owner execution mode missing')
 assert(readiness.includes('TECHNICAL PASS / CLOSED'), 'L0 technical closeout marker missing')
 assert(readiness.includes('L1 OWNER AUTHORIZATION RECEIVED / ACTIVE'), 'L1 authorization transition missing')
