@@ -47,8 +47,9 @@ ok(calls.includes("_rpc('aos_siguiente_lead'"),'F6_CALLCENTER_BACKLOG_SOURCE_MIS
 ok(f4.includes("rpcName='aos_sales_intelligence_gateway'"),'F6_SALES_GATEWAY_SOURCE_MISSING');
 ok(wa2.includes('aos_wa_conversations_v1'),'F6_WA_CONVERSATION_SOURCE_MISSING');
 ok(wa3.includes('aos_wa_outbound_requests_v1'),'F6_WA_OUTBOUND_SOURCE_MISSING');
-ok(f4.includes("if(st.status==='delivered')patch.delivered_at"),'F6_WA_DELIVERY_PROGRESS_SOURCE_MISSING');
-ok(f4.includes("if(st.status==='failed')patch.failed_at"),'F6_WA_FAILURE_PROGRESS_SOURCE_MISSING');
+ok(f4.includes("if(incoming==='delivered')patch.delivered_at=ts"),'F6_WA_DELIVERY_PROGRESS_SOURCE_MISSING');
+ok(f4.includes("if(incoming==='failed')patch.failed_at=ts"),'F6_WA_FAILURE_PROGRESS_SOURCE_MISSING');
+ok(f4.includes('WA_PROVIDER_STATUS_RANK')&&f4.includes('reconcileProviderMessage'),'F6_WA_MONOTONIC_RECONCILIATION_SOURCE_MISSING');
 ok(email.includes("action === 'CONFIG_HEALTH'"),'F6_EMAIL_CONFIG_HEALTH_SOURCE_MISSING');
 ok(email.includes("'/rest/v1/aos_email_envios'"),'F6_EMAIL_SEND_SOURCE_MISSING');
 ok(email.includes('handleWebhook'),'F6_EMAIL_WEBHOOK_SOURCE_MISSING');

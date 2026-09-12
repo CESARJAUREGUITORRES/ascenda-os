@@ -37,6 +37,7 @@ test('health checks token permissions and phone asset without exposing token',as
     accessToken:'secret-token-never-return',
     phoneNumberId:'pn1',
     graphVersion:'v99.0',
+    businessPortfolioId:'biz1',
     appSecret:'app-secret',
     requester:requesterFixture({
       'GET me':{status:200,data:{id:'u1'},latencyMs:4},
@@ -44,7 +45,10 @@ test('health checks token permissions and phone asset without exposing token',as
         {permission:'whatsapp_business_management',status:'granted'},
         {permission:'whatsapp_business_messaging',status:'granted'}
       ]},latencyMs:5},
-      'GET pn1':{status:200,data:{id:'pn1',verified_name:'Zi Vital',display_phone_number:'+51 demo',quality_rating:'GREEN',whatsapp_business_account:{id:'waba1'}},latencyMs:5}
+      'GET pn1':{status:200,data:{id:'pn1',verified_name:'Zi Vital',display_phone_number:'+51 demo',quality_rating:'GREEN'},latencyMs:5},
+      'GET biz1/owned_whatsapp_business_accounts':{status:200,data:{data:[{id:'waba1',name:'Zi Vital'}]},latencyMs:5},
+      'GET biz1/client_whatsapp_business_accounts':{status:200,data:{data:[]},latencyMs:5},
+      'GET waba1/phone_numbers':{status:200,data:{data:[{id:'pn1',display_phone_number:'+51 demo',verified_name:'Zi Vital'}]},latencyMs:5}
     },calls)
   });
   const h=await a.health();
@@ -54,6 +58,30 @@ test('health checks token permissions and phone asset without exposing token',as
   assert.equal(h.assetState,'READY');
   assert.equal(h.businessAccountAvailable,true);
   assert.doesNotMatch(JSON.stringify(h),/secret-token-never-return/);
+});
+
+test('health fails closed when token and phone work but WABA cannot be resolved',async()=>{
+  const calls=[];
+  const a=createMetaCloudAdapter({
+    accessToken:'tok',phoneNumberId:'pn1',graphVersion:'v99.0',businessPortfolioId:'biz1',
+    requester:requesterFixture({
+      'GET me':{status:200,data:{id:'u1'}},
+      'GET me/permissions':{status:200,data:{data:[
+        {permission:'whatsapp_business_management',status:'granted'},
+        {permission:'whatsapp_business_messaging',status:'granted'}
+      ]}},
+      'GET pn1':{status:200,data:{id:'pn1',verified_name:'Zi Vital'}},
+      'GET biz1/owned_whatsapp_business_accounts':{status:200,data:{data:[{id:'waba-other',name:'Other'}]}},
+      'GET biz1/client_whatsapp_business_accounts':{status:200,data:{data:[]}},
+      'GET waba-other/phone_numbers':{status:200,data:{data:[{id:'pn-other'}]}}
+    },calls)
+  });
+  const h=await a.health();
+  assert.equal(h.messagingReady,true);
+  assert.equal(h.businessAccountAvailable,false);
+  assert.equal(h.managementReady,false);
+  assert.equal(h.ok,false);
+  assert.equal(h.diagnosis,'WABA_ASSET_ACCESS_MISSING');
 });
 
 test('sendPayload returns normalized dispatch receipt',async()=>{
@@ -87,9 +115,11 @@ test('media supports image audio video and document',async()=>{
 test('template listing resolves WABA from phone asset and normalizes read model',async()=>{
   const calls=[];
   const a=createMetaCloudAdapter({
-    accessToken:'tok',phoneNumberId:'pn1',graphVersion:'v99.0',
+    accessToken:'tok',phoneNumberId:'pn1',graphVersion:'v99.0',businessPortfolioId:'biz1',
     requester:requesterFixture({
-      'GET pn1':{status:200,data:{id:'pn1',whatsapp_business_account:{id:'waba1'}}},
+      'GET biz1/owned_whatsapp_business_accounts':{status:200,data:{data:[{id:'waba1',name:'Zi Vital'}]}},
+      'GET biz1/client_whatsapp_business_accounts':{status:200,data:{data:[]}},
+      'GET waba1/phone_numbers':{status:200,data:{data:[{id:'pn1'}]}},
       'GET waba1/message_templates':{status:200,data:{data:[{id:'t1',name:'recordatorio',status:'APPROVED',category:'UTILITY',language:'es_PE',components:[]}]}}
     },calls)
   });
@@ -122,6 +152,7 @@ test('normalizes provider error categories and definite/transient semantics',()=
   assert.equal(e.definite,false);
   assert.equal(providerCategory('132001',400),'TEMPLATE');
   assert.equal(providerCategory('130429',429),'RATE');
+  assert.equal(providerCategory('131005',400),'PERMISSION');
 });
 
 test('rejects invalid direct payload types at provider boundary',async()=>{

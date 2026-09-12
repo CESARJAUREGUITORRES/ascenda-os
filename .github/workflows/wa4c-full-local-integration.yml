@@ -58,6 +58,7 @@ jobs:
       WHATSAPP_GRAPH_VERSION: 'v23.0'
       WA_CANARY_MODE: 'true'
       WA_CANARY_ALLOW_TO: '51911111111'
+      WA_L4_INTERNAL_TOKEN: 'wa4c-full-local-internal-token-000000000001'
 
     steps:
       - uses: actions/checkout@v4
