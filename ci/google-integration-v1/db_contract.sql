@@ -64,9 +64,13 @@ begin
 
   -- Booking Core is authorized to enqueue after commit evidence exists.
   insert into public.aos_booking_operations_v2(
-    id,idempotency_key,request_hash,operation_type,channel,appointment_id,status,response
+    id,idempotency_key,request_hash,operation_type,channel,actor_id,appointment_id,treatment_id,
+    professional_ref,site,appointment_date,appointment_time,identity_state,status,response
   ) values (
-    op,'ci-book-1','hash-book-1','BOOK','AGENDA','appt-1','BOOKED','{}'::jsonb
+    op,'ci-book-1','hash-book-1','BOOK','AGENDA',
+    '33333333-3333-4333-8333-333333333333'::uuid,'appt-1',
+    '44444444-4444-4444-8444-444444444444'::uuid,'CI-PROF','SAN ISIDRO',
+    '2026-09-20'::date,'10:00'::time,'VERIFIED','BOOKED','{}'::jsonb
   );
   select count(*) into c from public.aos_google_sync_outbox_v1 where entity_id='appt-1' and action='CALENDAR_UPSERT';
   if c <> 1 then raise exception 'BOOKING_CORE_CALENDAR_INTENT_COUNT:%',c; end if;
@@ -75,9 +79,14 @@ begin
 
   -- Legacy WA attribution ledger may describe the same governed booking; idempotency must collapse it.
   insert into public.aos_wa4_booking_actions_v1(
-    id,idempotency_key,request_hash,agenda_id,status
+    id,idempotency_key,request_hash,conversation_id,actor_id,agenda_id,treatment_id,
+    professional_id,site,appointment_date,appointment_time,identity_state,status
   ) values (
-    wa,'ci-wa-book-1','hash-wa-book-1','appt-1','BOOKED'
+    wa,'ci-wa-book-1','hash-wa-book-1',
+    '55555555-5555-4555-8555-555555555555'::uuid,
+    '33333333-3333-4333-8333-333333333333'::uuid,
+    'appt-1','44444444-4444-4444-8444-444444444444'::uuid,
+    'CI-PROF','SAN ISIDRO','2026-09-20'::date,'10:00'::time,'VERIFIED','BOOKED'
   );
   select count(*) into c from public.aos_google_sync_outbox_v1 where entity_id='appt-1' and action='CALENDAR_UPSERT';
   if c <> 1 then raise exception 'DUPLICATE_GOVERNED_CALENDAR_INTENT:%',c; end if;
