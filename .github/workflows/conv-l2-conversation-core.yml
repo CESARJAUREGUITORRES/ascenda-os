@@ -49,5 +49,4 @@ jobs:
       - name: Human routing and UI compatibility
         shell: powershell
         run: |
-          node ci/wa4c-full-local/ui-contract.test.js
-          python ci/wa3-boxes-routing-handoff/ui_contract.py
+          node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
