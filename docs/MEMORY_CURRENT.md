@@ -1,10 +1,11 @@
 # ASCENDA OS — MEMORY CURRENT
 
-**Captured:** 2026-09-11 America/Lima  
-**ACTIVE PROGRAM:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
+**Captured:** 2026-09-12 America/Lima  
+**ACTIVE PROGRAM:** `INT-GOOGLE-001 — GOOGLE CALENDAR + CONTACTS`  
 **MAIN AT L0 TECHNICAL CLOSEOUT:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
-**ACTIVE HIGH/CRITICAL GATE:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`  
-**OWNER MODE:** `RUN UNTIL BLOCKED hasta la siguiente prueba · WhatsApp humano activo · AI autonomy SAFE-OFF`  
+**ACTIVE HIGH/CRITICAL GATE:** `GC-0/GC-1 — OAuth + secure connection foundation`  
+**OWNER MODE:** `PROCEDE · implementar todo en el sistema · RUN UNTIL BLOCKED hasta canary humano`  
+**PAUSED LANE:** `CONV-001 / CONV-L2 — evidence preserved; no competing mutations`  
 **LAST CLOSED:** `CONV-L1 #505 — PROVIDER CERTIFIED`  
 **PARENT:** `#502`  
 **LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
@@ -17,7 +18,8 @@
 3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
 4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
 5. this file;
-6. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
+6. `docs/control/ASCENDA_GOOGLE_INTEGRATION_V1_CURRENT.md`;
+7. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
 7. `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`;
 8. `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`;
 9. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
@@ -173,3 +175,8 @@ Evidence:
 - certified Railway bootstrap restored after temporary probe runs.
 
 The owner then authorized continuing to the next proof so WhatsApp can be exposed as an active human-operated channel. This activates CONV-L2 #506 only; it does not authorize autonomous AI or L3.
+
+
+## Google integration lock transfer — 2026-09-12
+
+Owner explicitly authorized implementation of Google Calendar + Contacts after completing Google Cloud OAuth setup and Railway secret configuration. INT-GOOGLE-001 now owns the single HIGH/CRITICAL mutable lane until the bounded human canary or a new explicit owner transfer. Calendar/Contacts feature flags remain false until certified.
