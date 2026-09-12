@@ -1,13 +1,13 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-12 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `INT-GOOGLE-001 / GC-0/GC-1 — GOOGLE CALENDAR + CONTACTS OAUTH FOUNDATION`  
+**ACTIVE HIGH/CRITICAL LOCK:** `INT-GOOGLE-001 #542 / GC-0→GC-7 — GOOGLE CALENDAR + CONTACTS`  
 **OWNER AUTHORIZATION:** `PROCEDE · implementar todo en el sistema · RUN UNTIL BLOCKED hasta canary humano`  
-**PAUSED HIGH/CRITICAL LANE:** `CONV-001 / CONV-L2 — preserve evidence; no competing mutations`  
+**PAUSED HIGH/CRITICAL LANE:** `CONV-001 / CONV-L4 #508 — preflight ready; no competing mutations until Google closeout`  
 **Legacy WA-L10 #456:** `FROZEN · SAFE-OFF EVIDENCE ONLY · NO NEW FEATURE PATCHING`  
 **P0 #485:** `CLOSED / COMPLETED — PROD RECURRENCE+LOAD PASS`  
-**GitHub authority:** Issue `#502` = `OPEN`; Issue `#456` = `OPEN / FROZEN`  
-**Current main at L1 start:** `eefd26d6e2395545cfb944d48260d84602240075`  
+**GitHub authority:** Google `#542` = `OPEN / ACTIVE`; Conversations `#502` = `OPEN`; L4 `#508` = `OPEN / PAUSED`; legacy `#456` = `OPEN / FROZEN`  
+**Google lock baseline:** `17fc0109399db1eabf7116e29d50c6038eb30670`  
 **Current production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF · AI SEND OFF · AUTO ROUTING OFF`  
 **Active autonomous allowlist:** `0`  
 **L11/general autonomous PROD:** `NOT AUTHORIZED`
@@ -16,7 +16,7 @@
 
 The owner approved a consolidation pivot after the R8/R9 WhatsApp canary investigation showed that continuing to stack patches on the WA2/WA3/WA4/F4/L4-L10 hot path was creating latency, operational coupling and debugging complexity without yet meeting the required conversational-sales experience.
 
-Owner authorization on 2026-09-12 supersedes the prior mutable-lane assignment for the duration of this integration loop. **INT-GOOGLE-001 / GC-0/GC-1 owns the sole HIGH/CRITICAL implementation lane**. CONV-001 remains preserved but paused for competing mutations.
+Owner authorization on 2026-09-12 supersedes the prior mutable-lane assignment for the duration of this integration loop. **INT-GOOGLE-001 #542 owns the sole HIGH/CRITICAL implementation lane through its bounded human canary**. CONV-001 remains preserved and resumes at L4 only after Google closeout/lock transfer.
 
 External projects such as Chatwoot, Fazer clinical sales agent patterns, LangGraph and official Meta samples are engineering blueprints only. They are not runtime dependencies unless separately approved.
 
@@ -50,6 +50,6 @@ WA-L10 #456 remains preserved for audit/evidence and rollback knowledge, but is 
 
 ## Immediate next gate
 
-**INT-GOOGLE-001 / GC-0/GC-1 is ACTIVE.** Build and certify server-side OAuth, encrypted connection persistence and the existing Configuración > Integraciones Google connector. Keep all Google sync flags SAFE-OFF until the bounded human canary. CONV production AI autonomy remains SAFE-OFF.
+**INT-GOOGLE-001 #542 is ACTIVE.** Complete OAuth, encrypted persistence, Calendar create/update/delete, Contacts exact-identity sync, Resend Calendar action and unified dormant outbox; deploy with sync flags SAFE-OFF, then stop only for the bounded human OAuth/canary action. After certified Google closeout, transfer the lock to `CONV-L4 #508`. CONV production AI autonomy remains SAFE-OFF.
 
 See Issue #502 and `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`.
