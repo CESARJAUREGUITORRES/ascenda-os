@@ -11,7 +11,7 @@ function nowMs(){return Date.now();}
 function providerCategory(code,status){
   const c=String(code||'');
   if(c==='190'||status===401)return 'AUTH';
-  if(['10','200','100'].includes(c)||status===403)return 'PERMISSION';
+  if(['10','100','200','131005'].includes(c)||status===403)return 'PERMISSION';
   if(['131026','131047','131051'].includes(c))return 'RECIPIENT';
   if(/^132/.test(c))return 'TEMPLATE';
   if(['4','17','32','613','80007','130429'].includes(c)||status===429)return 'RATE';
@@ -48,7 +48,9 @@ function createMetaCloudAdapter(config){
   const graphVersion=String(config.graphVersion!=null?config.graphVersion:(process.env.WHATSAPP_GRAPH_VERSION||''));
   const appSecret=String(config.appSecret!=null?config.appSecret:(process.env.WHATSAPP_APP_SECRET||''));
   const configuredWabaId=String(config.businessAccountId!=null?config.businessAccountId:(process.env.WHATSAPP_BUSINESS_ACCOUNT_ID||''));
+  const businessPortfolioId=String(config.businessPortfolioId!=null?config.businessPortfolioId:(process.env.WHATSAPP_BUSINESS_PORTFOLIO_ID||''));
   const requester=config.requester||requestJson;
+  let resolvedWabaCache=configuredWabaId?{id:configuredWabaId,name:null,source:'CONFIG'}:null;
 
   function transportConfigured(){return !!(accessToken&&phoneNumberId&&isGraphVersion(graphVersion));}
   function webhookConfigured(){return !!appSecret;}
@@ -98,13 +100,59 @@ function createMetaCloudAdapter(config){
     return requester('GET',encodeURIComponent(phoneNumberId)+'?fields='+encodeURIComponent(fields),null,12000);
   }
 
+  async function discoverBusinessAccounts(){
+    const businesses=[];
+    if(businessPortfolioId)businesses.push({id:businessPortfolioId,name:null,source:'CONFIG_PORTFOLIO'});
+    if(!businesses.length){
+      try{
+        const out=await requester('GET','me/businesses?fields='+encodeURIComponent('id,name')+'&limit=50',null,12000);
+        for(const row of Array.isArray(out&&out.data&&out.data.data)?out.data.data:[]){
+          const id=trim(row&&row.id,128);if(id)businesses.push({id,name:trim(row&&row.name,256)||null,source:'ME_BUSINESSES'});
+        }
+      }catch(_){}
+    }
+    const seenBusinesses=new Set(),wabas=new Map();
+    for(const business of businesses){
+      if(!business.id||seenBusinesses.has(business.id))continue;seenBusinesses.add(business.id);
+      for(const edge of ['owned_whatsapp_business_accounts','client_whatsapp_business_accounts']){
+        try{
+          const out=await requester('GET',encodeURIComponent(business.id)+'/'+edge+'?fields='+encodeURIComponent('id,name')+'&limit=100',null,15000);
+          for(const row of Array.isArray(out&&out.data&&out.data.data)?out.data.data:[]){
+            const id=trim(row&&row.id,128);if(id&&!wabas.has(id))wabas.set(id,{id,name:trim(row&&row.name,256)||null,source:edge,businessId:business.id});
+          }
+        }catch(_){}
+      }
+    }
+    if(!wabas.size){
+      try{
+        const out=await requester('GET','me/assigned_whatsapp_business_accounts?fields='+encodeURIComponent('id,name')+'&limit=100',null,15000);
+        for(const row of Array.isArray(out&&out.data&&out.data.data)?out.data.data:[]){
+          const id=trim(row&&row.id,128);if(id&&!wabas.has(id))wabas.set(id,{id,name:trim(row&&row.name,256)||null,source:'ME_ASSIGNED'});
+        }
+      }catch(_){}
+    }
+    return Array.from(wabas.values());
+  }
+
+  async function resolveWaba(){
+    if(resolvedWabaCache&&resolvedWabaCache.id)return resolvedWabaCache;
+    const candidates=await discoverBusinessAccounts();
+    for(const candidate of candidates){
+      try{
+        const out=await requester('GET',encodeURIComponent(candidate.id)+'/phone_numbers?fields='+encodeURIComponent('id,display_phone_number,verified_name')+'&limit=100',null,15000);
+        const rows=Array.isArray(out&&out.data&&out.data.data)?out.data.data:[];
+        if(rows.some(row=>String(row&&row.id||'')===phoneNumberId)){
+          resolvedWabaCache={id:candidate.id,name:candidate.name||null,source:candidate.source||'DISCOVERY'};
+          return resolvedWabaCache;
+        }
+      }catch(_){}
+    }
+    return null;
+  }
+
   async function resolveWabaId(){
-    if(configuredWabaId)return configuredWabaId;
-    const out=await requester('GET',encodeURIComponent(phoneNumberId)+'?fields='+encodeURIComponent('whatsapp_business_account'),null,12000);
-    const value=out&&out.data&&out.data.whatsapp_business_account;
-    if(typeof value==='string'&&value.trim())return value.trim();
-    if(value&&typeof value==='object'&&String(value.id||'').trim())return String(value.id).trim();
-    return '';
+    const row=await resolveWaba();
+    return row&&row.id?row.id:'';
   }
 
   async function health(){
@@ -140,17 +188,22 @@ function createMetaCloudAdapter(config){
       result.verifiedName=asset&&asset.data?trim(asset.data.verified_name,256)||null:null;
       result.displayPhoneNumber=asset&&asset.data?trim(asset.data.display_phone_number,64)||null:null;
       result.qualityRating=asset&&asset.data?trim(asset.data.quality_rating,64)||null:null;
-      result.businessAccountAvailable=!!configuredWabaId;
-      if(!result.businessAccountAvailable){
-        try{result.businessAccountAvailable=!!(await resolveWabaId());}catch(_){result.businessAccountAvailable=false;}
-      }
+      let waba=null;
+      try{waba=await resolveWaba();}catch(_){waba=null;}
+      result.businessAccountAvailable=!!(waba&&waba.id);
+      result.businessAccountId=waba&&waba.id?waba.id:null;
+      result.businessAccountName=waba&&waba.name?waba.name:null;
     }catch(e){
       result.assetState='INVALID';result.diagnosis=e.diagnosis||'PHONE_NUMBER_ID_INVALID_OR_INACCESSIBLE';
       result.providerErrorCode=String(e.errorCode||e.message||'META_PHONE_CHECK_FAILED').slice(0,128);
       result.providerHttpStatus=e.providerHttpStatus||null;return result;
     }
-    result.ok=result.credentialState==='READY'&&result.assetState==='READY'&&result.permissionsState!=='INVALID';
-    result.diagnosis=result.ok?'READY':(result.permissionsState==='INVALID'?'PERMISSION_OR_ASSET_ACCESS':'PROVIDER_CHECK_INCOMPLETE');
+    result.messagingReady=result.credentialState==='READY'&&result.assetState==='READY'&&result.permissionsState!=='INVALID';
+    result.managementReady=result.messagingReady&&result.businessAccountAvailable===true;
+    result.ok=result.managementReady;
+    result.diagnosis=result.ok?'READY':
+      (result.permissionsState==='INVALID'?'PERMISSION_OR_ASSET_ACCESS':
+      (!result.businessAccountAvailable?'WABA_ASSET_ACCESS_MISSING':'PROVIDER_CHECK_INCOMPLETE'));
     return result;
   }
 
@@ -209,7 +262,7 @@ function createMetaCloudAdapter(config){
   }
 
   return {
-    transportConfigured,webhookConfigured,verifyWebhook,normalizeWebhook,health,
+    transportConfigured,webhookConfigured,verifyWebhook,normalizeWebhook,health,discoverBusinessAccounts,resolveWaba,resolveWabaId,
     sendPayload,sendText,sendMedia,sendTemplate,sendInteractive,typing,listTemplates,
     normalizeProviderError
   };
