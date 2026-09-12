@@ -17,7 +17,7 @@
 <div id="notice" class="notice"></div><div id="gate" class="gate"><div class="gatebox"><h3>🔐 Acceso WA-3 protegido</h3><p class="meta">Requiere sesión 2FA y panel <b>admin-whatsapp</b> o <b>whatsapp-agent</b>.</p><a class="btn" href="/app.html">Volver a ASCENDA</a></div></div>
 <script>
 (function(){'use strict';
-var S={boot:null,rows:[],active:null,messages:[],q:'',timer:null,busy:false};
+var S={boot:null,rows:[],active:null,messages:[],q:'',busy:false,eventAbort:null,eventReconnect:null,eventRefresh:null,fallback:null,eventBackoffMs:1000};
 function token(){try{return sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||''}catch(e){return ''}}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function hdr(){return {'X-AOS-App-Token':token(),'Content-Type':'application/json','Accept':'application/json'}}
@@ -56,8 +56,14 @@ function loadMessages(id){return api('/api/wa3/conversations/'+id+'/messages?lim
 function refreshInbox(focus){return api('/api/wa3/inbox?limit=120').then(function(d){S.rows=d.rows||[];if(focus)S.active=focus;if(S.active&&!S.rows.some(function(r){return r.id===S.active}))S.active=null;renderList();var r=active();renderHead(r);renderSide(r);renderComposer(r);if(r&&S.messages.length===0)loadMessages(r.id)})}
 function refreshAll(focus){return refreshInbox(focus).then(function(){if(S.active)return loadMessages(S.active)})}
 function boot(){return api('/api/wa3/bootstrap').then(function(d){S.boot=d;document.getElementById('who').textContent=(d.actor.name||'Usuario')+' · '+(d.actor.is_admin?'ADMIN':'AGENTE');renderClaim();renderSide(active());renderComposer(active())})}
+function scheduleFallback(){if(S.fallback)clearTimeout(S.fallback);S.fallback=setTimeout(function(){if(document.hidden){scheduleFallback();return;}refreshInbox().then(function(){if(S.active)return loadMessages(S.active)}).finally(scheduleFallback)},30000)}
+function queueEventRefresh(){if(S.eventRefresh)clearTimeout(S.eventRefresh);S.eventRefresh=setTimeout(function(){S.eventRefresh=null;refreshInbox().then(function(){if(S.active)return loadMessages(S.active)})},120)}
+function consumeEventFrame(frame){var lines=String(frame||'').split(/\r?\n/),data=[];for(var i=0;i<lines.length;i++)if(lines[i].slice(0,5)==='data:')data.push(lines[i].slice(5).trim());if(!data.length)return;try{var e=JSON.parse(data.join('\n'));if(e&&e.type!=='ready')queueEventRefresh()}catch(_){}}
+function scheduleReconnect(){if(S.eventReconnect)clearTimeout(S.eventReconnect);if(document.hidden)return;var wait=Math.max(1000,Math.min(10000,Number(S.eventBackoffMs||1000)));S.eventBackoffMs=Math.min(10000,wait*2);S.eventReconnect=setTimeout(function(){S.eventReconnect=null;connectEvents()},wait)}
+async function connectEvents(){if(document.hidden||S.eventAbort)return;var t=token();if(String(t).length<32)return;var ctrl=new AbortController();S.eventAbort=ctrl;try{var r=await fetch('/api/wa3/events',{method:'GET',headers:{'X-AOS-App-Token':t,'Accept':'text/event-stream'},cache:'no-store',credentials:'same-origin',signal:ctrl.signal});if(!r.ok||!r.body)throw new Error('EVENT_STREAM_'+r.status);S.eventBackoffMs=1000;var reader=r.body.getReader(),decoder=new TextDecoder(),buf='';while(true){var part=await reader.read();if(part.done)break;buf+=decoder.decode(part.value,{stream:true});var cut;while((cut=buf.indexOf('\n\n'))>=0){var frame=buf.slice(0,cut);buf=buf.slice(cut+2);consumeEventFrame(frame)}}}catch(e){}finally{if(S.eventAbort===ctrl)S.eventAbort=null;if(!document.hidden)scheduleReconnect()}}
+function startTransport(){scheduleFallback();connectEvents();window.addEventListener('focus',function(){refreshInbox().then(function(){if(S.active)return loadMessages(S.active)});if(!S.eventAbort)connectEvents()});document.addEventListener('visibilitychange',function(){if(document.hidden){if(S.eventAbort)S.eventAbort.abort();S.eventAbort=null;return;}refreshInbox().then(function(){if(S.active)return loadMessages(S.active)});connectEvents()})}
 document.getElementById('q').oninput=function(){S.q=this.value;renderList()};
-boot().then(refreshInbox).then(function(){S.timer=setInterval(function(){if(document.hidden||S.busy)return;refreshInbox().then(function(){if(S.active)loadMessages(S.active)})},3000)}).catch(function(e){note(e.message)});
+boot().then(refreshInbox).then(startTransport).catch(function(e){note(e.message)});
 })();
 </script>
 </body></html>
