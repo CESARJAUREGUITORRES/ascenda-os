@@ -5,7 +5,7 @@ const ai=require('./ai-router');
 const resilience=require('./wa4-ai-resilience');
 const {createAgentRuntime}=require('./conversation-agent-runtime');
 
-const VERSION='CONV-L3-REAL-MODEL-BENCH-V1';
+const VERSION='CONV-L3-REAL-MODEL-BENCH-V2';
 const TOOL_REGISTRY=Object.freeze([
   'get_prices',
   'get_promotions',
@@ -77,6 +77,7 @@ function adapter(keys,telemetry){
         'No envías mensajes ni ejecutas herramientas: solo decides el siguiente paso.',
         'Devuelve SOLO JSON con tool_calls,draft_reply,next_best_action.',
         'Máximo 2 tool_calls y usa únicamente available_tools.',
+        'CURRENT_TURN contiene el turno semántico actual: todos los INBOUND consecutivos posteriores al último OUTBOUND. CURRENT_TURN manda sobre intenciones anteriores; el historial previo solo da contexto. Si el cliente cambia de tema, selecciona la herramienta del tema nuevo.',
         'Reglas de selección: precios->get_prices; promociones u objeción de precio->get_promotions; sedes/ubicación->get_locations; medios de pago->get_payment_methods; horarios->get_hours; intención de reservar/agendar->get_booking_availability.',
         'Si falta un dato autoritativo, pide o consulta la herramienta correspondiente; no inventes precio, descuento, horario, disponibilidad, diagnóstico, dosis ni contraindicación.',
         'El draft_reply debe sonar natural, breve, útil y comercial, sin decir que eres un bot.',
@@ -87,6 +88,7 @@ function adapter(keys,telemetry){
         {role:'user',content:JSON.stringify({
           conversation:input.conversation,
           history,
+          CURRENT_TURN:input.current_turn,
           available_tools:input.available_tools,
           constraints:input.constraints
         })}
