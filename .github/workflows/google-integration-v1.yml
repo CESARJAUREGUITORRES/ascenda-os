@@ -43,7 +43,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  fast-static:
+    name: Google V1 runtime / OAuth / browser boundary
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Static contracts
+        shell: powershell
+        run: |
+          node --check app/google-integration-v1.js
+          node --check app/server.js
+          node --check app/public/agenda.js
+          node --check app/public/calls.js
+          node ci/google-integration-v1/contract.js
+
   google-integration-v1:
+    needs: fast-static
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 18
     env:
