@@ -1,0 +1,17 @@
+'use strict'
+const fs=require('fs')
+const m=fs.readFileSync('supabase/migrations/20260912183000_app_pwa_v2_stale_push_backlog_sanitation.sql','utf8')
+const r=fs.readFileSync('supabase/rollback/20260912183000_app_pwa_v2_stale_push_backlog_sanitation_rollback.sql','utf8')
+function ok(v,msg){if(!v)throw new Error(msg)}
+ok(m.includes("2026-09-12 16:31:05.089661+00"),'snapshot cutoff missing')
+ok(m.includes("push_enabled = false"),'sanitation must disable push')
+ok(m.includes("push_status = 'EXPIRED'"),'sanitation must expire push')
+ok(m.includes("push_status = 'PENDING'"),'sanitation must target pending only')
+ok(m.includes("push_sanitation_key"),'audit marker missing')
+for(const e of ['ADMIN_APPOINTMENT_DIGEST','APPOINTMENT_CREATED','ADMIN_ATTENDED_DIGEST','ADMIN_NO_SHOW_DIGEST','APPOINTMENT_NO_SHOW','APPOINTMENT_ATTENDED','ADMIN_SALES_DIGEST','SALE_ADDED']) ok(m.includes(e),'missing captured event '+e)
+ok(!/delete\s+from\s+public\.aos_notificaciones/i.test(m),'must preserve in-app history')
+ok(!/truncate/i.test(m),'must not truncate notifications')
+ok(!/push_enabled\s*=\s*true/i.test(r),'rollback must never re-enable stale pushes')
+ok(!/push_status\s*=\s*['"]PENDING['"]/i.test(r),'rollback must never restore pending')
+ok(r.includes('APP_PWA_V2_G6_ROLLBACK_REPLAY_GUARD_FAILED'),'rollback replay guard missing')
+console.log('APP_PWA_V2_G6_BACKLOG_SANITATION_CONTRACT=PASS')
