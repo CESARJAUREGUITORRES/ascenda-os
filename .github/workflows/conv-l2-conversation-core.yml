@@ -50,4 +50,4 @@ jobs:
         shell: powershell
         run: |
           node ci/wa4c-full-local/ui-contract.test.js
-          node ci/wa3-boxes-routing-handoff/ui_contract.py
+          python ci/wa3-boxes-routing-handoff/ui_contract.py
