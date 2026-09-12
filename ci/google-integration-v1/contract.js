@@ -21,6 +21,9 @@ process.env.GOOGLE_TOKEN_ENCRYPTION_KEY='synthetic-ci-key-not-production-32bytes
 process.env.GOOGLE_REDIRECT_URI='https://example.invalid/api/google/oauth/callback'
 process.env.GOOGLE_CLIENT_ID='synthetic.apps.googleusercontent.com'
 process.env.GOOGLE_CLIENT_SECRET='synthetic-not-real'
+process.env.GOOGLE_INTEGRATION_ENABLED='true'
+process.env.GOOGLE_CALENDAR_SYNC_ENABLED='true'
+process.env.GOOGLE_CONTACT_SYNC_ENABLED='false'
 
 const mod=require(path.join(ROOT,'app/google-integration-v1.js'))
 const gw=mod.createGoogleIntegrationV1({})
@@ -51,7 +54,9 @@ for(const token of [
   'sendUpdates=all',
   "['CANCELADA','REAGENDADA']",
   'extendedProperties',
-  'aos_google_claim_sync_v1'
+  'aos_google_claim_sync_v1',
+  "x.accessRole==='owner'",
+  "state:'SUPERSEDED'"
 ]) ok(gateway.includes(token),'gateway missing '+token)
 ok(!gateway.includes("console.log(refresh"),'refresh token must never be logged')
 ok(!gateway.includes("console.log(tr.body"),'OAuth token response must never be logged')
