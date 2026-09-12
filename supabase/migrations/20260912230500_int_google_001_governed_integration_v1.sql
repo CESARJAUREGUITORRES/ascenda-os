@@ -41,6 +41,7 @@ create table if not exists public.aos_google_calendar_links_v1 (
   connection_id uuid not null references public.aos_google_connections_v1(id),
   calendar_id text not null,
   google_event_id text not null,
+  html_link text null,
   schedule_revision text not null,
   etag text null,
   state text not null default 'ACTIVE' check (state in ('ACTIVE','DELETED','ERROR')),
