@@ -530,7 +530,11 @@ var SIDEBAR_ADMIN = [
 ];
 
 function buildSidebar() {
-  var items  = AOS.role === 'ADMIN' ? SIDEBAR_ADMIN : SIDEBAR_ASESOR;
+  var perms = AOS.ctx.paneles_acceso || [];
+  var baseItems = AOS.role === 'ADMIN' ? SIDEBAR_ADMIN : SIDEBAR_ASESOR;
+  var items = baseItems.filter(function(it) {
+    return !it.requiresPanel || perms.indexOf(it.id) >= 0;
+  });
   var actCls = AOS.role === 'ADMIN' ? 'act-admin'   : 'act-asesor';
   var el = document.getElementById('sb-content');
   var html = '', inBot = false;
@@ -581,6 +585,7 @@ var VIEW_MAP = {
   'advisor-sales':       'ViewAdvisorSales',
   'advisor-commissions': 'ViewAdvisorCommissions',
   'advisor-attendance':  'ViewAdvisorAttendance',
+  'devices-notifications':'ViewDeviceCenter',
   'admin-home':          'ViewAdminHome',
   'admin-operations':    'ViewAdminOperations',
   'admin-agenda':        'ViewAdvisorAgenda',
