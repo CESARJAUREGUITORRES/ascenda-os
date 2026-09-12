@@ -7,6 +7,7 @@ const migration=read('supabase/migrations/20260903194500_wa_l8_security_gate_v1.
 const rollback=read('supabase/rollbacks/20260903194500_wa_l8_security_gate_v1.rollback.sql');
 const gateway=read('app/wa-gateway.js');
 const server=read('app/server-f4.js');
+const meta=read('app/meta-cloud-adapter.js');
 const ai=read('app/ai-router.js');
 const copilot=read('app/wa4-copilot.js');
 const ui=read('app/public/admin-whatsapp.html');
@@ -58,9 +59,12 @@ assert(server.includes("authority.decision==='HANDOFF'"));
 
 // Signed webhook + reservation-before-send/idempotency remain binding.
 assert(server.includes("req.headers['x-hub-signature-256']"));
-assert(server.includes('wa.verifyMetaSignature(raw,signature,WA_APP_SECRET)'));
+assert(server.includes('META_ADAPTER.verifyWebhook(raw,signature)'));
+assert(meta.includes('wa.verifyMetaSignature(rawBody,signatureHeader,appSecret)'));
 assert(server.includes('reserveOutbound(body.idempotency_key'));
 assert(server.indexOf('reserveOutbound(body.idempotency_key')<server.lastIndexOf('graphSend(payload)'));
+assert(meta.includes("hostname:'graph.facebook.com'"));
+assert(!server.includes("hostname:'graph.facebook.com'"));
 assert(server.includes("state:'PENDING'"));
 
 // Secrets are server-only; no browser code may receive service/provider credentials.
