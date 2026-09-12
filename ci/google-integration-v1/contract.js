@@ -6,6 +6,7 @@ const assert=require('assert')
 const ROOT=path.resolve(__dirname,'../..')
 function read(p){return fs.readFileSync(path.join(ROOT,p),'utf8')}
 function ok(v,m){assert.ok(v,m)}
+function compileJs(p){new vm.Script(read(p),{filename:p})}
 function compileInlineHtml(p){
   const src=read(p)
   const re=/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi
@@ -91,14 +92,38 @@ for(const token of [
  'aos_google_connections_v1','aos_google_oauth_states_v1','aos_google_calendar_links_v1',
  'aos_google_contact_links_v1','aos_google_sync_outbox_v1','force row level security',
  'revoke all on public.aos_google_connections_v1 from anon, authenticated',
- 'for update skip locked'
+ 'for update skip locked',
+ 'aos_google_enqueue_authorized_appointment_v1',
+ 'trg_aos_google_booking_operation_v1',
+ 'trg_aos_google_wa4_booking_action_v1',
+ "new.operation_type in ('BOOK','REBOOK')",
+ "new.status in ('BOOKED','REBOOKED')",
+ "new.status in ('CANCELLED','REPLACED')"
 ]) ok(migration.toLowerCase().includes(token.toLowerCase()),'migration missing '+token)
 ok(!/\brefresh_token\s+text\b/i.test(migration),'plaintext refresh_token column forbidden')
 ok(!/(net\.http|http_post|http_get|extensions\.http|pg_net)/i.test(migration),'database must not make external HTTP calls')
-ok(!/create\s+trigger\s+trg_aos_google_/i.test(migration),'legacy tables must not own Google side-effect triggers')
+ok(!/create\s+trigger\s+trg_aos_google_[\s\S]{0,240}?on\s+public\.(?:aos_agenda_citas|aos_pacientes)\b/i.test(migration),'legacy agenda/patient tables must not own Google side-effect triggers')
+ok(/create\s+trigger\s+trg_aos_google_booking_operation_v1[\s\S]{0,240}?on\s+public\.aos_booking_operations_v2\b/i.test(migration),'Booking Core governed hook missing')
+ok(/create\s+trigger\s+trg_aos_google_wa4_booking_action_v1[\s\S]{0,240}?on\s+public\.aos_wa4_booking_actions_v1\b/i.test(migration),'WA governed hook missing')
 ok(gateway.includes("['CANCELADA','REAGENDADA']"),'server boundary must supersede cancelled/rebooked events')
 ok(gateway.includes('/api/google/appointment/queue'),'authenticated appointment queue route missing')
 
+for(const p of [
+  'app/public/agenda.js',
+  'app/public/agenda-governed-status-v1.js',
+  'app/public/calls.js',
+  'app/public/calls.html',
+  'app/public/citas.html',
+  'app/public/citas.js',
+  'app/public/attendance.html'
+]){
+  const src=read(p)
+  ok(src.includes('/api/google/appointment/queue'),'official appointment writer missing authenticated Google enqueue: '+p)
+  ok(src.includes('X-ASCENDA-Session'),'official appointment writer missing session boundary: '+p)
+}
+
+compileJs('app/public/agenda-governed-status-v1.js')
+compileJs('app/public/citas.js')
 compileInlineHtml('app/public/admin-config.html')
 compileInlineHtml('app/public/citas.html')
 compileInlineHtml('app/public/attendance.html')
