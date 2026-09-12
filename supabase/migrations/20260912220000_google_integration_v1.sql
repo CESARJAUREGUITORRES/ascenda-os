@@ -187,7 +187,7 @@ returns void
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $
+as $$
 declare
   c record;
   a public.aos_agenda_citas%rowtype;
@@ -246,7 +246,7 @@ begin
     end if;
   end loop;
 end
-$;
+$$;
 
 revoke all on function public.aos_google_enqueue_authorized_appointment_v1(text,text,text) from public, anon, authenticated;
 grant execute on function public.aos_google_enqueue_authorized_appointment_v1(text,text,text) to service_role;
@@ -256,7 +256,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $
+as $$
 begin
   if new.operation_type in ('BOOK','REBOOK')
      and new.status in ('BOOKED','REBOOKED')
@@ -267,7 +267,7 @@ begin
   end if;
   return new;
 end
-$;
+$$;
 
 drop trigger if exists trg_aos_google_booking_operation_v1 on public.aos_booking_operations_v2;
 create trigger trg_aos_google_booking_operation_v1
@@ -279,7 +279,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public, pg_temp
-as $
+as $$
 declare
   v_action text;
 begin
@@ -294,7 +294,7 @@ begin
   );
   return new;
 end
-$;
+$$;
 
 drop trigger if exists trg_aos_google_wa4_booking_action_v1 on public.aos_wa4_booking_actions_v1;
 create trigger trg_aos_google_wa4_booking_action_v1
