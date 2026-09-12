@@ -1647,9 +1647,11 @@ window.addEventListener('message',function(ev){
 });
 function googleLoadCalendars(){
   return googleApi('/api/google/calendars').then(function(d){
-    var s=el('google-calendar-select');if(!s)return;
-    s.innerHTML=(d.items||[]).map(function(x){return '<option value="'+h(x.id)+'" '+(x.id===d.selected?'selected':'')+'>'+h(x.summary||x.id)+(x.primary?' · principal':'')+'</option>';}).join('')||'<option value="">Sin calendarios editables</option>';
-  }).catch(function(e){var s=el('google-calendar-select');if(s)s.innerHTML='<option value="">'+h(e.message)+'</option>';});
+    var s=el('google-calendar-select');if(!s)return;s.textContent='';
+    var items=d.items||[];
+    if(!items.length){var empty=document.createElement('option');empty.value='';empty.textContent='Sin calendarios editables';s.appendChild(empty);return;}
+    items.forEach(function(x){var o=document.createElement('option');o.value=String(x.id||'');o.textContent=String(x.summary||x.id||'')+(x.primary?' · principal':'');o.selected=x.id===d.selected;s.appendChild(o);});
+  }).catch(function(e){var s=el('google-calendar-select');if(s){s.textContent='';var o=document.createElement('option');o.value='';o.textContent=e.message;s.appendChild(o);}});
 }
 function googleSaveCalendar(){
   var id=el('google-calendar-select')&&el('google-calendar-select').value;if(!id)return;
@@ -1661,11 +1663,10 @@ function googleDisconnect(){
 }
 function googleLoadCanaryCandidates(){
   return googleApi('/api/google/canary/candidates').then(function(d){
-    var s=el('google-canary-appointment');if(!s)return;
-    s.innerHTML='<option value="">— Selecciona una cita —</option>'+(d.items||[]).map(function(x){
-      return '<option value="'+h(x.id)+'">'+h((x.date||'')+' '+(x.time||'')+' · '+(x.site||'')+' · '+(x.treatment||'')+' · '+(x.display_name||''))+(x.calendar_linked?' · ya vinculada':'')+'</option>';
-    }).join('');
-  }).catch(function(e){var s=el('google-canary-appointment');if(s)s.innerHTML='<option value="">'+h(e.message)+'</option>';});
+    var s=el('google-canary-appointment');if(!s)return;s.textContent='';
+    var first=document.createElement('option');first.value='';first.textContent='— Selecciona una cita —';s.appendChild(first);
+    (d.items||[]).forEach(function(x){var o=document.createElement('option');o.value=String(x.id||'');o.textContent=String((x.date||'')+' '+(x.time||'')+' · '+(x.site||'')+' · '+(x.treatment||'')+' · '+(x.display_name||''))+(x.calendar_linked?' · ya vinculada':'');s.appendChild(o);});
+  }).catch(function(e){var s=el('google-canary-appointment');if(s){s.textContent='';var o=document.createElement('option');o.value='';o.textContent=e.message;s.appendChild(o);}});
 }
 function runGoogleCanary(){
   var id=el('google-canary-appointment')&&el('google-canary-appointment').value;
@@ -1675,7 +1676,10 @@ function runGoogleCanary(){
   googleApi('/api/google/canary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:'GOOGLE_CANARY',appointment_id:id,include_contact:!!(el('google-canary-contact')&&el('google-canary-contact').checked)})}).then(function(d){
     var cal=d.calendar||{},contact=d.contact||null;
     var msg='✅ Calendar OK'+(contact?(contact.ok?' · Contact OK':' · Contact requiere revisión'):'');
-    if(out){out.innerHTML=h(msg)+(cal.html_link?'<br><a href="'+h(cal.html_link)+'" target="_blank" rel="noopener noreferrer">Abrir evento en Google Calendar ↗</a>':'');}
+    if(out){
+      out.textContent=msg;
+      if(cal.html_link){try{var u=new URL(String(cal.html_link));if(u.protocol==='https:'&&['calendar.google.com','www.google.com'].indexOf(u.hostname)>=0){out.appendChild(document.createElement('br'));var a=document.createElement('a');a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Abrir evento en Google Calendar ↗';out.appendChild(a);}}catch(_){}}
+    }
     showToast('Google canary','Prueba acotada completada');
   }).catch(function(e){if(out)out.textContent='❌ '+e.message;showToast('Google canary',e.message);});
 }
