@@ -245,7 +245,15 @@ function createGoogleIntegrationV1(opts) {
     else if(existing && existing.refresh_token_enc) refreshEnc=existing.refresh_token_enc
     else return callbackPage(res,false,'Google no entregó refresh token. Revoca el acceso anterior y vuelve a conectar.')
 
-    await sb('/rest/v1/aos_google_connections_v1?integration_id=eq.'+st.integration_id+'&is_primary=eq.true','PATCH',{is_primary:false,updated_at:new Date().toISOString()},'return=minimal')
+    var prior=await primaryConnection()
+    if(prior) {
+      await sb('/rest/v1/aos_google_connections_v1?id=eq.'+prior.id,'PATCH',{
+        is_primary:false,calendar_enabled:false,contacts_enabled:false,updated_at:new Date().toISOString()
+      },'return=minimal')
+      await sb('/rest/v1/aos_google_sync_outbox_v1?connection_id=eq.'+prior.id+'&state=in.(READY,FAILED)','PATCH',{
+        state:'SUPERSEDED',locked_at:null,locked_by:null,updated_at:new Date().toISOString()
+      },'return=minimal')
+    }
 
     var payload={
       integration_id:st.integration_id,
@@ -291,7 +299,7 @@ function createGoogleIntegrationV1(opts) {
       var token=await accessToken(conn)
       var r=await googleJson(token,'www.googleapis.com','/calendar/v3/users/me/calendarList?minAccessRole=writer&showHidden=false','GET')
       if(r.status>=300) throw new Error('GOOGLE_CALENDAR_LIST_FAILED')
-      var items=(r.body&&r.body.items||[]).map(function(x){return {id:x.id,summary:x.summary||x.id,primary:!!x.primary,accessRole:x.accessRole}})
+      var items=(r.body&&r.body.items||[]).filter(function(x){return x.accessRole==='owner'}).map(function(x){return {id:x.id,summary:x.summary||x.id,primary:!!x.primary,accessRole:x.accessRole}})
       json(res,200,{ok:true,calendars:items})
     } catch(e){json(res,502,{ok:false,error:e.message})}
   }
@@ -328,6 +336,9 @@ function createGoogleIntegrationV1(opts) {
     } catch(e) {}
     await sb('/rest/v1/aos_google_connections_v1?id=eq.'+conn.id,'PATCH',{
       refresh_token_enc:null,status:'REVOKED',is_primary:false,calendar_enabled:false,contacts_enabled:false,updated_at:new Date().toISOString()
+    },'return=minimal')
+    await sb('/rest/v1/aos_google_sync_outbox_v1?connection_id=eq.'+conn.id+'&state=in.(READY,FAILED)','PATCH',{
+      state:'SUPERSEDED',locked_at:null,locked_by:null,updated_at:new Date().toISOString()
     },'return=minimal')
     var integ=await integrationRow()
     if(integ) await sb('/rest/v1/aos_integraciones?id=eq.'+integ.id,'PATCH',{estado:'pendiente',cuenta:'',updated_at:new Date().toISOString()},'return=minimal')
@@ -679,6 +690,7 @@ function createGoogleIntegrationV1(opts) {
     return base+'/api/google/appointment-link?appointment_id='+encodeURIComponent(String(appointmentId))+'&sig='+encodeURIComponent(calendarLinkSignature(appointmentId))
   }
   function emailCalendarButton(appointmentId) {
+    if(!MASTER_ON() || !CAL_ON()) return ''
     var url=calendarPublicUrl(appointmentId)
     if(!url) return ''
     return '<div style="text-align:center;margin:22px 0 10px"><a href="'+url+'" style="display:inline-block;background:#0A4FBF;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:700;font-family:Arial,sans-serif">📅 Ver en Google Calendar</a></div>'
