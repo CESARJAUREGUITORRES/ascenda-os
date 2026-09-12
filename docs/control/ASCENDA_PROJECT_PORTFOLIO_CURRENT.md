@@ -3,13 +3,13 @@
 **Captured:** 2026-09-12 America/Lima  
 **Current main at L0 technical closeout:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
 **ACTIVE PORTFOLIO OWNER:** `INT-GOOGLE-001 — GOOGLE CALENDAR + CONTACTS`  
-**ACTIVE HIGH/CRITICAL GATE:** `GC-0/GC-1 — OAuth + secure connection foundation`  
+**ACTIVE HIGH/CRITICAL GATE:** `INT-GOOGLE-001 #542 / GC-0→GC-7`  
 **OWNER MODE:** `PROCEDE · implementar todo en el sistema · RUN UNTIL BLOCKED hasta canary humano`  
-**PAUSED LANE:** `CONV-001 / CONV-L2 — evidence preserved, no competing HIGH/CRITICAL mutations`
+**PAUSED LANE:** `CONV-001 / CONV-L4 #508 — read-only preflight complete, no competing HIGH/CRITICAL mutations`
 
 ## Current owner state
 
-Owner authorization on 2026-09-12 transfers the sole HIGH/CRITICAL mutable lane to INT-GOOGLE-001. CONV-001 / CONV-L2 is paused for competing mutations while its current evidence and SAFE-OFF production posture are preserved.
+Owner authorization on 2026-09-12 transfers the sole HIGH/CRITICAL mutable lane to INT-GOOGLE-001. CONV-001 resumes at L4 only after the Google canary/closeout transfers the sole mutable lock back; current evidence and SAFE-OFF production posture are preserved.
 
 Legacy WA-L10 #456 is FROZEN / SAFE-OFF evidence only. No new conversational feature patching is permitted on the legacy hot path except narrowly scoped P0 security/privacy/data-loss/production-break remediation.
 
@@ -17,7 +17,7 @@ Legacy WA-L10 #456 is FROZEN / SAFE-OFF evidence only. No new conversational fea
 
 | Program | Preserved input | Current state |
 |---|---|---|
-| INT-GOOGLE-001 Google Calendar + Contacts | Agenda authority, patient identity, existing integration catalog, Resend templates | **ACTIVE / GC-0/GC-1 MUTABLE OWNER** |
+| INT-GOOGLE-001 Google Calendar + Contacts | Agenda authority, patient identity, existing integration catalog, Resend templates | **ACTIVE / #542 / GC-0→GC-7 MUTABLE OWNER** |
 | CONV-001 Conversations Core V1 | existing panel, WA evidence, Meta integration knowledge, canonical ASCENDA business authorities | **PAUSED / EVIDENCE PRESERVED** |
 | Legacy WhatsApp Revenue Hub WA-* | WA3/3.5 UI, L4 authority, L5 booking, L6 attribution, L7 cost, L8 security, L9/L10 evidence | **FROZEN / EVIDENCE + EXTRACTION SOURCE** |
 | Revenue REV-* | patient/product/revenue identity and 360 authorities | READ-ONLY dependency source |
@@ -56,4 +56,4 @@ No later loop becomes active automatically. Each exit gate plus current owner/go
 
 ## Global rule
 
-At most one HIGH/CRITICAL feature/data workstream mutates shared CURRENT at a time. While CONV-L2 owns the lock, all other programs remain read-only/regression-only except narrowly required compatibility/regression work.
+At most one HIGH/CRITICAL feature/data workstream mutates shared CURRENT at a time. While INT-GOOGLE-001 #542 owns the lock, all other HIGH/CRITICAL programs remain read-only/regression-only except narrowly required compatibility/regression work. After Google closeout, the lock transfers explicitly to CONV-L4 #508.
