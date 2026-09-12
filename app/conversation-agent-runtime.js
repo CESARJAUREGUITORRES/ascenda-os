@@ -155,6 +155,20 @@ function createToolGateway(options){
   };
 }
 
+function truthRequirement(text){
+  const t=normalize(text);
+  const required=[];
+  if(/(?:s\/?\.?\s*\d|usd\s*\d|\$\s*\d|\b\d+(?:[.,]\d+)?\s*(?:soles?|dolares?|usd)\b)/.test(t))required.push('get_prices');
+  if(/\b(?:tenemos|hay|aplica|vigente|incluye)\b.{0,50}\b(?:promo|promocion|oferta|descuento)\b|\b(?:promo|promocion|oferta|descuento)\b.{0,50}\b(?:vigente|aplica|tenemos|hay)\b/.test(t))required.push('get_promotions');
+  if(/\b(?:hay|tenemos|queda|quedan)\b.{0,35}\b(?:cupo|cupos|disponibilidad|horario disponible)\b|\b(?:esta|estan) disponible\b/.test(t))required.push('get_availability');
+  if(/\b(?:tu|la) cita (?:esta|quedo) (?:confirmada|agendada|reservada)\b|\b(?:cita|reserva) confirmada\b|\bte (?:agende|reserve)\b/.test(t))required.push('confirm_booking');
+  return [...new Set(required)];
+}
+function internalLeak(text){
+  const t=normalize(text);
+  return /canonical_patient_id|booking_readiness|next_best_action|runtime_policy|adapter_contexts|authority_decision_id|aos_wa_|conv-l3-v1/.test(t);
+}
+
 function validateModelResult(v){
   if(!v||typeof v!=='object'||Array.isArray(v))throw Object.assign(new Error('CONV_L3_MODEL_RESULT_INVALID'),{code:'CONV_L3_MODEL_RESULT_INVALID'});
   const outcome=String(v.outcome||'').toUpperCase();
@@ -230,6 +244,17 @@ function createAgentRuntime(options){
       if(result.outcome==='RESPOND'&&toolTrace.some(t=>t.ok===false)&&raw&&raw.requiresToolTruth===true){
         return handoff('GOVERNED_TOOL_UNAVAILABLE',null,{toolTrace,confidence:0,policySignals:['NO_FABRICATION']});
       }
+      if(result.outcome==='RESPOND'&&result.response&&internalLeak(result.response.text)){
+        return handoff('INTERNAL_POLICY_LEAK',null,{toolTrace,confidence:0,policySignals:['FAIL_CLOSED']});
+      }
+      if(result.outcome==='RESPOND'&&result.response){
+        const required=truthRequirement(result.response.text);
+        const okTools=new Set(toolTrace.filter(t=>t.ok).map(t=>t.tool));
+        const missing=required.filter(name=>name==='confirm_booking'
+          ? !['confirm_booking','rebook_booking'].some(x=>okTools.has(x))
+          : !okTools.has(name));
+        if(missing.length)return handoff('MISSING_GOVERNED_EVIDENCE',null,{toolTrace,confidence:0,policySignals:['NO_FABRICATION'],requiredTools:required,missingTools:missing});
+      }
       if(recheck){
         let state;
         try{state=await recheck({tenantId,conversationId,semanticTurnId,startedAt:marker.startedAt});}
@@ -254,5 +279,5 @@ module.exports={
   VERSION,TOOL_NAMES,MAX_TOOL_CALLS,MAX_REPLY_CHARS,
   normalize,redactPII,coalesceInboundBurst,buildBoundedMemory,
   isStop,isPersonalClinical,humanOwns,createToolGateway,createAgentRuntime,
-  validateToolName,validateModelResult
+  validateToolName,validateModelResult,truthRequirement,internalLeak
 };
