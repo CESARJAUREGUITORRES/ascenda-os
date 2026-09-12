@@ -64,6 +64,10 @@ assert(ui.includes("confirm:'GOOGLE_CANARY'"),'human canary explicit confirmatio
 assert(!ui.includes('GOOGLE_CLIENT_SECRET'),'Google client secret must never enter browser')
 assert(!ui.includes('GOOGLE_TOKEN_ENCRYPTION_KEY'),'Google token encryption key must never enter browser')
 
+const inlineScripts=[...ui.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean)
+assert(inlineScripts.length>0,'admin-config inline script missing')
+for(const block of inlineScripts)new Function(block)
+
 assert(email.includes('function emailGoogleCalendarAction'),'Resend Calendar action helper missing')
 assert(email.includes("calendar.google.com','www.google.com"),'Calendar action URL allowlist missing')
 assert(email.includes("d.calendar_url || ''"),'appointment email Calendar action not wired')
