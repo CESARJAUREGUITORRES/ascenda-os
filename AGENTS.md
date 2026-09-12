@@ -1,9 +1,9 @@
 # AGENTS.md — ASCENDA OS CURRENT
 
 **Current HIGH/CRITICAL program:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
-**Current HIGH/CRITICAL lock:** `NONE`  
+**Current HIGH/CRITICAL lock:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY`  
+**Owner mode:** `RUN UNTIL BLOCKED + REAL META TEST limitado a zi vital`  
 **Last closed:** `CONV-L0 #504`  
-**Next eligible:** `CONV-L1 #505 · NOT STARTED · NOT AUTHORIZED`  
 **Legacy WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`
 
 ## Purpose
