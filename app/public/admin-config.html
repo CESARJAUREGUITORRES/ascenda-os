@@ -1664,6 +1664,11 @@ function drawGoogleState(){
       '<label style="padding:10px;border:1px solid #E2E8F0;border-radius:10px;font-size:10px;"><input type="checkbox" id="google-cal-enabled" '+(c.calendar_enabled?'checked':'')+' '+(!st.calendar_sync_enabled?'disabled':'')+'> Sincronizar Calendar'+(!st.calendar_sync_enabled?' 🔒 Canary':'')+'</label>'+
       '<label style="padding:10px;border:1px solid #E2E8F0;border-radius:10px;font-size:10px;"><input type="checkbox" id="google-contact-enabled" '+(c.contacts_enabled?'checked':'')+' '+(!st.contact_sync_enabled?'disabled':'')+'> Sincronizar Contacts'+(!st.contact_sync_enabled?' 🔒 Canary':'')+'</label>'+
     '</div>'+
+    '<div style="margin-top:12px;padding:10px;border:1px dashed #BFDBFE;background:#F8FBFF;border-radius:10px;">'+
+      '<label style="display:block;font-size:10px;font-weight:700;color:#334155;margin-bottom:5px;">Correo invitado para canary Calendar</label>'+
+      '<input class="mi" id="google-canary-email" type="email" placeholder="ejemplo@gmail.com" style="width:100%;box-sizing:border-box;">'+
+      '<div id="google-canary-result" style="display:none;margin-top:8px;font-size:10px;line-height:1.45;"></div>'+
+    '</div>'+
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">'+
       '<button class="mbtn mbtn-p" onclick="googleSaveSettings()">💾 Guardar Calendar</button>'+
       '<button class="mbtn mbtn-o" onclick="googleConnect()">🔄 Cambiar cuenta</button>'+
@@ -1672,6 +1677,8 @@ function drawGoogleState(){
       '<button class="mbtn mbtn-d" onclick="googleDisconnect()">Desconectar</button>'+
     '</div>'+
     '<div style="font-size:9px;color:#94A3B8;margin-top:10px;">Último OK: '+h(c.last_success_at||'—')+(c.last_error?' · Error: '+h(c.last_error):'')+'</div>';
+  var genericTest=el('mi-status')&&el('m-integ')?document.querySelector('#m-integ .rc-actions .mbtn-o'):null;
+  if(genericTest)genericTest.textContent='🧪 Probar Calendar';
   googleLoadCalendars(true);
 }
 function googleConnect(){
@@ -1710,8 +1717,25 @@ function googleDisconnect(){
 }
 function googleTestCalendar(){
   var c=(_googleState.connections||[]).find(function(x){return x.is_primary&&x.status==='CONNECTED';});if(!c)return;
-  var email=prompt('Correo invitado para el canary Calendar (puede ser tu Gmail):',c.account_email||'');if(email===null)return;
-  googleApi('/api/google/test/calendar',{method:'POST',body:{connection_id:c.id,attendee_email:email}}).then(function(r){showToast('Calendar PASS',r.attendee_invited?'Evento creado e invitación enviada':'Evento creado');}).catch(function(e){showToast('Calendar FAIL',e.message,true);});
+  var input=el('google-canary-email'),email=input?String(input.value||'').trim():'';
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    showToast('Calendar','Ingresa primero un correo invitado válido para el canary.',true);
+    if(input)input.focus();
+    return;
+  }
+  var result=el('google-canary-result');
+  if(result){result.style.display='block';result.style.color='#475569';result.innerHTML='Creando evento canary…';}
+  googleApi('/api/google/test/calendar',{method:'POST',body:{connection_id:c.id,attendee_email:email}}).then(function(r){
+    showToast('Calendar PASS',r.attendee_invited?'Evento creado e invitación enviada':'Evento creado');
+    if(result){
+      var link=r.html_link?'<br><a href="'+h(r.html_link)+'" target="_blank" rel="noopener" style="font-weight:800;color:#0A4FBF;">Abrir evento en Google Calendar ↗</a>':'';
+      result.style.color='#047857';
+      result.innerHTML='✅ Evento canary creado'+(r.attendee_invited?' e invitación enviada a <b>'+h(email)+'</b>.':' .')+link;
+    }
+  }).catch(function(e){
+    showToast('Calendar FAIL',e.message,true);
+    if(result){result.style.display='block';result.style.color='#B91C1C';result.innerHTML='❌ '+h(e.message);}
+  });
 }
 function googleTestContact(){
   var c=(_googleState.connections||[]).find(function(x){return x.is_primary&&x.status==='CONNECTED';});if(!c)return;
@@ -1724,7 +1748,7 @@ function saveInteg(){
   showToast('Sin cambios','Este conector no usa configuración de secretos desde el navegador.');
 }
 function testInteg(){
-  if(_activeInteg&&_activeInteg.tipo==='google')return renderGoogleIntegration();
+  if(_activeInteg&&_activeInteg.tipo==='google')return googleTestCalendar();
   showToast('Conector','No hay prueba server-side definida para este conector.');
 }
 function desactivarInteg(id){
