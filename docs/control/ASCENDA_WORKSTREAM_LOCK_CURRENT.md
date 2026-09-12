@@ -1,9 +1,9 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-11 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY`  
-**OWNER AUTHORIZATION:** `RUN UNTIL BLOCKED + REAL META TEST LIMITADO A zi vital`  
-**LAST CLOSED:** `CONV-L0 #504 — AUDIT / EXTRACTION / CONTRACT FREEZE`  
+**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`  
+**OWNER AUTHORIZATION:** `RUN UNTIL BLOCKED hasta la siguiente prueba · exponer WhatsApp humano activo · mantener AI autonomy SAFE-OFF`  
+**LAST CLOSED:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY · PROVIDER CERTIFIED`  
 **Legacy WA-L10 #456:** `FROZEN · SAFE-OFF EVIDENCE ONLY · NO NEW FEATURE PATCHING`  
 **P0 #485:** `CLOSED / COMPLETED — PROD RECURRENCE+LOAD PASS`  
 **GitHub authority:** Issue `#502` = `OPEN`; Issue `#456` = `OPEN / FROZEN`  
@@ -16,7 +16,7 @@
 
 The owner approved a consolidation pivot after the R8/R9 WhatsApp canary investigation showed that continuing to stack patches on the WA2/WA3/WA4/F4/L4-L10 hot path was creating latency, operational coupling and debugging complexity without yet meeting the required conversational-sales experience.
 
-CONV-001 remains the active program. **CONV-L1 #505 now owns the sole HIGH/CRITICAL implementation lane** under explicit owner authorization.
+CONV-001 remains the active program. **CONV-L2 #506 now owns the sole HIGH/CRITICAL implementation lane** under explicit owner authorization.
 
 External projects such as Chatwoot, Fazer clinical sales agent patterns, LangGraph and official Meta samples are engineering blueprints only. They are not runtime dependencies unless separately approved.
 
@@ -50,6 +50,6 @@ WA-L10 #456 remains preserved for audit/evidence and rollback knowledge, but is 
 
 ## Immediate next gate
 
-**CONV-L1 #505 is ACTIVE.** Build and certify one native Meta Channel Gateway while keeping AI autonomy SAFE-OFF. Real provider testing is limited to the existing `zi vital` test scope authorized by the owner. L2 remains unauthorized.
+**CONV-L2 #506 is ACTIVE.** Consolidate the canonical conversation lifecycle and panel transport on top of the certified Meta gateway. The next real proof is bounded human messaging/takeover on the existing `zi vital` test conversation. AI autonomy remains SAFE-OFF; L3 is not authorized.
 
 See Issue #502 and `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`.
