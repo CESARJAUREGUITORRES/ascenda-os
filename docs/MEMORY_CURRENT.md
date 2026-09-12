@@ -3,9 +3,9 @@
 **Captured:** 2026-09-11 America/Lima  
 **ACTIVE PROGRAM:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
 **MAIN AT L0 TECHNICAL CLOSEOUT:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
-**ACTIVE HIGH/CRITICAL GATE:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY`  
-**OWNER MODE:** `RUN UNTIL BLOCKED + REAL META TEST limitado a zi vital`  
-**LAST CLOSED:** `CONV-L0 #504`  
+**ACTIVE HIGH/CRITICAL GATE:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`  
+**OWNER MODE:** `RUN UNTIL BLOCKED hasta la siguiente prueba · WhatsApp humano activo · AI autonomy SAFE-OFF`  
+**LAST CLOSED:** `CONV-L1 #505 — PROVIDER CERTIFIED`  
 **PARENT:** `#502`  
 **LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
 **AUTONOMOUS CANARY:** `NOT AUTHORIZED`
@@ -82,8 +82,8 @@ DELETE is forbidden during build. It becomes eligible only after replacement par
 ## Current loop map
 
 - #504 L0 Freeze/Inventory/Extraction/Benchmark — **CLOSED**
-- #505 L1 Meta Channel Gateway — **ACTIVE**
-- #506 L2 Conversation Core + Panel
+- #505 L1 Meta Channel Gateway — **CLOSED / PROVIDER CERTIFIED**
+- #506 L2 Conversation Core + Panel — **ACTIVE**
 - #507 L3 Sales Agent Runtime
 - #508 L4 Business Tools + bounded RAG
 - #509 L5 Booking/Media/Templates
@@ -143,7 +143,7 @@ Preserved assets include the ASCENDA panel UX, conversation/message ledgers, can
 
 ## Immediate next action
 
-Present L0 closeout to the owner. **Do not begin CONV-L1 #505 until separate explicit owner authorization.**
+Execute CONV-L2 #506 under the owner's renewed run-until-blocked authorization. Reach the next bounded real human-messaging/panel proof on the existing test conversation while keeping autonomous AI SAFE-OFF. Stop before L3.
 
 
 ## Execution mode
@@ -154,3 +154,22 @@ For future authorized CONV loops, use `RUN UNTIL BLOCKED`: after one explicit lo
 ## L1 start
 
 Owner explicitly authorized `CONV-L1 #505 — RUN UNTIL BLOCKED + REAL META TEST LIMITADO A zi vital`. The newly rotated Meta token is owner-reported configuration and must be freshly certified by provider health before any real send. AI autonomy remains SAFE-OFF throughout L1.
+
+
+## L1 production closeout — 2026-09-12
+
+CONV-L1 #505 is provider-certified and closed.
+
+Evidence:
+- canonical MetaCloudAdapter is the only active provider transport boundary;
+- System User credential/asset/permissions READY;
+- WABA management READY and canonical WABA configured server-side;
+- real text, image, interactive-buttons and approved-template sends were accepted; required provider callbacks reconciled to delivered;
+- the owner confirmed the real text arrived in WhatsApp and replied; inbound persistence was independently observed;
+- approved template `hello_world/en_US` dispatched exactly once and reconciled `sent -> delivered`;
+- exact request/message/accepted-event cardinality = 1:1:1 for the final template proof;
+- production remained `AUTO_OFF · KILL ON · AI SEND OFF · AUTO ROUTING OFF · ALLOWLIST 0`;
+- protected DB pressure readback >2s = 0 and >5s = 0;
+- certified Railway bootstrap restored after temporary probe runs.
+
+The owner then authorized continuing to the next proof so WhatsApp can be exposed as an active human-operated channel. This activates CONV-L2 #506 only; it does not authorize autonomous AI or L3.
