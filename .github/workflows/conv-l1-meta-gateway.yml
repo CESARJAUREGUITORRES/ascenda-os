@@ -1,0 +1,61 @@
+name: ASCENDA CONV-L1 Meta Gateway
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/meta-cloud-adapter.js'
+      - 'app/meta-cloud-adapter.test.js'
+      - 'app/wa-gateway.js'
+      - 'app/server-f4.js'
+      - 'app/server-wa3.js'
+      - 'ci/conv-l1/**'
+      - 'ci/wa1-secure-gateway/wa-gateway.test.js'
+      - 'docs/control/ASCENDA_CONVERSATIONS_*'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+      - 'docs/MEMORY_CURRENT.md'
+      - 'AGENTS.md'
+      - '.github/workflows/conv-l1-meta-gateway.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: conv-l1-meta-gateway-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  provider-boundary:
+    name: L1 provider boundary / unit / compatibility
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax
+        shell: powershell
+        run: |
+          node --check app/meta-cloud-adapter.js
+          node --check app/server-f4.js
+          node --check app/server-wa3.js
+          node --check app/wa-gateway.js
+      - name: MetaCloudAdapter unit contracts
+        shell: powershell
+        run: |
+          node --test app/meta-cloud-adapter.test.js
+      - name: Existing secure gateway regression
+        shell: powershell
+        run: |
+          node --test ci/wa1-secure-gateway/wa-gateway.test.js
+      - name: L1 architecture contract
+        shell: powershell
+        run: |
+          node ci/conv-l1/meta_gateway_contract.test.js
+      - name: Legacy autonomous bridge remains bounded
+        shell: powershell
+        run: |
+          node --test app/wa-l10-autonomous-bridge.test.js
+          node ci/wa-l10/autonomous_bridge_contract.test.js
