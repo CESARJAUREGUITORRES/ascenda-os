@@ -88,10 +88,13 @@ for(const token of [
  'aos_google_connections_v1','aos_google_oauth_states_v1','aos_google_calendar_links_v1',
  'aos_google_contact_links_v1','aos_google_sync_outbox_v1','force row level security',
  'revoke all on public.aos_google_connections_v1 from anon, authenticated',
- 'for update skip locked',"in ('CANCELADA','REAGENDADA')"
+ 'for update skip locked'
 ]) ok(migration.toLowerCase().includes(token.toLowerCase()),'migration missing '+token)
 ok(!/\brefresh_token\s+text\b/i.test(migration),'plaintext refresh_token column forbidden')
 ok(!/(net\.http|http_post|http_get|extensions\.http|pg_net)/i.test(migration),'database must not make external HTTP calls')
+ok(!/create\s+trigger\s+trg_aos_google_/i.test(migration),'legacy tables must not own Google side-effect triggers')
+ok(gateway.includes("['CANCELADA','REAGENDADA']"),'server boundary must supersede cancelled/rebooked events')
+ok(gateway.includes('/api/google/appointment/queue'),'authenticated appointment queue route missing')
 
 compileInlineHtml('app/public/admin-config.html')
 compileInlineHtml('app/public/citas.html')
