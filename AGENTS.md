@@ -1,9 +1,9 @@
 # AGENTS.md — ASCENDA OS CURRENT
 
 **Current HIGH/CRITICAL program:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
-**Current HIGH/CRITICAL lock:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`  
-**Owner mode:** `RUN UNTIL BLOCKED hasta la siguiente prueba · WhatsApp humano activo · AI autonomy SAFE-OFF`  
-**Last closed:** `CONV-L1 #505 — PROVIDER CERTIFIED`  
+**Current HIGH/CRITICAL lock:** `CONV-L3 #507 — SALES AGENT RUNTIME`  
+**Owner mode:** `RUN UNTIL BLOCKED · L3 SHADOW/OFFLINE · autonomous Meta send NOT AUTHORIZED`  
+**Last closed:** `CONV-L2 #506 — HUMAN ROUND-TRIP CERTIFIED`  
 **Legacy WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`
 
 ## Purpose
@@ -21,7 +21,7 @@ This file defines mandatory operating rules for every AI/Codex/development agent
 7. `docs/control/ASCENDA_ZERO_COST_CI_V2_HANDOFF.md`
 8. the CURRENT Control Maestro / phase checkpoint of **one selected project only**
 9. exact GitHub `main`, branch/PR/checks and live Supabase/Railway evidence
-10. for ASCENDA Conversations work, `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_L1_READINESS_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_BLUEPRINT_REGISTRY_CURRENT.md` and `docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md`; legacy WhatsApp Revenue Hub docs are evidence/reference only;
+10. for ASCENDA Conversations work, `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_L1_READINESS_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_L2_READINESS_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_L3_READINESS_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_BLUEPRINT_REGISTRY_CURRENT.md` and `docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md`; legacy WhatsApp Revenue Hub docs are evidence/reference only;
 11. for Revenue F5 / identity / historical data work, `docs/control/REV_F5_LEARNING_INTERCONNECTION_CURRENT_20260819.md`;
 12. for F5→F6 identity/Patient 360 work, `docs/control/REV_F5_F6_IMPLEMENTATION_ROADMAP_CURRENT_20260819.md`, `docs/control/REV_PATIENT_IDENTITY_BRIDGE_V2_CONTRACT.md`, `docs/control/REV_PATIENT_COMMERCIAL_360_V2_CONTRACT.md` and `docs/control/REV_CUSTOMER_LIFECYCLE_IDENTITY_CONFIDENCE_CONTRACT.md`.
 

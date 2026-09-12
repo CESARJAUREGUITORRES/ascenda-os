@@ -270,4 +270,4 @@ Initial target:
 Legacy autonomous production:
 `AUTO_OFF · KILL ON · AI SEND OFF · AUTO ROUTING OFF · ALLOWLIST 0`.
 
-CONV-L1 #505 is CLOSED / PROVIDER CERTIFIED. CONV-L2 #506 is the only authorized HIGH/CRITICAL implementation lane under RUN UNTIL BLOCKED to the next bounded human-messaging/panel proof. Autonomous AI remains SAFE-OFF and L3 is not authorized.
+CONV-L1 #505 is CLOSED / PROVIDER CERTIFIED. CONV-L2 #506 is CLOSED / HUMAN ROUND-TRIP CERTIFIED. CONV-L3 #507 is the only authorized HIGH/CRITICAL implementation lane under RUN UNTIL BLOCKED in SHADOW/OFFLINE mode. Autonomous AI and provider dispatch remain SAFE-OFF / NOT AUTHORIZED.

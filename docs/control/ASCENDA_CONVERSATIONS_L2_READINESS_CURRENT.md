@@ -2,9 +2,11 @@
 
 **Program:** CONV-001 #502
 **Loop:** CONV-L2 #506
-**State:** ACTIVE · RUN UNTIL BLOCKED
-**Owner authorization:** continue the complete loop to the next proof so WhatsApp can be exposed as an active channel
+**State:** CLOSED · PRODUCTION-CERTIFIED HUMAN-MESSAGING BOUNDARY
+**Owner authorization:** completed bounded human round-trip proof; L3 separately authorized in SHADOW/OFFLINE mode
 **Starting main:** `cc04ad1a4b0b02be7813689e0196e641af391e46`
+**Certified release:** `bea297e1c390b628c94542e63bc9365b82da98ce`
+**Railway deployment:** `f16fb2f4-d2a2-44e1-b8f8-9a52a4ee1717` = SUCCESS
 **Provider prerequisite:** CONV-L1 #505 CLOSED / PROVIDER CERTIFIED
 **AI autonomy:** SAFE-OFF throughout L2
 
@@ -39,7 +41,7 @@ No duplicate patient, pricing, booking, attribution, consent or provider authori
 
 `CURRENT audit -> authority map -> smallest L2 core slice -> contracts/CI -> performance/security -> exact merge/deploy -> panel readback -> bounded real human message -> inbound reply/readback -> duplicate/takeover negatives -> closeout`
 
-## Next bounded real proof
+## Certified real proof
 
 Use only the existing owner-controlled `zi vital` test conversation.
 
@@ -54,10 +56,31 @@ Required proof:
 - no autonomous AI send;
 - protected DB pressure has no material regression.
 
-A real send beyond this already bounded next-proof scope, autonomous AI, campaign traffic or L3 requires a separate owner boundary.
+The bounded L2 proof is complete. Autonomous AI and campaign traffic remain unauthorized. L3 received its own later owner boundary and is SHADOW/OFFLINE only.
+
+## Closeout evidence
+
+On 2026-09-12 the owner completed the authenticated panel round trip on the existing `zi vital` test conversation:
+
+- `CONV L2 PANEL OK` persisted once as HUMAN OUTBOUND;
+- one idempotency key and one provider message id;
+- Meta status reconciled to DELIVERED;
+- `L2 RESPUESTA OK` persisted once as INBOUND;
+- inbound `message.received` + identity verification events persisted;
+- both messages remained on the same canonical conversation id;
+- conversation state remained `HUMAN_ACTIVE` with an ACTIVE owner assignment;
+- duplicate-body counts were exactly 1 outbound / 1 inbound;
+- active autonomous allowlist = 0;
+- pending outbound = 0;
+- active PostgreSQL queries >2s = 0 and >5s = 0 at final readback;
+- Railway received the Meta webhook with HTTP 200 and the panel visibly rendered the reply.
+
+GitHub Issue #506 is CLOSED / completed.
 
 ## Exit
 
-L2 closes only when real human messaging/takeover is operational from ASCENDA's panel/core with zero duplicate sends, correct provider/local reconciliation, responsive UI and no material protected-module regression.
+**CONV-L2 EXIT = PASS.**
 
-Then CONV-L3 #507 becomes NEXT ELIGIBLE / NOT AUTHORIZED.
+Real human messaging/takeover is operational from ASCENDA's panel/core with correct provider/local reconciliation, zero duplicate send in the certified proof, responsive UI and no observed protected DB-pressure regression.
+
+CONV-L3 #507 is now the active separately-authorized SHADOW/OFFLINE loop. This does not authorize autonomous Meta sending.

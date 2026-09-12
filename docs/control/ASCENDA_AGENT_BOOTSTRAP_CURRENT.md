@@ -1,11 +1,11 @@
 # ASCENDA OS — AGENT BOOTSTRAP CURRENT
 
-**Captured:** 2026-09-11 America/Lima  
+**Captured:** 2026-09-12 America/Lima  
 **Canonical L0 closeout baseline:** `main@60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
 **ACTIVE PROGRAM:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
-**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY`  
-**OWNER MODE:** `RUN UNTIL BLOCKED + REAL META TEST limitado a zi vital`  
-**LAST CLOSED:** `CONV-L0 #504`  
+**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L3 #507 — SALES AGENT RUNTIME`  
+**OWNER MODE:** `RUN UNTIL BLOCKED · L3 SHADOW/OFFLINE · autonomous Meta send NOT AUTHORIZED`  
+**LAST CLOSED:** `CONV-L2 #506 — HUMAN ROUND-TRIP CERTIFIED`  
 **PARENT:** `#502`  
 **LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
 **AUTONOMOUS CANARY:** `NOT AUTHORIZED`
@@ -23,11 +23,13 @@ Read in this order:
 7. `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`;
 8. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
 9. `docs/control/ASCENDA_CONVERSATIONS_L1_READINESS_CURRENT.md`;
-10. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
-11. exact GitHub `main` + active CONV PR/head;
-12. Railway exact deploy state if runtime is involved;
-13. live Supabase safety/performance readbacks if DB/runtime is involved;
-14. Notion WhatsApp Control Maestro CURRENT callout.
+10. `docs/control/ASCENDA_CONVERSATIONS_L2_READINESS_CURRENT.md`;
+11. `docs/control/ASCENDA_CONVERSATIONS_L3_READINESS_CURRENT.md`;
+12. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
+13. exact GitHub `main` + active CONV PR/head;
+14. Railway exact deploy state if runtime is involved;
+15. live Supabase safety/performance readbacks if DB/runtime is involved;
+16. Notion WhatsApp Control Maestro CURRENT callout.
 
 Historical WA docs remain evidence/reference only and never override these CURRENT files + live runtime evidence.
 
@@ -66,9 +68,9 @@ Nothing is deleted until replacement parity + no runtime references/callers + CI
 ## Loop order
 
 - `CONV-L0 #504` — **CLOSED** · Freeze / inventory / extraction map / benchmark freeze.
-- `CONV-L1 #505` — **ACTIVE** · Native Meta Channel Gateway.
-- `CONV-L2 #506` — Conversation Core + panel transport.
-- `CONV-L3 #507` — Sales Agent Runtime.
+- `CONV-L1 #505` — **CLOSED / PROVIDER CERTIFIED** · Native Meta Channel Gateway.
+- `CONV-L2 #506` — **CLOSED / HUMAN ROUND-TRIP CERTIFIED** · Conversation Core + panel transport.
+- `CONV-L3 #507` — **ACTIVE / SHADOW-OFFLINE** · Sales Agent Runtime.
 - `CONV-L4 #508` — Business Tools + bounded RAG.
 - `CONV-L5 #509` — Booking + media + templates.
 - `CONV-L6 #510` — Follow-up + hot leads + campaign worker.

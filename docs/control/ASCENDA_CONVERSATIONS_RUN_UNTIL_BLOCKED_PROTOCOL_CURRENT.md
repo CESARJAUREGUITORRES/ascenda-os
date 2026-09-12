@@ -298,6 +298,7 @@ Examples:
 - `Please complete Meta app permission X; I will verify automatically afterward.`
 - `Authorize the bounded L1 real Meta test matrix for test conversation Y.`
 - `Authorize CONV-L2 #506 — RUN UNTIL BLOCKED.`
+- `Authorize CONV-L3 #507 — RUN UNTIL BLOCKED / SHADOW ONLY.`
 
 The owner should not be used as a manual CI operator or asked to approve ordinary commits one by one.
 
