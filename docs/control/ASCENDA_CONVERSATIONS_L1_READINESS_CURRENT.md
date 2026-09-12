@@ -2,10 +2,11 @@
 
 **Program:** CONV-001 #502  
 **Loop:** CONV-L1 #505  
-**State:** IMPLEMENTED · CI CERTIFICATION IN PROGRESS  
+**State:** CLOSED · PROVIDER CERTIFIED  
 **Owner mode:** RUN UNTIL BLOCKED + REAL META TEST limitado a `zi vital`  
 **Starting main:** `eefd26d6e2395545cfb944d48260d84602240075`  
 **Legacy autonomy:** SAFE-OFF
+**Closeout main before documentation transition:** `cc04ad1a4b0b02be7813689e0196e641af391e46`
 
 ## Goal
 
@@ -112,3 +113,28 @@ L1 is technically closed only when:
 - protected ASCENDA DB/runtime health has no material regression.
 
 Then L2 becomes NEXT ELIGIBLE / NOT AUTHORIZED.
+
+
+## Production certification evidence — 2026-09-12
+
+- dedicated CONV-L1 gateway CI PASS;
+- Ascenda CI PASS;
+- Performance Guard PASS;
+- Phase S compatibility PASS on the certified bootstrap;
+- Sentinel F6 PASS;
+- WA4C FULL LOCAL PASS;
+- Railway deployed the exact gateway/status-reconciliation merge successfully;
+- provider health: credential READY, asset READY, permissions READY, messaging READY, management READY;
+- canonical WABA resolved and configured server-side;
+- approved template catalog read succeeded;
+- bounded real test ledger contains delivered text, delivered image, delivered interactive-buttons and delivered approved template;
+- owner confirmed the real text arrived and replied; one inbound row after that send was independently observed;
+- final approved-template canary: exactly one request, one message and one accepted event, then `sent -> delivered`;
+- no active autonomous allowlist; AI send and auto-routing remained disabled;
+- no material DB pressure in final readback.
+
+### Final state
+
+CONV-L1 #505 is **CLOSED / PROVIDER CERTIFIED**.
+
+CONV-L2 #506 is the next loop and has now received a separate owner authorization to continue only through the next bounded human-messaging/panel proof. Autonomous AI remains outside scope.
