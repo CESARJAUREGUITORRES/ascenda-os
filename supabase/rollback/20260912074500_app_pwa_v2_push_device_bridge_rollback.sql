@@ -1,4 +1,4 @@
--- APP-PWA-V2 #517 rollback — restore S15.4 retired subscription recovery function.
+-- APP-PWA-V2 #517 rollback — restore the exact current S15.4 retired-subscription recovery function.
 
 create or replace function public.aos_push_subscription_upsert_v1(p_payload jsonb)
 returns jsonb
@@ -38,8 +38,11 @@ begin
      and v_existing_p256dh=v_p256dh
      and v_existing_auth=v_auth then
     return jsonb_build_object(
-      'ok',true,'registered',false,'reset_required',true,
-      'reason','PUSH_SUBSCRIPTION_RETIRED','subscription_id',v_existing_id
+      'ok',true,
+      'registered',false,
+      'reset_required',true,
+      'reason','PUSH_SUBSCRIPTION_RETIRED',
+      'subscription_id',v_existing_id
     );
   end if;
 
@@ -61,7 +64,7 @@ begin
     updated_at=now()
   returning id into v_id;
   return jsonb_build_object('ok',true,'registered',true,'reset_required',false,'subscription_id',v_id);
-end
+end;
 $$;
 
 revoke all on function public.aos_push_subscription_upsert_v1(jsonb) from public, anon, authenticated;
