@@ -2,7 +2,7 @@
 
 **Program:** #502  
 **Immediate loop:** #504  
-**State:** **TECHNICAL PASS / CLOSED** · L1 REQUIRES SEPARATE OWNER AUTHORIZATION  
+**State:** **TECHNICAL PASS / CLOSED** · L1 OWNER AUTHORIZATION RECEIVED / ACTIVE  
 **Production:** legacy autonomy SAFE-OFF
 
 ## Purpose
@@ -137,7 +137,7 @@ Every material design decision needs:
 - [x] target contracts frozen;
 - [x] protected-module regression baseline captured;
 - [x] L0 closeout package persisted and ready for owner review.
-- [ ] owner separately authorizes CONV-L1 #505 implementation.
+- [x] owner separately authorized CONV-L1 #505 implementation (`RUN UNTIL BLOCKED + REAL META TEST limitado a zi vital`).
 
 ## Stop conditions
 
@@ -185,4 +185,4 @@ Technical evidence:
 
 An unrelated F16 workflow invocation on the merge SHA failed without jobs and is not a CONV-L0 gate. It did not modify L0 evidence or runtime.
 
-**L1 remains NOT AUTHORIZED by L0 completion.**
+**L1 was not authorized by L0 completion itself. Separate owner authorization was received later and CONV-L1 #505 is now active.**
