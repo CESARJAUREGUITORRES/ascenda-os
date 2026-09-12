@@ -172,7 +172,7 @@ Evidence:
 - protected DB pressure readback >2s = 0 and >5s = 0;
 - certified Railway bootstrap restored after temporary probe runs.
 
-The owner then authorized continuing to the next proof so WhatsApp can be exposed as an active human-operated channel. This activates CONV-L2 #506 only; it does not authorize autonomous AI or L3.
+That authorization carried L2 through its bounded real human-operated proof. L2 is now closed. A later explicit owner instruction activates CONV-L3 #507 for SHADOW/OFFLINE development and evaluation only; autonomous AI/provider sending remains unauthorized.
 
 
 ## L2 production closeout — 2026-09-12
