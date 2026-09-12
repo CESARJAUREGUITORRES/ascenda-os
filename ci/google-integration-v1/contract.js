@@ -63,10 +63,13 @@ for(const token of [
 ]) ok(gateway.includes(token),'gateway missing '+token)
 ok(!gateway.includes("console.log(refresh"),'refresh token must never be logged')
 ok(!gateway.includes("console.log(tr.body"),'OAuth token response must never be logged')
+ok(!gateway.includes('setInterval('),'Google module must not own a recurrent interval')
+ok(!gateway.includes('setTimeout('),'Google module must not become a new recurrent network owner')
 
 const server=read('app/server.js')
 ok(server.includes("if (p.indexOf('/api/google/') === 0) return GOOGLE_INTEGRATION.handle(req, res)"),'server Google boundary missing')
 ok(server.includes('GOOGLE_INTEGRATION.injectEmailCalendarButton'),'email Calendar injection missing')
+ok(server.includes('GOOGLE_INTEGRATION.processQueueOnce()'),'Google retry worker must reuse existing server scheduler')
 ok(server.includes('EMAIL_GATEWAY.verifyApp'),'existing app auth boundary must remain')
 
 const admin=read('app/public/admin-config.html')
