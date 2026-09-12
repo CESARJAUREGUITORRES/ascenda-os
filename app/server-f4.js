@@ -40,6 +40,7 @@ delete childEnv.WHATSAPP_ACCESS_TOKEN;
 delete childEnv.WHATSAPP_PHONE_NUMBER_ID;
 delete childEnv.WHATSAPP_GRAPH_VERSION;
 delete childEnv.WHATSAPP_BUSINESS_ACCOUNT_ID;
+delete childEnv.WHATSAPP_BUSINESS_PORTFOLIO_ID;
 delete childEnv.WA_CANARY_MODE;
 delete childEnv.WA_CANARY_ALLOW_TO;
 delete childEnv.WA_L4_INTERNAL_TOKEN;
@@ -367,5 +368,5 @@ function shutdown(sig){console.log('[F4-PROXY] shutdown',sig);server.close(()=>p
 process.on('SIGTERM',()=>shutdown('SIGTERM'));process.on('SIGINT',()=>shutdown('SIGINT'));
 server.listen(EXTERNAL_PORT,'0.0.0.0',()=>{
   console.log('[F4-PROXY] listening on :'+EXTERNAL_PORT+' -> :'+INNER_PORT+' | MetaCloudAdapter v1 + L4 authority AUTO_OFF-by-default');
-  META_ADAPTER.health().then(h=>console.log('[CONV-L1] meta provider health',{ok:h.ok,diagnosis:h.diagnosis,credentialState:h.credentialState,assetState:h.assetState,permissionsState:h.permissionsState,businessAccountAvailable:h.businessAccountAvailable===true})).catch(e=>console.error('[CONV-L1] meta provider health',{ok:false,error:String(e.errorCode||e.message||'META_HEALTH_FAILED').slice(0,128)}));
+  META_ADAPTER.health().then(h=>console.log('[CONV-L1] meta provider health',{ok:h.ok,diagnosis:h.diagnosis,credentialState:h.credentialState,assetState:h.assetState,permissionsState:h.permissionsState,messagingReady:h.messagingReady===true,managementReady:h.managementReady===true,businessAccountAvailable:h.businessAccountAvailable===true,businessAccountId:h.businessAccountId||null,businessAccountName:h.businessAccountName||null})).catch(e=>console.error('[CONV-L1] meta provider health',{ok:false,error:String(e.errorCode||e.message||'META_HEALTH_FAILED').slice(0,128)}));
 });
