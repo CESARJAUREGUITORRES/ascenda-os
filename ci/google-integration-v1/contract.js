@@ -56,7 +56,10 @@ for(const token of [
   'extendedProperties',
   'aos_google_claim_sync_v1',
   "x.accessRole==='owner'",
-  "state:'SUPERSEDED'"
+  "state:'SUPERSEDED'",
+  'GOOGLE_CALENDAR_LINK_PERSIST_FAILED',
+  'GOOGLE_CALENDAR_LEDGER_PERSIST_FAILED',
+  'GOOGLE_CONTACT_LINK_PERSIST_FAILED'
 ]) ok(gateway.includes(token),'gateway missing '+token)
 ok(!gateway.includes("console.log(refresh"),'refresh token must never be logged')
 ok(!gateway.includes("console.log(tr.body"),'OAuth token response must never be logged')
