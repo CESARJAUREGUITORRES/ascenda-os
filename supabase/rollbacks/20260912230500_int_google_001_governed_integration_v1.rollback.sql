@@ -1,0 +1,13 @@
+begin;
+drop trigger if exists trg_aos_google_enqueue_cancel_v1 on public.aos_agenda_citas;
+drop trigger if exists trg_aos_google_enqueue_agenda_event_v1 on public.aos_agenda_events_v2;
+drop function if exists public.aos_google_enqueue_cancel_v1();
+drop function if exists public.aos_google_enqueue_agenda_event_v1();
+drop function if exists public.aos_google_future_backfill_v1(integer);
+drop function if exists public.aos_google_integration_audit_v1();
+drop table if exists public.aos_google_sync_outbox_v1;
+drop table if exists public.aos_google_contact_links_v1;
+drop table if exists public.aos_google_calendar_links_v1;
+drop table if exists public.aos_google_connections_v1;
+drop table if exists public.aos_google_oauth_states_v1;
+commit;
