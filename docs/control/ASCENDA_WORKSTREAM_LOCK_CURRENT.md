@@ -1,11 +1,13 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-11 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `CONV-001 #502 — ASCENDA CONVERSATIONS CORE V1`  
+**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
+**LAST CLOSED:** `CONV-L0 #504 — AUDIT / EXTRACTION / CONTRACT FREEZE`  
+**NEXT ELIGIBLE:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY · NOT STARTED · NOT AUTHORIZED`  
 **Legacy WA-L10 #456:** `FROZEN · SAFE-OFF EVIDENCE ONLY · NO NEW FEATURE PATCHING`  
 **P0 #485:** `CLOSED / COMPLETED — PROD RECURRENCE+LOAD PASS`  
 **GitHub authority:** Issue `#502` = `OPEN`; Issue `#456` = `OPEN / FROZEN`  
-**Current main at pivot:** `60fd6b260c8abb4d71c8375f490ee05ef63252c3`  
+**Current main at L0 technical closeout:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
 **Current production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF · AI SEND OFF · AUTO ROUTING OFF`  
 **Active autonomous allowlist:** `0`  
 **L11/general autonomous PROD:** `NOT AUTHORIZED`
@@ -14,7 +16,7 @@
 
 The owner approved a consolidation pivot after the R8/R9 WhatsApp canary investigation showed that continuing to stack patches on the WA2/WA3/WA4/F4/L4-L10 hot path was creating latency, operational coupling and debugging complexity without yet meeting the required conversational-sales experience.
 
-The new sole HIGH/CRITICAL mutable lane is **CONV-001 #502 — ASCENDA Conversations Core V1**.
+CONV-001 remains the active program, but after L0 technical closeout **no HIGH/CRITICAL implementation lane is active**. CONV-L1 #505 is only NEXT ELIGIBLE and requires a separate owner authorization.
 
 External projects such as Chatwoot, Fazer clinical sales agent patterns, LangGraph and official Meta samples are engineering blueprints only. They are not runtime dependencies unless separately approved.
 
@@ -48,6 +50,8 @@ WA-L10 #456 remains preserved for audit/evidence and rollback knowledge, but is 
 
 ## Immediate next gate
 
-**CONV-L0 only.** Build the exact current dependency/runtime/query map and KEEP/PORT/REPLACE/RETIRE matrix before production runtime mutation. No feature implementation may begin until L0 proves the target boundaries and identifies the minimal reusable contracts.
+**CONV-L0 is technically closed.** The exact runtime/UI/API/DB audit, authority map, extraction matrix, blueprint parity, frozen 40-case benchmark and target contracts are now persisted.
+
+**CONV-L1 #505 is NEXT ELIGIBLE / NOT STARTED / NOT AUTHORIZED.** No Meta Channel Gateway implementation may begin until the owner separately authorizes L1.
 
 See Issue #502 and `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`.
