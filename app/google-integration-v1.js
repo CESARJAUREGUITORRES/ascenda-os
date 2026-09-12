@@ -368,7 +368,7 @@ function createGoogleIntegrationV1(opts) {
     var ar=await sb('/rest/v1/aos_agenda_citas?select=*&id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
     var appt=ar.status<300&&Array.isArray(ar.body)&&ar.body[0]?ar.body[0]:null
     if(!appt) throw new Error('APPOINTMENT_NOT_FOUND')
-    if(String(appt.estado_cita||'').toUpperCase()==='CANCELADA') return deleteCalendar(connectionId,appointmentId)
+    if(['CANCELADA','REAGENDADA'].indexOf(String(appt.estado_cita||'').toUpperCase())>=0) return deleteCalendar(connectionId,appointmentId)
     var linkR=await sb('/rest/v1/aos_google_calendar_links_v1?select=*&connection_id=eq.'+conn.id+'&appointment_id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
     var link=linkR.status<300&&Array.isArray(linkR.body)&&linkR.body[0]?linkR.body[0]:null
     var token=await accessToken(conn)
@@ -683,6 +683,14 @@ function createGoogleIntegrationV1(opts) {
     if(!url) return ''
     return '<div style="text-align:center;margin:22px 0 10px"><a href="'+url+'" style="display:inline-block;background:#0A4FBF;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:700;font-family:Arial,sans-serif">📅 Ver en Google Calendar</a></div>'
   }
+  function injectEmailCalendarButton(markup,appointmentId) {
+    var button=emailCalendarButton(appointmentId)
+    if(!button) return String(markup||'')
+    var html=String(markup||'')
+    if(/<\/body>/i.test(html)) return html.replace(/<\/body>/i,button+'</body>')
+    if(/<\/html>/i.test(html)) return html.replace(/<\/html>/i,button+'</html>')
+    return html+button
+  }
   async function appointmentLink(req,res,url) {
     var id=String(url.searchParams.get('appointment_id')||'')
     var sig=String(url.searchParams.get('sig')||'')
@@ -722,6 +730,7 @@ function createGoogleIntegrationV1(opts) {
     handle:handle,
     processQueueOnce:processQueueOnce,
     emailCalendarButton:emailCalendarButton,
+    injectEmailCalendarButton:injectEmailCalendarButton,
     calendarPublicUrl:calendarPublicUrl,
     _test:{encryptSecret:encryptSecret,decryptSecret:decryptSecret,calendarLinkSignature:calendarLinkSignature,contactTag:contactTag,monthCode:monthCode}
   }
