@@ -1689,7 +1689,7 @@ function openIntegModal(id){
   if(r&&r.tipo==='google'){openGoogleConnector();return;}
   showToast('Integración','Este conector conserva su configuración existente.');
 }
-function loadIntegraciones(){sbGet('/rest/v1/aos_integraciones?select=*&order=categoria,orden').then(function(rows){if(!rows)return;INTEG_DATA=rows;
+function loadIntegraciones(){sbGet('/rest/v1/aos_integraciones?select=id,nombre,tipo,categoria,estado,cuenta,icono,descripcion,multi_cuenta,orden,url_signup,url_api,url_docs&order=categoria,orden').then(function(rows){if(!rows)return;INTEG_DATA=rows;
   // Activos arriba
   var activos=rows.filter(function(r){return r.estado==='conectado';});
   el('cfg-ig-activos-cards').innerHTML=activos.length?'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;">'+activos.map(function(r){
