@@ -77,6 +77,50 @@ create table public.aos_pacientes (
   updated_at timestamptz default now()
 );
 
+create table public.aos_booking_operations_v2 (
+  id uuid primary key default gen_random_uuid(),
+  idempotency_key text not null unique,
+  request_hash text not null,
+  operation_type text not null,
+  channel text not null,
+  actor_id uuid,
+  conversation_id uuid,
+  appointment_id text,
+  treatment_id uuid,
+  professional_ref text,
+  site text,
+  appointment_date date,
+  appointment_time time,
+  identity_state text,
+  campaign_source text,
+  ad_id text,
+  lead_id text,
+  status text not null,
+  response jsonb default '{}'::jsonb,
+  created_at timestamptz default now()
+);
+
+create table public.aos_wa4_booking_actions_v1 (
+  id uuid primary key default gen_random_uuid(),
+  idempotency_key text not null unique,
+  request_hash text not null,
+  conversation_id uuid,
+  actor_id uuid,
+  agenda_id text,
+  treatment_id uuid,
+  professional_id text,
+  site text,
+  appointment_date date,
+  appointment_time time,
+  identity_state text,
+  source_channel text,
+  campaign_source text,
+  ad_id text,
+  lead_id text,
+  status text not null,
+  created_at timestamptz default now()
+);
+
 insert into public.aos_integraciones(
  id,tipo,nombre,categoria,descripcion,estado,cuenta,config,pasos_guia,multi_cuenta
 ) values (
