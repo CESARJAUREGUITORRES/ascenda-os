@@ -497,7 +497,7 @@ var SIDEBAR_ASESOR = [
   {type:'item',id:'advisor-attendance', ico:'star',     lbl:'Mis atenciones'},
   {type:'sep',bot:true},
   {type:'item',id:'__profile',          ico:'profile',  lbl:'Mi perfil'},
-  {type:'item',id:'devices-notifications',ico:'settings',lbl:'Dispositivos y avisos'},
+  {type:'item',id:'devices-notifications',ico:'settings',lbl:'Dispositivos y avisos',requiresPanel:true},
   {type:'item',id:'__cierre_turno',     ico:'clockend', lbl:'Cerrar turno', special:'cierre'},
   {type:'item',id:'__logout',           ico:'logout',   lbl:'Salir',        danger:true}
 ];
@@ -524,13 +524,17 @@ var SIDEBAR_ADMIN = [
   {type:'section',label:'Recursos'},
   {type:'item',id:'admin-team',         ico:'users',     lbl:'Equipo'},
   {type:'item',id:'admin-config',       ico:'settings',  lbl:'Configuracion'},
-  {type:'item',id:'devices-notifications',ico:'settings',lbl:'Dispositivos y avisos'},
+  {type:'item',id:'devices-notifications',ico:'settings',lbl:'Dispositivos y avisos',requiresPanel:true},
   {type:'sep',bot:true},
   {type:'item',id:'__logout',           ico:'logout',    lbl:'Salir',        danger:true}
 ];
 
 function buildSidebar() {
-  var items  = AOS.role === 'ADMIN' ? SIDEBAR_ADMIN : SIDEBAR_ASESOR;
+  var perms = AOS.ctx.paneles_acceso || [];
+  var baseItems = AOS.role === 'ADMIN' ? SIDEBAR_ADMIN : SIDEBAR_ASESOR;
+  var items = baseItems.filter(function(it) {
+    return !it.requiresPanel || perms.indexOf(it.id) >= 0;
+  });
   var actCls = AOS.role === 'ADMIN' ? 'act-admin'   : 'act-asesor';
   var el = document.getElementById('sb-content');
   var html = '', inBot = false;
@@ -581,6 +585,7 @@ var VIEW_MAP = {
   'advisor-sales':       'ViewAdvisorSales',
   'advisor-commissions': 'ViewAdvisorCommissions',
   'advisor-attendance':  'ViewAdvisorAttendance',
+  'devices-notifications':'ViewDeviceCenter',
   'admin-home':          'ViewAdminHome',
   'admin-operations':    'ViewAdminOperations',
   'admin-agenda':        'ViewAdvisorAgenda',
@@ -596,6 +601,9 @@ var VIEW_MAP = {
 };
 
 function navigateTo(viewId) {
+  if (viewId === 'devices-notifications' && (AOS.ctx.paneles_acceso || []).indexOf('devices-notifications') < 0) {
+    viewId = AOS.role === 'ADMIN' ? 'admin-home' : 'advisor-home';
+  }
   if (AOS.activeView === viewId) return;
   AOS.activeView = viewId;
   var actCls = AOS.role === 'ADMIN' ? 'act-admin' : 'act-asesor';
@@ -634,7 +642,8 @@ function navigateTo(viewId) {
     'ViewAdminComisiones':    '/admin-comisiones.html',
     'ViewAdminTeam':          '/admin-team.html',
     'ViewAdminMarketing':     '/admin-marketing.html',
-    'ViewAdminBilling':       '/admin-billing.html'
+    'ViewAdminBilling':       '/admin-billing.html',
+    'ViewDeviceCenter':       '/admin-device-center-v2.html'
   };
   var route = PANEL_ROUTES[hf];
   if (route) {
