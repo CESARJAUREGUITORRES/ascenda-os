@@ -1,13 +1,13 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-11 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
+**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY`  
+**OWNER AUTHORIZATION:** `RUN UNTIL BLOCKED + REAL META TEST LIMITADO A zi vital`  
 **LAST CLOSED:** `CONV-L0 #504 — AUDIT / EXTRACTION / CONTRACT FREEZE`  
-**NEXT ELIGIBLE:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY · NOT STARTED · NOT AUTHORIZED`  
 **Legacy WA-L10 #456:** `FROZEN · SAFE-OFF EVIDENCE ONLY · NO NEW FEATURE PATCHING`  
 **P0 #485:** `CLOSED / COMPLETED — PROD RECURRENCE+LOAD PASS`  
 **GitHub authority:** Issue `#502` = `OPEN`; Issue `#456` = `OPEN / FROZEN`  
-**Current main at L0 technical closeout:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
+**Current main at L1 start:** `eefd26d6e2395545cfb944d48260d84602240075`  
 **Current production safety:** `AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF · AI SEND OFF · AUTO ROUTING OFF`  
 **Active autonomous allowlist:** `0`  
 **L11/general autonomous PROD:** `NOT AUTHORIZED`
@@ -16,7 +16,7 @@
 
 The owner approved a consolidation pivot after the R8/R9 WhatsApp canary investigation showed that continuing to stack patches on the WA2/WA3/WA4/F4/L4-L10 hot path was creating latency, operational coupling and debugging complexity without yet meeting the required conversational-sales experience.
 
-CONV-001 remains the active program, but after L0 technical closeout **no HIGH/CRITICAL implementation lane is active**. CONV-L1 #505 is only NEXT ELIGIBLE and requires a separate owner authorization.
+CONV-001 remains the active program. **CONV-L1 #505 now owns the sole HIGH/CRITICAL implementation lane** under explicit owner authorization.
 
 External projects such as Chatwoot, Fazer clinical sales agent patterns, LangGraph and official Meta samples are engineering blueprints only. They are not runtime dependencies unless separately approved.
 
@@ -50,8 +50,6 @@ WA-L10 #456 remains preserved for audit/evidence and rollback knowledge, but is 
 
 ## Immediate next gate
 
-**CONV-L0 is technically closed.** The exact runtime/UI/API/DB audit, authority map, extraction matrix, blueprint parity, frozen 40-case benchmark and target contracts are now persisted.
-
-**CONV-L1 #505 is NEXT ELIGIBLE / NOT STARTED / NOT AUTHORIZED.** No Meta Channel Gateway implementation may begin until the owner separately authorizes L1.
+**CONV-L1 #505 is ACTIVE.** Build and certify one native Meta Channel Gateway while keeping AI autonomy SAFE-OFF. Real provider testing is limited to the existing `zi vital` test scope authorized by the owner. L2 remains unauthorized.
 
 See Issue #502 and `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`.
