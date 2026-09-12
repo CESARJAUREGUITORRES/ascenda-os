@@ -1,0 +1,87 @@
+name: APP-PWA-V2 Device Registry Zero-Cost Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260912073000_app_pwa_v2_device_registry.sql'
+      - 'supabase/rollback/20260912073000_app_pwa_v2_device_registry_rollback.sql'
+      - 'ci/app-pwa-v2/**'
+      - '.github/workflows/app-pwa-v2-schema-gate.yml'
+  push:
+    branches:
+      - 'app-pwa-v2-*'
+    paths:
+      - 'supabase/migrations/20260912073000_app_pwa_v2_device_registry.sql'
+      - 'supabase/rollback/20260912073000_app_pwa_v2_device_registry_rollback.sql'
+      - 'ci/app-pwa-v2/**'
+      - '.github/workflows/app-pwa-v2-schema-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-pwa-v2-schema-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  device-registry-db:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 12
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59327/postgres
+      DB_CONTAINER: ascenda-app-pwa-v2-db
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Runner health
+        run: |
+          set -euo pipefail
+          bash scripts/ci/runner-healthcheck.sh
+
+      - name: Static APP-PWA-V2 contract
+        run: node ci/app-pwa-v2/contract.js
+
+      - name: Start isolated PostgreSQL 17
+        run: |
+          set -euo pipefail
+          docker rm -f "$DB_CONTAINER" >/dev/null 2>&1 || true
+          docker run -d --name "$DB_CONTAINER" \
+            -e POSTGRES_PASSWORD=postgres \
+            -p 127.0.0.1:59327:5432 \
+            postgres:17-alpine
+          for i in $(seq 1 40); do
+            if docker exec "$DB_CONTAINER" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs "$DB_CONTAINER" || true
+          exit 1
+
+      - name: Build synthetic authority fixture
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/app-pwa-v2/device_registry_fixture.sql
+
+      - name: Apply exact migration twice
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260912073000_app_pwa_v2_device_registry.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260912073000_app_pwa_v2_device_registry.sql
+
+      - name: Ownership / ACL / presence contracts
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/app-pwa-v2/device_registry_db_contract.sql
+
+      - name: Rollback exact migration
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollback/20260912073000_app_pwa_v2_device_registry_rollback.sql
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_devices_v1') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_app_presence_v1') is null")" = "t"
+          test "$(psql "$DB_URL" -X -qAt -c "select count(*) from information_schema.columns where table_schema='public' and table_name='aos_push_subscriptions_v1' and column_name='device_id'")" = "0"
+          echo APP_PWA_V2_ROLLBACK=PASS
+
+      - name: Cleanup isolated database
+        if: always()
+        run: docker rm -f "$DB_CONTAINER" >/dev/null 2>&1 || true
