@@ -87,7 +87,7 @@ var CHANNELS=[
 var state={snap:null,devices:[],current:null,prefs:{}};
 function e(id){return document.getElementById(id)}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
-function msg(text,kind){var n=e('notice');n.className='notice '+(kind||'');n.textContent=text;n.style.display='block';clearTimeout(n._t);n._t=setTimeout(function(){n.style.display='none'},5000)}
+function msg(text,kind){var n=e('notice');n.className='notice '+(kind||'');n.textContent=text;n.style.display='block';if(n._anim)try{n._anim.cancel()}catch(_){};if(typeof n.animate==='function'){n._anim=n.animate([{opacity:1},{opacity:1,offset:.82},{opacity:0}],{duration:5000,easing:'linear'});n._anim.finished.then(function(){n.style.display='none';n.style.opacity=''}).catch(function(){})}}
 function token(){
  try{var t=sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||'';if(t)return Promise.resolve(t)}catch(_){}
  if(!('caches'in window))return Promise.resolve('');
