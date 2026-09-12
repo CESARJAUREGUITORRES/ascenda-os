@@ -698,6 +698,7 @@ var SIDEBAR_ASESOR = [
   {type:'item',id:'advisor-attendance', ico:'star',     lbl:'Mis atenciones'},
   {type:'sep',bot:true},
   {type:'item',id:'__profile',          ico:'profile',  lbl:'Mi perfil'},
+  {type:'item',id:'devices-notifications',ico:'settings',lbl:'Dispositivos y avisos'},
   {type:'item',id:'__logout',           ico:'logout',   lbl:'Salir',        danger:true}
 ];
 
@@ -731,6 +732,7 @@ var SIDEBAR_ADMIN = [
   {type:'item',id:'admin-inventario',   ico:'package',   lbl:'Inventario Admin'},
   {type:'item',id:'admin-studio',       ico:'aperture',  lbl:'Ascenda Studio'},
   {type:'item',id:'admin-config',       ico:'settings',  lbl:'Configuracion'},
+  {type:'item',id:'devices-notifications',ico:'settings',lbl:'Dispositivos y avisos'},
   {type:'sep',bot:true},
   {type:'item',id:'__logout',           ico:'logout',    lbl:'Salir',        danger:true}
 ];
@@ -833,6 +835,7 @@ var VIEW_MAP = {
   'advisor-commissions': 'ViewAdvisorCommissions',
   'advisor-attendance':  'ViewAdvisorAttendance',
   'advisor-coord':       'ViewAdvisorCoord',
+  'devices-notifications':'ViewDeviceCenter',
   'admin-home':          'ViewAdminHome',
   'admin-agenda':        'ViewAdminAgenda',
   'admin-patients':      'ViewAdminPatients',
@@ -911,7 +914,8 @@ function navigateTo(viewId) {
     'ViewAdminBilling':       '/admin-billing.html',
     'ViewAdminConfig':        '/admin-config.html',
     'ViewAdminChats':         '/coordinacion.html',
-    'ViewAdvisorCoord':       '/asesor-coord.html'
+    'ViewAdvisorCoord':       '/asesor-coord.html',
+    'ViewDeviceCenter':       '/admin-device-center-v2.html'
   };
   var route = PANEL_ROUTES[hf];
   if (route) {
