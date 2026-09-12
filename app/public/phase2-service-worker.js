@@ -6,11 +6,20 @@ self.addEventListener('message',function(e){if(e&&e.data&&e.data.type==='ASCENDA
 
 function appClients(){return self.clients.matchAll({type:'window',includeUncontrolled:true}).then(function(list){return list.filter(function(c){try{var u=new URL(c.url);return u.origin===self.location.origin&&(u.pathname==='/app'||u.pathname==='/app.html');}catch(_){return false;}});});}
 function pushData(d){var x=Object.assign({},d&&d.data||{});x.kind='AOS_PUSH';x.version=String(d&&d.version||'AOS_PUSH_V1');x.channel=String(d&&d.channel||'');x.route=String(d&&d.route||'/app.html');x.entityId=String(d&&d.entity_id||x.entityId||'');if(x.channel==='WHATSAPP'&&!x.conversationId)x.conversationId=x.entityId;return x;}
+function pushPriority(payload){return String(payload&&payload.priority||payload&&payload.data&&payload.data.priority||'NORMAL').toUpperCase();}
+function clientIsAttentive(c){try{return c&&c.focused===true&&c.visibilityState==='visible';}catch(_){return false;}}
+function shouldSystemNotify(payload,list){
+  var p=pushPriority(payload),critical=p==='CRITICAL'||p==='URGENTE'||p==='HIGH'||p==='ALTA';
+  var forced=payload&&payload.force_system===true||payload&&payload.data&&payload.data.force_system===true;
+  if(critical||forced)return true;
+  return !list.some(clientIsAttentive);
+}
 self.addEventListener('push',function(event){
   var payload=null;try{payload=event.data?event.data.json():null;}catch(_){try{payload=JSON.parse(event.data&&event.data.text?event.data.text():'{}');}catch(__){payload=null;}}
   if(!payload||payload.version!=='AOS_PUSH_V1')return;
   event.waitUntil(appClients().then(function(list){
-    if(list.length){list.forEach(function(c){try{c.postMessage({type:'AOS_PUSH_EVENT',payload:payload});}catch(_){}});return null;}
+    if(list.length)list.forEach(function(c){try{c.postMessage({type:'AOS_PUSH_EVENT',payload:payload});}catch(_){}});
+    if(!shouldSystemNotify(payload,list))return null;
     var title=String(payload.title||'ASCENDA'),opts={body:String(payload.body||''),icon:String(payload.icon||'/icons/icon-192x192.png'),badge:String(payload.badge||'/icons/icon-192x192.png'),tag:String(payload.tag||('aos-push-'+Date.now())),renotify:true,silent:false,data:pushData(payload)};
     return self.registration.showNotification(title,opts);
   }));
