@@ -94,13 +94,14 @@ function createMetaCloudAdapter(config){
 
   async function phoneAsset(){
     if(!transportConfigured())throw Object.assign(new Error('WA_PROVIDER_NOT_CONFIGURED'),{status:503,definite:true});
-    const fields='id,display_phone_number,verified_name,quality_rating,whatsapp_business_account';
+    const fields='id,display_phone_number,verified_name,quality_rating';
     return requester('GET',encodeURIComponent(phoneNumberId)+'?fields='+encodeURIComponent(fields),null,12000);
   }
 
   async function resolveWabaId(){
     if(configuredWabaId)return configuredWabaId;
-    const out=await phoneAsset();const value=out&&out.data&&out.data.whatsapp_business_account;
+    const out=await requester('GET',encodeURIComponent(phoneNumberId)+'?fields='+encodeURIComponent('whatsapp_business_account'),null,12000);
+    const value=out&&out.data&&out.data.whatsapp_business_account;
     if(typeof value==='string'&&value.trim())return value.trim();
     if(value&&typeof value==='object'&&String(value.id||'').trim())return String(value.id).trim();
     return '';
@@ -139,8 +140,10 @@ function createMetaCloudAdapter(config){
       result.verifiedName=asset&&asset.data?trim(asset.data.verified_name,256)||null:null;
       result.displayPhoneNumber=asset&&asset.data?trim(asset.data.display_phone_number,64)||null:null;
       result.qualityRating=asset&&asset.data?trim(asset.data.quality_rating,64)||null:null;
-      const waba=asset&&asset.data&&asset.data.whatsapp_business_account;
-      result.businessAccountAvailable=!!(configuredWabaId||(typeof waba==='string'&&waba)||(waba&&waba.id));
+      result.businessAccountAvailable=!!configuredWabaId;
+      if(!result.businessAccountAvailable){
+        try{result.businessAccountAvailable=!!(await resolveWabaId());}catch(_){result.businessAccountAvailable=false;}
+      }
     }catch(e){
       result.assetState='INVALID';result.diagnosis=e.diagnosis||'PHONE_NUMBER_ID_INVALID_OR_INACCESSIBLE';
       result.providerErrorCode=String(e.errorCode||e.message||'META_PHONE_CHECK_FAILED').slice(0,128);
