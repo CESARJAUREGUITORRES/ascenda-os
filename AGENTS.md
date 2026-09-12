@@ -1,7 +1,9 @@
 # AGENTS.md — ASCENDA OS CURRENT
 
 **Current HIGH/CRITICAL program:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
-**Current execution loop:** `CONV-L0 #504` after governance merge  
+**Current HIGH/CRITICAL lock:** `NONE`  
+**Last closed:** `CONV-L0 #504`  
+**Next eligible:** `CONV-L1 #505 · NOT STARTED · NOT AUTHORIZED`  
 **Legacy WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`
 
 ## Purpose
@@ -66,7 +68,7 @@ Captured Railway outer command at the 2026-08-22 WA-V2 baseline:
 
 Captured effective chain:
 
-`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3.js → server-wa2.js → server-f4.js → lower/core runtime`
+`server-phase-s-f17.js → server-phase-s.js → server-f17.js → server-f5.js → server-wa4.js → server-wa3-v2.js → server-wa3.js → server-wa2.js → server-f4.js → server-phase2.js → server.js`
 
 Important:
 
