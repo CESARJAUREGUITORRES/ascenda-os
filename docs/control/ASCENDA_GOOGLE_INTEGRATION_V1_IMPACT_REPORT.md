@@ -26,23 +26,24 @@ Additive migration only:
 - aos_google_contact_links_v1;
 - aos_google_sync_outbox_v1;
 - service-role-only claim RPC;
-- lightweight enqueue triggers on canonical appointments/patients.
+- authenticated server enqueue for legacy/human appointment writers;
+- governed internal enqueue hooks on `aos_booking_operations_v2` and `aos_wa4_booking_actions_v1`.
 
-The triggers perform no network I/O. They enqueue only when a connected account has the corresponding per-connection sync feature enabled.
+There are deliberately **no Google triggers on `aos_agenda_citas` or `aos_pacientes`**. Legacy/human product surfaces enqueue only after their canonical write succeeds and only through the authenticated ASCENDA backend. Booking Core and governed WhatsApp flows may enqueue from their browser-write-closed ledgers. None of these hooks perform network I/O; they only create idempotent outbox work when the connected account has the corresponding sync feature enabled.
 
 ## Security boundaries
 
 - Google OAuth client secret remains Railway-only.
 - Refresh tokens are AES-256-GCM encrypted before database persistence.
 - Google tables use forced RLS and revoke anon/authenticated access.
-- Admin routes require a verified current ASCENDA application session.
+- Admin routes and legacy/human appointment enqueue routes require a verified current ASCENDA application session.
 - OAuth state is random, stored hashed, expires, and is single-use.
 - Google account passwords are never collected by ASCENDA.
 - Browser cannot read/write OAuth token material.
 
 ## Availability / failure semantics
 
-Booking does not wait on Google. Google failures remain in the sync outbox and never roll back a confirmed ASCENDA appointment.
+Booking does not wait on Google. Google failures remain in the sync outbox and never roll back a confirmed ASCENDA appointment. The Google worker owns no additional polling interval; immediate work is kicked after authenticated enqueue and retries reuse the existing guarded `server.js` scheduler.
 
 Legacy rebook writers that create a new appointment row are bridged safely: the old REAGENDADA event is superseded/deleted and the new row becomes the new event. Governed rebook paths that keep the same appointment ID patch the same Google event.
 
