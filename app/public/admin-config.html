@@ -578,6 +578,41 @@
 
   <!-- ═══ INTEGRACIONES ═══ -->
   <div id="cfg-integraciones" style="display:none;">
+    <div id="google-secure-connector" class="crd" style="margin-bottom:12px;border-color:#DBEAFE;">
+      <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div style="width:42px;height:42px;border-radius:12px;background:#FFF3E0;display:flex;align-items:center;justify-content:center;font-size:21px;">📅</div>
+        <div style="flex:1;min-width:240px;">
+          <div style="font-weight:800;font-size:13px;color:#071D4A;">Google Calendar + Contacts</div>
+          <div id="google-secure-status" style="font-size:10px;color:#64748B;margin-top:3px;">Consultando conexión segura…</div>
+          <div id="google-secure-account" style="font-size:10px;color:#0F766E;margin-top:4px;"></div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button id="google-connect-btn" class="mbtn mbtn-p" onclick="startGoogleConnect()">Conectar Google</button>
+          <button id="google-change-btn" class="mbtn mbtn-o" style="display:none;" onclick="startGoogleConnect()">Cambiar cuenta</button>
+          <button id="google-disconnect-btn" class="mbtn mbtn-d" style="display:none;" onclick="googleDisconnect()">Desconectar</button>
+        </div>
+      </div>
+      <div id="google-connected-controls" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid #EEF0F8;">
+        <div style="display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:8px;align-items:end;">
+          <div>
+            <div class="fg-l" style="margin-bottom:4px;">Calendario de destino</div>
+            <select class="mi" id="google-calendar-select"><option value="">Cargando…</option></select>
+          </div>
+          <button class="mbtn mbtn-c" onclick="googleSaveCalendar()">Guardar calendario</button>
+        </div>
+        <div style="margin-top:12px;padding:12px;background:#F8FAFF;border-radius:10px;border:1px solid #E2E8F0;">
+          <div style="font-weight:800;font-size:11px;color:#071D4A;">Canary humano acotado</div>
+          <div style="font-size:9px;color:#64748B;margin-top:3px;">Prueba una cita existente. No activa sincronización masiva ni modifica la autoridad de Agenda.</div>
+          <div style="display:grid;grid-template-columns:minmax(250px,1fr) auto auto;gap:8px;align-items:center;margin-top:9px;">
+            <select class="mi" id="google-canary-appointment"><option value="">Cargando citas futuras…</option></select>
+            <label style="font-size:10px;color:#475569;white-space:nowrap;"><input type="checkbox" id="google-canary-contact"> incluir contacto</label>
+            <button class="mbtn mbtn-g" onclick="runGoogleCanary()">Ejecutar canary</button>
+          </div>
+          <div id="google-canary-result" style="font-size:10px;margin-top:8px;color:#64748B;"></div>
+        </div>
+        <div id="google-safeoff-note" style="font-size:9px;color:#B45309;margin-top:8px;">Sincronización automática: SAFE-OFF hasta certificar este canary.</div>
+      </div>
+    </div>
     <!-- Sub-chips: Activos vs Catálogo -->
     <div style="display:flex;gap:0;margin-bottom:14px;border-radius:12px;overflow:hidden;border:1px solid #DDE4F5;background:#F8FAFF;width:fit-content;">
       <button class="em-tab act" id="ig-tab-activos" onclick="igTab('activos')" style="padding:8px 20px;font-size:11px;font-weight:700;cursor:pointer;border:none;background:#071D4A;color:#fff;transition:all .15s;">✓ Activos</button>
@@ -776,7 +811,7 @@ var TABS=['empresa','integraciones','seguridad','equipo'];
 function cfgTab(tab){
   TABS.forEach(function(t){var e=el('cfg-'+t);if(e)e.style.display=t===tab?'block':'none';});
   document.querySelectorAll('.cfg-tab').forEach(function(b,i){b.classList.toggle('act',TABS[i]===tab);});
-  if(tab==='integraciones')loadIntegraciones();
+  if(tab==='integraciones'){loadIntegraciones();loadGoogleConnectorStatus();}
   if(tab==='equipo'){loadEquipo();}
   if(tab==='seguridad'){loadSecurityDashboard();}
 }
@@ -1567,6 +1602,89 @@ function igTab(t){
   el('ig-tab-catalogo').style.background=t==='catalogo'?'#071D4A':'none';
   el('ig-tab-catalogo').style.color=t==='catalogo'?'#fff':'#6B7BA8';
 }
+function googleStrongToken(){
+  var t='';try{t=String(sessionStorage.getItem('aos_app_token')||'').trim();}catch(_){}
+  if(t.length>=32)return Promise.resolve(t);
+  if(!('caches' in window))return Promise.resolve('');
+  return caches.open('aos-phase2-auth').then(function(c){return c.match('/__aos_app_token')}).then(function(r){return r?r.text():''}).then(function(v){v=String(v||'').trim();if(v.length>=32){try{sessionStorage.setItem('aos_app_token',v)}catch(_){}}return v}).catch(function(){return ''});
+}
+function googleApi(path,opt){
+  opt=opt||{};
+  return googleStrongToken().then(function(t){
+    if(!t||t.length<32)throw new Error('SESSION_REQUIRED');
+    opt.headers=Object.assign({'X-AOS-App-Token':t,'Accept':'application/json'},opt.headers||{});
+    opt.cache='no-store';
+    return fetch(path,opt).then(function(r){return r.json().catch(function(){return {ok:false,error:'INVALID_JSON'}}).then(function(d){if(!r.ok||d.ok===false){var e=new Error(d.error||('HTTP_'+r.status));e.data=d;throw e}return d})});
+  });
+}
+function loadGoogleConnectorStatus(){
+  var st=el('google-secure-status');if(st)st.textContent='Consultando conexión segura…';
+  return googleApi('/api/google/status').then(function(d){
+    var c=d.connection||{},connected=c.connected===true;
+    if(st)st.textContent=connected?'Conexión OAuth segura activa':'Pendiente de conectar';
+    if(el('google-secure-account'))el('google-secure-account').textContent=connected?('Cuenta: '+(c.account_email||'')+' · Calendario: '+(c.calendar_summary||c.calendar_id||'principal')):'';
+    if(el('google-connect-btn'))el('google-connect-btn').style.display=connected?'none':'inline-block';
+    if(el('google-change-btn'))el('google-change-btn').style.display=connected?'inline-block':'none';
+    if(el('google-disconnect-btn'))el('google-disconnect-btn').style.display=connected?'inline-block':'none';
+    if(el('google-connected-controls'))el('google-connected-controls').style.display=connected?'block':'none';
+    var f=d.flags||{};
+    if(el('google-safeoff-note'))el('google-safeoff-note').textContent='Sincronización automática: '+((f.integration||f.calendar||f.contacts)?'PARCIALMENTE HABILITADA':'SAFE-OFF')+' · Calendar '+(f.calendar?'ON':'OFF')+' · Contacts '+(f.contacts?'ON':'OFF');
+    if(connected){googleLoadCalendars();googleLoadCanaryCandidates();}
+    return d;
+  }).catch(function(e){if(st)st.textContent='No fue posible leer el estado seguro: '+e.message;});
+}
+function startGoogleConnect(){
+  var pop=window.open('about:blank','ascendaGoogleOAuth','width=620,height=760,resizable=yes,scrollbars=yes');
+  googleApi('/api/google/oauth/start',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(function(d){
+    if(!d.auth_url)throw new Error('GOOGLE_AUTH_URL_MISSING');
+    if(pop)pop.location=d.auth_url;else window.location.href=d.auth_url;
+  }).catch(function(e){if(pop)pop.close();showToast('Google',e.message);});
+}
+window.addEventListener('message',function(ev){
+  if(ev.origin!==window.location.origin||!ev.data||ev.data.type!=='ASCENDA_GOOGLE_OAUTH')return;
+  if(ev.data.ok){showToast('Google conectado','OAuth completado de forma segura');loadGoogleConnectorStatus();loadIntegraciones();}
+  else showToast('Google','No se pudo completar OAuth: '+(ev.data.code||'ERROR'));
+});
+function googleLoadCalendars(){
+  return googleApi('/api/google/calendars').then(function(d){
+    var s=el('google-calendar-select');if(!s)return;
+    s.innerHTML=(d.items||[]).map(function(x){return '<option value="'+h(x.id)+'" '+(x.id===d.selected?'selected':'')+'>'+h(x.summary||x.id)+(x.primary?' · principal':'')+'</option>';}).join('')||'<option value="">Sin calendarios editables</option>';
+  }).catch(function(e){var s=el('google-calendar-select');if(s)s.innerHTML='<option value="">'+h(e.message)+'</option>';});
+}
+function googleSaveCalendar(){
+  var id=el('google-calendar-select')&&el('google-calendar-select').value;if(!id)return;
+  googleApi('/api/google/calendar/select',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({calendar_id:id})}).then(function(d){showToast('Google Calendar','Calendario seleccionado: '+(d.calendar_summary||''));loadGoogleConnectorStatus();}).catch(function(e){showToast('Google',e.message);});
+}
+function googleDisconnect(){
+  if(!confirm('¿Desconectar la cuenta de Google? ASCENDA seguirá conservando Agenda como fuente de verdad.'))return;
+  googleApi('/api/google/disconnect',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}).then(function(){showToast('Google','Cuenta desconectada');loadGoogleConnectorStatus();loadIntegraciones();}).catch(function(e){showToast('Google',e.message);});
+}
+function googleLoadCanaryCandidates(){
+  return googleApi('/api/google/canary/candidates').then(function(d){
+    var s=el('google-canary-appointment');if(!s)return;
+    s.innerHTML='<option value="">— Selecciona una cita —</option>'+(d.items||[]).map(function(x){
+      return '<option value="'+h(x.id)+'">'+h((x.date||'')+' '+(x.time||'')+' · '+(x.site||'')+' · '+(x.treatment||'')+' · '+(x.display_name||''))+(x.calendar_linked?' · ya vinculada':'')+'</option>';
+    }).join('');
+  }).catch(function(e){var s=el('google-canary-appointment');if(s)s.innerHTML='<option value="">'+h(e.message)+'</option>';});
+}
+function runGoogleCanary(){
+  var id=el('google-canary-appointment')&&el('google-canary-appointment').value;
+  if(!id){showToast('Google','Selecciona una cita futura');return;}
+  if(!confirm('Este canary creará/actualizará UN evento real en Google Calendar para la cita seleccionada. ¿Continuar?'))return;
+  var out=el('google-canary-result');if(out)out.textContent='Ejecutando canary…';
+  googleApi('/api/google/canary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:'GOOGLE_CANARY',appointment_id:id,include_contact:!!(el('google-canary-contact')&&el('google-canary-contact').checked)})}).then(function(d){
+    var cal=d.calendar||{},contact=d.contact||null;
+    var msg='✅ Calendar OK'+(contact?(contact.ok?' · Contact OK':' · Contact requiere revisión'):'');
+    if(out){out.innerHTML=h(msg)+(cal.html_link?'<br><a href="'+h(cal.html_link)+'" target="_blank" rel="noopener noreferrer">Abrir evento en Google Calendar ↗</a>':'');}
+    showToast('Google canary','Prueba acotada completada');
+  }).catch(function(e){if(out)out.textContent='❌ '+e.message;showToast('Google canary',e.message);});
+}
+function openGoogleConnector(){cfgTab('integraciones');loadGoogleConnectorStatus();var c=el('google-secure-connector');if(c)c.scrollIntoView({behavior:'smooth',block:'start'});}
+function openIntegModal(id){
+  var r=INTEG_DATA.find(function(x){return String(x.id)===String(id)});
+  if(r&&r.tipo==='google'){openGoogleConnector();return;}
+  showToast('Integración','Este conector conserva su configuración existente.');
+}
 function loadIntegraciones(){sbGet('/rest/v1/aos_integraciones?select=*&order=categoria,orden').then(function(rows){if(!rows)return;INTEG_DATA=rows;
   // Activos arriba
   var activos=rows.filter(function(r){return r.estado==='conectado';});
@@ -1608,7 +1726,7 @@ function renderIntegCatalog(items){var html='';CAT_ORDER.forEach(function(cat){v
     if(r.multi_cuenta)html+='<div style="font-size:8px;color:#7C3AED;margin-top:3px;">🔄 Soporta múltiples cuentas</div>';
     html+='</div>';
   });html+='</div></div>';});el('cfg-ig-list').innerHTML=html||'<div style="text-align:center;padding:20px;color:#CBD5E1;">Sin resultados</div>';}
-function desactivarInteg(id){if(!confirm('¿Desactivar este conector?'))return;sbPatch('/rest/v1/aos_integraciones?id=eq.'+id,{estado:'pendiente',api_key:'',api_secret:'',cuenta:''}).then(function(){showToast('Desactivado','');loadIntegraciones();});}
+function desactivarInteg(id){var r=INTEG_DATA.find(function(x){return String(x.id)===String(id)});if(r&&r.tipo==='google'){googleDisconnect();return;}if(!confirm('¿Desactivar este conector?'))return;sbPatch('/rest/v1/aos_integraciones?id=eq.'+id,{estado:'pendiente',api_key:'',api_secret:'',cuenta:''}).then(function(){showToast('Desactivado','');loadIntegraciones();});}
 
 // ═══ AUTO-INIT: cargar datos al abrir el panel ═══
 loadConfig();loadEmails();
