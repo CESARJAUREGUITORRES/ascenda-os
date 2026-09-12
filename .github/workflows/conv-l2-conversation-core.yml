@@ -1,0 +1,52 @@
+name: ASCENDA CONV-L2 Conversation Core
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/conversation-core.js'
+      - 'app/server-wa3.js'
+      - 'app/public/wa-native-panel.js'
+      - 'app/public/admin-whatsapp-wa3.html'
+      - 'app/public/wa-multiagent-final-panel.js'
+      - 'ci/conv-l2/**'
+      - 'ci/performance/performance-guard.mjs'
+      - 'docs/control/ASCENDA_CONVERSATIONS_L2_READINESS_CURRENT.md'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+      - '.github/workflows/conv-l2-conversation-core.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: conv-l2-core-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  core-contract:
+    name: L2 core / event transport / human boundary
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax
+        shell: powershell
+        run: |
+          node --check app/conversation-core.js
+          node --check app/server-wa3.js
+          node --check app/public/wa-native-panel.js
+          node --check app/public/wa-multiagent-final-panel.js
+      - name: L2 architecture contract
+        shell: powershell
+        run: node ci/conv-l2/conversation_core_contract.test.js
+      - name: Provider boundary remains single
+        shell: powershell
+        run: node ci/conv-l1/meta_gateway_contract.test.js
+      - name: Human routing and UI compatibility
+        shell: powershell
+        run: |
+          node ci/wa3-boxes-routing-handoff/ui_contract_v2.js

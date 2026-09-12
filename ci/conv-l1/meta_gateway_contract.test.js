@@ -10,6 +10,7 @@ const f4=read('app/server-f4.js');
 const wa3=read('app/server-wa3.js');
 const gateway=read('app/wa-gateway.js');
 const l0=read('docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md');
+const l1=read('docs/control/ASCENDA_CONVERSATIONS_L1_READINESS_CURRENT.md');
 const lock=read('docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md');
 
 assert(meta.includes("hostname:'graph.facebook.com'"),'MetaCloudAdapter must own Meta Graph transport');
@@ -52,8 +53,9 @@ assert(wa3.includes('/api/wa/meta/reconcile-internal'),'WA3 post-persist status 
 
 assert(gateway.includes("['image','document','audio','video']"),'governed media payloads must include video support');
 assert(gateway.includes('provider_timestamp:row.provider_timestamp'),'status event must retain provider timestamp for race reconciliation');
-assert(lock.includes('CONV-L1 #505 — NATIVE META CHANNEL GATEWAY'),'CONV-L1 active workstream lock missing');
-assert(lock.includes('RUN UNTIL BLOCKED'),'CONV-L1 owner execution mode missing');
-assert(l0.includes('L1 OWNER AUTHORIZATION RECEIVED / ACTIVE'),'L0->L1 authorization transition missing');
+assert(l1.includes('CLOSED · PROVIDER CERTIFIED'),'CONV-L1 provider certification marker missing');
+assert(lock.includes('CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT'),'post-L1 L2 workstream lock missing');
+assert(lock.includes('RUN UNTIL BLOCKED'),'owner execution mode missing');
+assert(l0.includes('L1 OWNER AUTHORIZATION RECEIVED / ACTIVE'),'historical L0->L1 authorization transition missing');
 
 console.log('CONV_L1_META_GATEWAY_CONTRACT_PASS');

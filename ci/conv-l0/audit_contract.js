@@ -47,7 +47,7 @@ assert(meta.includes('graph.facebook.com'), 'MetaCloudAdapter must own the Graph
 assert(wa3.includes('/api/wa/meta/dispatch-internal'), 'WA3 compatibility send must route inward to MetaCloudAdapter boundary')
 assert(f4.includes('/api/wa/meta/dispatch-internal'), 'F4 must expose the internal MetaCloudAdapter dispatch boundary')
 
-assert(panel.includes("setInterval(function(){heartbeat(false);},2500)"), '2.5s native inbox polling evidence drifted')
+assert(panel.includes("fetch('/api/wa3/events'") && panel.includes('scheduleFallback(30000)'), 'L2 event-driven replacement of audited polling is missing')
 
 for (const token of ['REPLACE', 'PORT', 'RETIRE', 'KEEP']) {
   assert(extraction.includes(token), 'Extraction classification missing: ' + token)
@@ -61,8 +61,8 @@ assert(contracts.includes('interface OutboundPolicy'), 'OutboundPolicy contract 
 assert(contracts.includes('interface ConversationJob'), 'JobOutbox contract missing')
 assert(benchmark.includes('FROZEN V1 BY CONV-L0'), '40-case benchmark is not frozen')
 assert(audit.includes('RC-1 — Deep proxy/process chain'), 'Root-cause audit missing')
-assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY`'), 'CONV-L1 active lock missing')
-assert(lock.includes('RUN UNTIL BLOCKED'), 'CONV-L1 owner execution mode missing')
+assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`'), 'CONV-L2 active lock missing')
+assert(lock.includes('RUN UNTIL BLOCKED'), 'owner execution mode missing')
 assert(readiness.includes('TECHNICAL PASS / CLOSED'), 'L0 technical closeout marker missing')
 assert(readiness.includes('L1 OWNER AUTHORIZATION RECEIVED / ACTIVE'), 'L1 authorization transition missing')
 
