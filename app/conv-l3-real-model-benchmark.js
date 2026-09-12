@@ -5,7 +5,7 @@ const ai=require('./ai-router');
 const resilience=require('./wa4-ai-resilience');
 const {createAgentRuntime}=require('./conversation-agent-runtime');
 
-const VERSION='CONV-L3-REAL-MODEL-BENCH-V3';
+const VERSION='CONV-L3-REAL-MODEL-BENCH-V4';
 const TOOL_REGISTRY=Object.freeze([
   'get_prices','get_promotions','get_locations','get_payment_methods','get_hours','get_booking_availability'
 ]);
@@ -77,6 +77,7 @@ function modelAdapter(keys,telemetry){
         'CURRENT_TURN manda sobre intenciones anteriores. El historial previo solo da contexto.',
         'Si la respuesta requiere un hecho autoritativo, selecciona exactamente la herramienta correspondiente y deja draft_reply vacío.',
         'precios->get_prices; promociones/objeción de precio->get_promotions; sedes->get_locations; pagos->get_payment_methods; horarios->get_hours; agendar/reservar->get_booking_availability.',
+        'Para CURRENT_TURN que pide una sola categoría factual, selecciona EXACTAMENTE una herramienta: la mejor correspondiente. No añadas herramientas preventivas, relacionadas o de seguimiento. Solo usa más de una si CURRENT_TURN pide explícitamente varias categorías.',
         'Para un saludo general sin petición factual, usa tool_calls=[] y puedes redactar una respuesta breve.',
         'Máximo 2 herramientas. provider_send=false,direct_sql=false,direct_meta=false.'
       ].join(' ');
@@ -198,21 +199,27 @@ async function runBootBenchmark(){
         results.push(row);console.log('[CONV-L3-REAL-BENCH] case',row);continue;
       }
 
-      const planOk=plan.decision==='PLAN_READY'&&plan.response_state==='AWAITING_TOOL_OBSERVATION'&&selected===c.tool&&plan.draft_reply===''&&plan.provider_send_eligible===false;
-      const compose=await runtime.shadowCompose({
-        conversation,expected_version:version,messages,
-        planned_tool_names:plan.planned_tool_names,
-        tool_observations:[{name:c.tool,data:OBS[c.tool]}]
-      });
-      const reply=compose.draft_reply||'';
-      const composeOk=compose.decision==='RESPONSE_READY'&&compose.response_state==='READY'&&
-        compose.cited_tools.includes(c.tool)&&cleanReply(reply)&&factualCheck(c.tool,reply)&&compose.provider_send_eligible===false;
+      const plannedTools=Array.isArray(plan.planned_tool_names)?plan.planned_tool_names:[];
+      const planOk=plan.decision==='PLAN_READY'&&plan.response_state==='AWAITING_TOOL_OBSERVATION'&&
+        selected===c.tool&&plannedTools.length===1&&plan.draft_reply===''&&plan.provider_send_eligible===false;
+      let compose={decision:'PLAN_QUALITY_FAIL',response_state:'BLOCKED',cited_tools:[],draft_reply:'',provider_send_eligible:false};
+      let composeOk=false;
+      if(planOk){
+        compose=await runtime.shadowCompose({
+          conversation,expected_version:version,messages,
+          planned_tool_names:plannedTools,
+          tool_observations:[{name:c.tool,data:OBS[c.tool]}]
+        });
+        const reply=compose.draft_reply||'';
+        composeOk=compose.decision==='RESPONSE_READY'&&compose.response_state==='READY'&&
+          compose.cited_tools.includes(c.tool)&&cleanReply(reply)&&factualCheck(c.tool,reply)&&compose.provider_send_eligible===false;
+      }
       const ok=planOk&&composeOk;
       if(ok)passed++;
       const caseTelemetry=telemetry.slice(before);
       const row={
         name:c.name,ok,stage:'PLAN_OBSERVE_COMPOSE',decision:compose.decision,
-        tool:selected,expected_tool:c.tool,plan_ok:planOk,compose_ok:composeOk,
+        tool:selected,expected_tool:c.tool,planned_tools:plannedTools,plan_ok:planOk,compose_ok:composeOk,
         provider_chain:caseTelemetry.map(x=>x.provider),
         model_chain:caseTelemetry.map(x=>x.model),
         latency_ms:caseTelemetry.reduce((n,x)=>n+Number(x.latency_ms||0),0),
@@ -221,7 +228,11 @@ async function runBootBenchmark(){
       };
       results.push(row);console.log('[CONV-L3-REAL-BENCH] case',row);
     }catch(e){
-      const row={name:c.name,ok:false,error:String(e&&e.message||'BENCH_ERROR').slice(0,100),provider_send_eligible:false};
+      const row={
+        name:c.name,ok:false,error:String(e&&e.message||'BENCH_ERROR').slice(0,100),
+        upstream_status:Number(e&&e.upstreamStatus||0)||null,provider_code:String(e&&e.code||'').slice(0,80)||null,
+        provider_send_eligible:false
+      };
       results.push(row);console.error('[CONV-L3-REAL-BENCH] case',row);
     }
   }
