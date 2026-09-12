@@ -1648,6 +1648,7 @@ function renderGoogleIntegration(){
 }
 function drawGoogleState(){
   var st=_googleState||{}, conns=st.connections||[], c=conns.find(function(x){return x.is_primary&&x.status==='CONNECTED';})||conns.find(function(x){return x.status==='CONNECTED';});
+  el('mi-badge').innerHTML='<span style="font-size:9px;padding:4px 9px;border-radius:8px;background:'+(c?'#F0FDF4':'#FFF7ED')+';color:'+(c?'#059669':'#D97706')+';font-weight:800;">'+(c?'✓ OAuth conectado':'○ Pendiente')+'</span>';
   var safe='<div style="padding:9px 11px;border-radius:10px;background:'+(st.integration_enabled?'#F0FDF4':'#FFF7ED')+';font-size:10px;color:'+(st.integration_enabled?'#047857':'#B45309')+';margin-bottom:12px;"><b>Motor Google:</b> '+(st.integration_enabled?'habilitado para conexión':'SAFE-OFF')+' · Calendar auto '+(st.calendar_sync_enabled?'ON':'OFF')+' · Contacts auto '+(st.contact_sync_enabled?'ON':'OFF')+'</div>';
   if(!c){
     el('mi-fields').innerHTML=safe+'<div style="border:1px solid #E2E8F0;border-radius:12px;padding:16px;"><div style="font-weight:800;font-size:13px;margin-bottom:5px;">Google Workspace</div><div style="font-size:10px;color:#64748B;margin-bottom:14px;">Autoriza una cuenta Google. ASCENDA no recibe ni guarda la contraseña.</div><button class="mbtn mbtn-p" onclick="googleConnect()" '+(!st.integration_enabled?'disabled style="opacity:.45"':'')+'>🔗 Conectar con Google</button></div>';
@@ -1658,10 +1659,10 @@ function drawGoogleState(){
     '<div style="border:1px solid #BBF7D0;background:#FAFFFC;border-radius:12px;padding:14px;margin-bottom:10px;">'+
       '<div style="font-size:9px;color:#64748B;">CUENTA CONECTADA</div><div style="font-size:13px;font-weight:800;margin-top:3px;">'+h(c.account_email)+'</div>'+
       '<div style="font-size:9px;color:#059669;margin-top:4px;">● OAuth activo</div></div>'+
-    '<div class="rc-field"><label>Calendario de citas</label><div style="display:flex;gap:6px;"><select class="mi" id="google-calendar-select"><option value="'+h(c.selected_calendar_id||'primary')+'">'+h(calName)+'</option></select><button class="mbtn mbtn-o" onclick="googleLoadCalendars()">↻</button></div></div>'+
+    '<div class="rc-field"><label>Calendario de citas</label><div style="display:flex;gap:6px;"><select class="mi" id="google-calendar-select"><option value="'+h(c.selected_calendar_id||'primary')+'">'+h(calName)+'</option></select><button class="mbtn mbtn-o" title="Actualizar calendarios" onclick="googleLoadCalendars(false)">↻</button></div><div style="font-size:9px;line-height:1.45;color:#64748B;margin-top:6px;">ASCENDA usa un calendario que ya exista en esta cuenta. Si quieres uno exclusivo para citas, créalo en Google Calendar y luego pulsa ↻.</div><button class="mbtn mbtn-o" style="margin-top:7px;" onclick="googleOpenCreateCalendar()">➕ Crear calendario en Google</button></div>'+
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">'+
-      '<label style="padding:10px;border:1px solid #E2E8F0;border-radius:10px;font-size:10px;"><input type="checkbox" id="google-cal-enabled" '+(c.calendar_enabled?'checked':'')+' '+(!st.calendar_sync_enabled?'disabled':'')+'> Sincronizar Calendar</label>'+
-      '<label style="padding:10px;border:1px solid #E2E8F0;border-radius:10px;font-size:10px;"><input type="checkbox" id="google-contact-enabled" '+(c.contacts_enabled?'checked':'')+' '+(!st.contact_sync_enabled?'disabled':'')+'> Sincronizar Contacts</label>'+
+      '<label style="padding:10px;border:1px solid #E2E8F0;border-radius:10px;font-size:10px;"><input type="checkbox" id="google-cal-enabled" '+(c.calendar_enabled?'checked':'')+' '+(!st.calendar_sync_enabled?'disabled':'')+'> Sincronizar Calendar'+(!st.calendar_sync_enabled?' 🔒 Canary':'')+'</label>'+
+      '<label style="padding:10px;border:1px solid #E2E8F0;border-radius:10px;font-size:10px;"><input type="checkbox" id="google-contact-enabled" '+(c.contacts_enabled?'checked':'')+' '+(!st.contact_sync_enabled?'disabled':'')+'> Sincronizar Contacts'+(!st.contact_sync_enabled?' 🔒 Canary':'')+'</label>'+
     '</div>'+
     '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;">'+
       '<button class="mbtn mbtn-p" onclick="googleSaveSettings()">💾 Guardar Calendar</button>'+
@@ -1671,6 +1672,7 @@ function drawGoogleState(){
       '<button class="mbtn mbtn-d" onclick="googleDisconnect()">Desconectar</button>'+
     '</div>'+
     '<div style="font-size:9px;color:#94A3B8;margin-top:10px;">Último OK: '+h(c.last_success_at||'—')+(c.last_error?' · Error: '+h(c.last_error):'')+'</div>';
+  googleLoadCalendars(true);
 }
 function googleConnect(){
   if(!_googleState||!_googleState.integration_enabled){showToast('Google SAFE-OFF','Primero debe habilitarse el canary del motor Google.',true);return;}
@@ -1680,13 +1682,19 @@ function googleConnect(){
   }).catch(function(e){showToast('No se pudo conectar',e.message,true);});
 }
 window.addEventListener('message',function(ev){if(ev&&ev.data&&ev.data.type==='ASCENDA_GOOGLE_OAUTH'){setTimeout(function(){renderGoogleIntegration();loadIntegraciones();},600);}});
-function googleLoadCalendars(){
+function googleOpenCreateCalendar(){
+  window.open('https://calendar.google.com/calendar/u/0/r/settings/createcalendar','_blank','noopener');
+}
+function googleLoadCalendars(silent){
   var c=(_googleState.connections||[]).find(function(x){return x.is_primary&&x.status==='CONNECTED';});
   if(!c)return;
   googleApi('/api/google/calendars?connection_id='+encodeURIComponent(c.id)).then(function(r){
     var sel=el('google-calendar-select');if(!sel)return;
-    sel.innerHTML=(r.calendars||[]).map(function(x){return '<option value="'+h(x.id)+'" '+(x.id===c.selected_calendar_id?'selected':'')+'>'+h(x.summary)+(x.primary?' (principal)':'')+'</option>';}).join('');
-  }).catch(function(e){showToast('Calendar',e.message,true);});
+    var items=r.calendars||[];
+    if(!items.length){if(!silent)showToast('Calendar','No se encontraron calendarios propios en esta cuenta.',true);return;}
+    sel.innerHTML=items.map(function(x){return '<option value="'+h(x.id)+'" '+(x.id===c.selected_calendar_id?'selected':'')+'>'+h(x.summary)+(x.primary?' (principal)':'')+'</option>';}).join('');
+    if(!silent)showToast('Calendar','Calendarios actualizados');
+  }).catch(function(e){if(!silent)showToast('Calendar',e.message,true);});
 }
 function googleSaveSettings(){
   var c=(_googleState.connections||[]).find(function(x){return x.is_primary&&x.status==='CONNECTED';});if(!c)return;
