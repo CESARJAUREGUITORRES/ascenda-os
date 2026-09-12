@@ -285,7 +285,7 @@ function createGoogleIntegrationV1(opts) {
 
   function callbackPage(res,ok,message) {
     var safe=String(message||'').replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]})
-    html(res,ok?200:400,'<!doctype html><meta charset="utf-8"><title>ASCENDA Google</title><body style="font-family:Arial;padding:40px;background:#f7f9fc;color:#071d4a"><h2>'+(ok?'✅ Google conectado':'⚠️ No se pudo conectar')+'</h2><p>'+safe+'</p><p>Ya puedes cerrar esta ventana.</p><script>try{window.opener&&window.opener.postMessage({type:"ASCENDA_GOOGLE_OAUTH",ok:'+(ok?'true':'false')+'},"*")}catch(e){};setTimeout(function(){try{window.close()}catch(e){}},1200)</script></body>')
+    html(res,ok?200:400,'<!doctype html><meta charset="utf-8"><title>ASCENDA Google</title><body style="font-family:Arial;padding:40px;background:#f7f9fc;color:#071d4a"><h2>'+(ok?'✅ Google conectado':'⚠️ No se pudo conectar')+'</h2><p>'+safe+'</p><p>Ya puedes cerrar esta ventana.</p><script>try{window.opener&&window.opener.postMessage({type:"ASCENDA_GOOGLE_OAUTH",ok:'+(ok?'true':'false')+'},"*")}catch(e){};try{window.close()}catch(e){}</script></body>')
   }
   function escapeHtml(v){return String(v||'').replace(/[<>&"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]})}
 
@@ -697,6 +697,7 @@ function createGoogleIntegrationV1(opts) {
     if(force&&force!=='CALENDAR_DELETE') return json(res,400,{ok:false,error:'INVALID_FORCE_ACTION'})
     try {
       var result=await queueAppointmentForSync(id,{force_action:force||null})
+      processQueueOnce().catch(function(){})
       json(res,200,{ok:true,result:result})
     } catch(e){json(res,500,{ok:false,error:String(e&&e.message||'GOOGLE_QUEUE_FAILED')})}
   }
@@ -789,9 +790,6 @@ function createGoogleIntegrationV1(opts) {
       return json(res,500,{ok:false,error:String(e&&e.message||'GOOGLE_INTERNAL_ERROR')})
     }
   }
-
-  var timer=setInterval(function(){processQueueOnce().catch(function(){})},30000)
-  if(timer&&timer.unref) timer.unref()
 
   return {
     handle:handle,
