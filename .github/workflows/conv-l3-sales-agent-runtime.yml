@@ -1,0 +1,63 @@
+name: ASCENDA CONV-L3 Sales Agent Runtime
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/conversation-agent-runtime.js'
+      - 'ci/conv-l3/**'
+      - 'ci/conv-l2/**'
+      - 'ci/conv-l1/**'
+      - 'ci/p0-485/**'
+      - 'docs/control/ASCENDA_CONVERSATIONS_L2_READINESS_CURRENT.md'
+      - 'docs/control/ASCENDA_CONVERSATIONS_L3_READINESS_CURRENT.md'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+      - 'docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md'
+      - 'docs/MEMORY_CURRENT.md'
+      - 'docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md'
+      - 'AGENTS.md'
+      - '.github/workflows/conv-l3-sales-agent-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: conv-l3-agent-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  agent-runtime-contract:
+    name: L3 agent / memory / tools / safety
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Syntax
+        shell: powershell
+        run: |
+          node --check app/conversation-agent-runtime.js
+      - name: L3 runtime contract
+        shell: powershell
+        run: node --test ci/conv-l3/agent_runtime_contract.test.js
+      - name: L3 governance contract
+        shell: powershell
+        run: node ci/conv-l3/control_contract.test.js
+      - name: L2 Conversation Core regression
+        shell: powershell
+        run: node ci/conv-l2/conversation_core_contract.test.js
+      - name: L1 Meta gateway regression
+        shell: powershell
+        run: node ci/conv-l1/meta_gateway_contract.test.js
+      - name: P0-485 stability regression
+        shell: powershell
+        run: node ci/p0-485/stability_contract.js
+      - name: Legacy conversation extraction regression
+        shell: powershell
+        run: node app/wa4-conversation-runtime-v2.test.js
+      - name: Performance guard
+        shell: powershell
+        run: node ci/performance/performance-guard.mjs
