@@ -259,3 +259,167 @@ revoke all on function public.aos_effective_presence_v1(jsonb) from public, anon
 grant execute on function public.aos_device_upsert_v1(jsonb) to service_role;
 grant execute on function public.aos_app_presence_touch_v1(jsonb) to service_role;
 grant execute on function public.aos_effective_presence_v1(jsonb) to service_role;
+
+
+create or replace function public.aos_devices_actor_v1(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_actor uuid;
+  v_rows jsonb;
+begin
+  begin v_actor := nullif(p_payload->>'actor_id','')::uuid;
+  exception when others then return jsonb_build_object('ok',false,'error','INVALID_ACTOR_ID'); end;
+
+  if not exists(select 1 from public.aos_usuarios u where u.id=v_actor and u.activo=true) then
+    return jsonb_build_object('ok',false,'error','ACTIVE_USER_REQUIRED');
+  end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id',d.id,
+    'installation_id',d.installation_id,
+    'device_name',d.device_name,
+    'os_family',d.os_family,
+    'form_factor',d.form_factor,
+    'runtime_surface',d.runtime_surface,
+    'app_version',d.app_version,
+    'service_worker_version',d.service_worker_version,
+    'notification_permission',d.notification_permission,
+    'push_supported',d.push_supported,
+    'badge_supported',d.badge_supported,
+    'tel_supported',d.tel_supported,
+    'standalone',d.standalone,
+    'native_bridge',d.native_bridge,
+    'channel_preferences',d.channel_preferences,
+    'quiet_hours',d.quiet_hours,
+    'last_seen_at',d.last_seen_at,
+    'last_push_handled_at',d.last_push_handled_at,
+    'last_notification_opened_at',d.last_notification_opened_at,
+    'last_failure_code',d.last_failure_code,
+    'last_failure_at',d.last_failure_at,
+    'active',d.active,
+    'push_subscription_count',(
+      select count(*) from public.aos_push_subscriptions_v1 s
+      where s.device_id=d.id and s.active=true
+    )
+  ) order by d.last_seen_at desc nulls last,d.created_at desc),'[]'::jsonb)
+  into v_rows
+  from public.aos_devices_v1 d
+  where d.user_id=v_actor;
+
+  return jsonb_build_object('ok',true,'rows',v_rows);
+end
+$$;
+
+create or replace function public.aos_device_preferences_actor_v1(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_actor uuid;
+  v_device uuid;
+  v_channels jsonb := coalesce(p_payload->'channel_preferences','{}'::jsonb);
+  v_quiet jsonb := coalesce(p_payload->'quiet_hours','{}'::jsonb);
+begin
+  begin
+    v_actor := nullif(p_payload->>'actor_id','')::uuid;
+    v_device := nullif(p_payload->>'device_id','')::uuid;
+  exception when others then
+    return jsonb_build_object('ok',false,'error','INVALID_DEVICE_IDENTITY');
+  end;
+
+  if jsonb_typeof(v_channels) <> 'object' or jsonb_typeof(v_quiet) <> 'object' then
+    return jsonb_build_object('ok',false,'error','INVALID_PREFERENCES');
+  end if;
+
+  if pg_column_size(v_channels) > 8192 or pg_column_size(v_quiet) > 4096 then
+    return jsonb_build_object('ok',false,'error','PREFERENCES_TOO_LARGE');
+  end if;
+
+  update public.aos_devices_v1 d
+     set channel_preferences=v_channels,
+         quiet_hours=v_quiet,
+         updated_at=now()
+   where d.id=v_device and d.user_id=v_actor and d.active=true;
+
+  if not found then
+    return jsonb_build_object('ok',false,'error','ACTIVE_DEVICE_REQUIRED');
+  end if;
+
+  return jsonb_build_object('ok',true,'device_id',v_device);
+end
+$$;
+
+create or replace function public.aos_device_rename_actor_v1(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_actor uuid;
+  v_device uuid;
+  v_name text := left(nullif(trim(coalesce(p_payload->>'device_name','')),''),160);
+begin
+  begin
+    v_actor := nullif(p_payload->>'actor_id','')::uuid;
+    v_device := nullif(p_payload->>'device_id','')::uuid;
+  exception when others then
+    return jsonb_build_object('ok',false,'error','INVALID_DEVICE_IDENTITY');
+  end;
+
+  if v_name is null then return jsonb_build_object('ok',false,'error','DEVICE_NAME_REQUIRED'); end if;
+
+  update public.aos_devices_v1 d
+     set device_name=v_name,updated_at=now()
+   where d.id=v_device and d.user_id=v_actor and d.active=true;
+
+  if not found then return jsonb_build_object('ok',false,'error','ACTIVE_DEVICE_REQUIRED'); end if;
+  return jsonb_build_object('ok',true,'device_id',v_device,'device_name',v_name);
+end
+$$;
+
+create or replace function public.aos_device_disable_actor_v1(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_actor uuid;
+  v_device uuid;
+begin
+  begin
+    v_actor := nullif(p_payload->>'actor_id','')::uuid;
+    v_device := nullif(p_payload->>'device_id','')::uuid;
+  exception when others then
+    return jsonb_build_object('ok',false,'error','INVALID_DEVICE_IDENTITY');
+  end;
+
+  update public.aos_devices_v1 d
+     set active=false,updated_at=now()
+   where d.id=v_device and d.user_id=v_actor and d.active=true;
+
+  if not found then return jsonb_build_object('ok',false,'error','ACTIVE_DEVICE_REQUIRED'); end if;
+
+  update public.aos_push_subscriptions_v1 s
+     set active=false,updated_at=now()
+   where s.device_id=v_device and s.user_id=v_actor;
+
+  return jsonb_build_object('ok',true,'device_id',v_device,'disabled',true);
+end
+$$;
+
+revoke all on function public.aos_devices_actor_v1(jsonb) from public, anon, authenticated;
+revoke all on function public.aos_device_preferences_actor_v1(jsonb) from public, anon, authenticated;
+revoke all on function public.aos_device_rename_actor_v1(jsonb) from public, anon, authenticated;
+revoke all on function public.aos_device_disable_actor_v1(jsonb) from public, anon, authenticated;
+grant execute on function public.aos_devices_actor_v1(jsonb) to service_role;
+grant execute on function public.aos_device_preferences_actor_v1(jsonb) to service_role;
+grant execute on function public.aos_device_rename_actor_v1(jsonb) to service_role;
+grant execute on function public.aos_device_disable_actor_v1(jsonb) to service_role;
