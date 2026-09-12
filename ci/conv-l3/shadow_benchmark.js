@@ -33,7 +33,8 @@ function classify(text){
     const runtime=createAgentRuntime({
       toolRegistry:['get_prices','get_promotions','get_locations','get_payment_methods'],
       modelAdapter:{async decide(input){
-        const last=input.memory.filter(x=>x.direction==='INBOUND').map(x=>x.body).join(' ');
+        const inbound=input.memory.filter(x=>x.direction==='INBOUND');
+        const last=inbound.length?inbound[inbound.length-1].body:'';
         const tool=classify(last);
         return {
           tool_calls:[{name:tool,args:{}}],
