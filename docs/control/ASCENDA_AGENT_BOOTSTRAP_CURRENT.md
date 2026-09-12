@@ -22,11 +22,12 @@ Read in this order:
 6. `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`;
 7. `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`;
 8. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
-9. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
-10. exact GitHub `main` + active CONV PR/head;
-11. Railway exact deploy state if runtime is involved;
-12. live Supabase safety/performance readbacks if DB/runtime is involved;
-13. Notion WhatsApp Control Maestro CURRENT callout.
+9. `docs/control/ASCENDA_CONVERSATIONS_L1_READINESS_CURRENT.md`;
+10. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
+11. exact GitHub `main` + active CONV PR/head;
+12. Railway exact deploy state if runtime is involved;
+13. live Supabase safety/performance readbacks if DB/runtime is involved;
+14. Notion WhatsApp Control Maestro CURRENT callout.
 
 Historical WA docs remain evidence/reference only and never override these CURRENT files + live runtime evidence.
 
