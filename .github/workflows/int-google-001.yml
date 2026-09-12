@@ -1,0 +1,37 @@
+name: INT-GOOGLE-001 Governed Integration
+
+on:
+  pull_request:
+    paths:
+      - 'app/google-integration-v1.js'
+      - 'app/server-f17.js'
+      - 'app/server.js'
+      - 'app/public/admin-config.html'
+      - 'supabase/migrations/*int_google_001*'
+      - 'supabase/rollbacks/*int_google_001*'
+      - 'ci/int-google-001/**'
+      - '.github/workflows/int-google-001.yml'
+      - 'docs/control/ASCENDA_GOOGLE_INTEGRATION_V1_CURRENT.md'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax
+        run: |
+          node --check app/google-integration-v1.js
+          node --check app/server-f17.js
+          node --check app/server.js
+          node --check ci/int-google-001/contract.js
+      - name: Google integration contract
+        run: node ci/int-google-001/contract.js
