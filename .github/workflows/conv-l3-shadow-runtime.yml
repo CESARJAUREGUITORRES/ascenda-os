@@ -23,6 +23,7 @@ jobs:
         with:
           node-version: '20'
       - name: Syntax
+        shell: cmd
         run: node --check app/conversation-agent-runtime.js && node --check app/conv-l3-real-model-benchmark.js && node --check app/server-f17.js && node --check ci/conv-l3/agent_runtime_contract.js && node --check ci/conv-l3/shadow_benchmark.js && node --check ci/conv-l3/real_model_benchmark_contract.js
       - name: Shadow runtime safety contract
         run: node ci/conv-l3/agent_runtime_contract.js
