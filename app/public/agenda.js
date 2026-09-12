@@ -1,5 +1,6 @@
 // agenda.js v2 — Agenda Global | AscendaOS v1 | 100% Supabase
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+function aosClientUuid(){if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16);});}
 var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
 // ===== EMAIL AUTOMÁTICO AL CREAR/REAGENDAR CITA =====
@@ -17,7 +18,7 @@ function enviarEmailConfirmacionCita(d) {
   } catch(e) {}
   fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
     method: 'POST', headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
-    body: JSON.stringify({ to: correo, template: 'confirmacion_cita', nombre: nombre, tratamiento: d.tratamiento || 'Consulta', hora: d.hora_cita || '', sede: d.sede || '', fecha: fechaLabel, dni: d.dni || '', telefono: d.numero_limpio || d.numero || '', email: correo })
+    body: JSON.stringify({ to: correo, template: d.email_template || 'confirmacion_cita', appointment_id:d.id||'', nombre: nombre, tratamiento: d.tratamiento || 'Consulta', hora: d.hora_cita || '', sede: d.sede || '', fecha: fechaLabel, dni: d.dni || '', telefono: d.numero_limpio || d.numero || '', email: correo })
   }).then(function(r) { return r.json(); }).then(function(res) {
     if (res && (res.ok || res.id)) { if (window.AOS_showToast) AOS_showToast('📧 Email enviado', correo, ''); }
   }).catch(function() {});
@@ -776,7 +777,7 @@ function _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now) {
   if(AG.reagendando && AG.reagendaOrigId){
     // REAGENDAR: marcar original como REAGENDADA + crear nueva cita
     var origPatch={estado_cita:'REAGENDADA',obs:(el('ed-obs').value.trim()?el('ed-obs').value.trim()+' | ':'')+'Reagendada a '+fecha,ts_actualizado:now.toISOString()};
-    row.ts_creado=now.toISOString();row.origen_cita='REAGENDADA';row.estado_cita='PENDIENTE';
+    row.id=aosClientUuid();row.ts_creado=now.toISOString();row.origen_cita='REAGENDADA';row.estado_cita='PENDIENTE';row.email_template='reprogramacion';
     Promise.all([
       _rest('aos_agenda_citas?id=eq.'+AG.reagendaOrigId,{method:'PATCH',body:JSON.stringify(origPatch)}),
       _rest('aos_agenda_citas',{method:'POST',body:JSON.stringify(row)})
@@ -793,7 +794,7 @@ function _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now) {
       if(window.AOS_showToast)AOS_showToast('Cita actualizada','','');agCloseEdit();agLoad();
     }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
   } else {
-    row.ts_creado=now.toISOString();row.origen_cita='AGENDA';
+    row.id=aosClientUuid();row.ts_creado=now.toISOString();row.origen_cita='AGENDA';
     _rest('aos_agenda_citas',{method:'POST',body:JSON.stringify(row)}).then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);
       enviarEmailConfirmacionCita(row);
