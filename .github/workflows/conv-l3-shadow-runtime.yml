@@ -3,7 +3,9 @@ name: CONV-L3 Shadow Runtime
 on:
   pull_request:
     paths:
-      - 'app/conversation-agent-runtime.js'\n      - 'app/conv-l3-real-model-benchmark.js'\n      - 'app/server-f17.js'
+      - 'app/conversation-agent-runtime.js'
+      - 'app/conv-l3-real-model-benchmark.js'
+      - 'app/server-f17.js'
       - 'ci/conv-l3/**'
       - '.github/workflows/conv-l3-shadow-runtime.yml'
   workflow_dispatch:
@@ -26,3 +28,5 @@ jobs:
         run: node ci/conv-l3/agent_runtime_contract.js
       - name: Deterministic shadow orchestration benchmark
         run: node ci/conv-l3/shadow_benchmark.js
+      - name: Real-model benchmark safety contract
+        run: node ci/conv-l3/real_model_benchmark_contract.js
