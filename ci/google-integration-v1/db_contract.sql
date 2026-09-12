@@ -20,10 +20,16 @@ begin
     raise exception 'GOOGLE_OUTBOX_BROWSER_WRITE_EXPOSED';
   end if;
 
+  if exists(
+    select 1 from pg_trigger
+    where tgrelid in ('public.aos_agenda_citas'::regclass,'public.aos_pacientes'::regclass)
+      and tgname like 'trg_aos_google_%' and not tgisinternal
+  ) then raise exception 'LEGACY_TABLE_EXTERNAL_SIDE_EFFECT_TRIGGER_FORBIDDEN'; end if;
+
   insert into public.aos_google_connections_v1(
     integration_id,account_email,refresh_token_enc,is_primary,status,calendar_enabled,contacts_enabled
   ) values (
-    integ,'canary@example.com','v1.synthetic.synthetic.synthetic',true,'CONNECTED',false,false
+    integ,'canary@example.com','v1.synthetic.synthetic.synthetic',true,'CONNECTED',true,true
   ) returning id into conn;
 
   insert into public.aos_agenda_citas(
@@ -31,27 +37,22 @@ begin
   ) values (
     'appt-1','2026-09-20','10:00','Canary','Paciente','TOXINA','SAN ISIDRO','patient@example.com','999111222','PENDIENTE'
   );
-  select count(*) into c from public.aos_google_sync_outbox_v1;
-  if c <> 0 then raise exception 'SAFE_OFF_ENQUEUED:%',c; end if;
-
-  update public.aos_google_connections_v1 set calendar_enabled=true where id=conn;
-  update public.aos_agenda_citas set hora_cita='10:30' where id='appt-1';
-  select count(*) into c from public.aos_google_sync_outbox_v1 where action='CALENDAR_UPSERT' and entity_id='appt-1';
-  if c <> 1 then raise exception 'CALENDAR_UPSERT_NOT_QUEUED:%',c; end if;
-
   insert into public.aos_pacientes("ID_PACIENTE","Nombres","Apellidos","Teléfono","Email",numero_limpio,tratamiento_principal)
   values('P-1','Canary','Paciente','999111222','patient@example.com','999111222','TOXINA');
-  select count(*) into c from public.aos_google_sync_outbox_v1 where action='CONTACT_UPSERT';
-  if c <> 0 then raise exception 'CONTACT_QUEUED_WHILE_DISABLED:%',c; end if;
 
-  update public.aos_google_connections_v1 set contacts_enabled=true where id=conn;
-  update public.aos_pacientes set "Email"='patient2@example.com' where "ID_PACIENTE"='P-1';
-  select count(*) into c from public.aos_google_sync_outbox_v1 where action='CONTACT_UPSERT' and entity_id='P-1';
-  if c <> 1 then raise exception 'CONTACT_UPSERT_NOT_QUEUED:%',c; end if;
+  select count(*) into c from public.aos_google_sync_outbox_v1;
+  if c <> 0 then raise exception 'LEGACY_WRITES_MUST_NOT_AUTO_ENQUEUE:%',c; end if;
 
-  update public.aos_agenda_citas set estado_cita='REAGENDADA' where id='appt-1';
-  select count(*) into c from public.aos_google_sync_outbox_v1 where action='CALENDAR_DELETE' and entity_id='appt-1';
-  if c <> 1 then raise exception 'LEGACY_REBOOK_NOT_SUPERSEDED:%',c; end if;
+  insert into public.aos_google_calendar_links_v1(connection_id,appointment_id,calendar_id,event_id)
+  values(conn,'appt-1','primary','synthetic-event');
+  insert into public.aos_google_contact_links_v1(connection_id,patient_id,resource_name)
+  values(conn,'P-1','people/synthetic');
+
+  insert into public.aos_google_sync_outbox_v1(
+    idempotency_key,connection_id,entity_type,entity_id,action,payload
+  ) values (
+    'ci:calendar:1',conn,'APPOINTMENT','appt-1','CALENDAR_UPSERT','{}'::jsonb
+  );
 
   if not has_function_privilege('service_role','public.aos_google_claim_sync_v1(text,integer)','execute') then
     raise exception 'SERVICE_ROLE_CLAIM_DENIED';
@@ -60,10 +61,9 @@ begin
      or has_function_privilege('authenticated','public.aos_google_claim_sync_v1(text,integer)','execute') then
     raise exception 'CLAIM_RPC_BROWSER_EXPOSED';
   end if;
-end $$;
 
-set role service_role;
-select count(*) > 0 as claim_ok from public.aos_google_claim_sync_v1('ci-worker',10);
-reset role;
+  select count(*) into c from public.aos_google_claim_sync_v1('ci-worker',10);
+  if c <> 1 then raise exception 'CLAIM_COUNT_INVALID:%',c; end if;
+end $$;
 
 select 'GOOGLE_DB_CONTRACT=PASS' as result;
