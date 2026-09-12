@@ -215,7 +215,7 @@ begin
     coalesce(new.estado_cita,'')
   ));
 
-  v_action := case when upper(coalesce(new.estado_cita,''))='CANCELADA'
+  v_action := case when upper(coalesce(new.estado_cita,'')) in ('CANCELADA','REAGENDADA')
                    then 'CALENDAR_DELETE' else 'CALENDAR_UPSERT' end;
 
   for c in
