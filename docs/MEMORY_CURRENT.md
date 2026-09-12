@@ -2,8 +2,10 @@
 
 **Captured:** 2026-09-11 America/Lima  
 **ACTIVE PROGRAM:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
-**MAIN AT PIVOT:** `60fd6b260c8abb4d71c8375f490ee05ef63252c3`  
-**ACTIVE HIGH/CRITICAL GATE:** `CONV-L0 #504` after governance merge  
+**MAIN AT L0 TECHNICAL CLOSEOUT:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
+**ACTIVE HIGH/CRITICAL GATE:** `NONE`  
+**LAST CLOSED:** `CONV-L0 #504`  
+**NEXT ELIGIBLE:** `CONV-L1 #505 · NOT STARTED · NOT AUTHORIZED`  
 **PARENT:** `#502`  
 **LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
 **AUTONOMOUS CANARY:** `NOT AUTHORIZED`
@@ -78,7 +80,7 @@ DELETE is forbidden during build. It becomes eligible only after replacement par
 
 ## Current loop map
 
-- #504 L0 Freeze/Inventory/Extraction/Benchmark
+- #504 L0 Freeze/Inventory/Extraction/Benchmark — **CLOSED**
 - #505 L1 Meta Channel Gateway
 - #506 L2 Conversation Core + Panel
 - #507 L3 Sales Agent Runtime
@@ -126,9 +128,18 @@ Legacy autonomous WA remains:
 
 No real autonomous CANARY before L7 PASS and a fresh explicit owner authorization.
 
+## L0 closeout findings
+
+L0 established that current WhatsApp instability/latency is primarily architectural:
+- deep proxy/process chain;
+- duplicate provider-send boundaries;
+- webhook re-processing across layers;
+- 2.5s inbox polling plus compensatory cache;
+- high-frequency actor/presence DB work;
+- generic knowledge search unsuitable as a routine prerequisite.
+
+Preserved assets include the ASCENDA panel UX, conversation/message ledgers, canonical identity/pricing/Agenda/booking/sales/attribution/consent authorities and key safety/idempotency invariants.
+
 ## Immediate next action
 
-After governance PR certification/merge and explicit owner confirmation, execute only CONV-L0 #504:
-runtime graph -> UI/API graph -> DB pressure graph -> authority map -> extraction matrix -> blueprint parity -> frozen benchmark -> target contract freeze.
-
-Do not begin L1 implementation until L0 exit is reviewed and approved.
+Present L0 closeout to the owner. **Do not begin CONV-L1 #505 until separate explicit owner authorization.**
