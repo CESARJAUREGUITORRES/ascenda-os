@@ -66,6 +66,7 @@ assert(ui.includes("/api/google/canary/candidates"),'bounded canary candidate se
 assert(ui.includes("confirm:'GOOGLE_CANARY'"),'human canary explicit confirmation missing in UI')
 assert(!ui.includes('GOOGLE_CLIENT_SECRET'),'Google client secret must never enter browser')
 assert(!ui.includes('GOOGLE_TOKEN_ENCRYPTION_KEY'),'Google token encryption key must never enter browser')
+assert(!ui.includes('/rest/v1/aos_integraciones?select=*'),'generic integration catalog must not expose secret columns')
 
 const inlineScripts=[...ui.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m=>m[1]).filter(Boolean)
 assert(inlineScripts.length>0,'admin-config inline script missing')
