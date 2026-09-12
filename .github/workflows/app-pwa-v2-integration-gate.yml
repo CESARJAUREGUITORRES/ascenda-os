@@ -1,0 +1,50 @@
+name: APP-PWA-V2 Integration Gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/device-api-v2.js'
+      - 'app/server-f17.js'
+      - 'app/public/app.html'
+      - 'src/frontend/app.html'
+      - 'app/public/admin-device-center-v2.html'
+      - 'ci/app-pwa-v2/**'
+      - '.github/workflows/app-pwa-v2-integration-gate.yml'
+  push:
+    branches:
+      - 'app-pwa-v2-*'
+    paths:
+      - 'app/device-api-v2.js'
+      - 'app/server-f17.js'
+      - 'app/public/app.html'
+      - 'src/frontend/app.html'
+      - 'app/public/admin-device-center-v2.html'
+      - 'ci/app-pwa-v2/**'
+      - '.github/workflows/app-pwa-v2-integration-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-pwa-v2-integration-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Runner health
+        run: bash scripts/ci/runner-healthcheck.sh
+      - name: Syntax
+        run: |
+          set -euo pipefail
+          node --check app/device-api-v2.js
+          node --check app/server-f17.js
+      - name: Static contract
+        run: node ci/app-pwa-v2/contract.js
+      - name: Actor-bound API runtime contract
+        run: node ci/app-pwa-v2/device_api_runtime_contract.js

@@ -7,6 +7,7 @@ const wa = require('./wa-gateway')
 const { createLegacyWhatsAppGateway } = require('./f17-whatsapp-legacy-gateway')
 const { createF17WaAdapter } = require('./f17-wa-adapter')
 const { createPushService } = require('./push-notifications-s14')
+const { createDeviceApi } = require('./device-api-v2')
 
 const EXTERNAL_PORT = parseInt(process.env.PORT || '4173', 10)
 const INNER_PORT = EXTERNAL_PORT === 4217 ? 4218 : 4217
@@ -76,6 +77,13 @@ const push = createPushService({
   serviceRpc: serviceRpc,
   vapidSubject: process.env.AOS_PUSH_VAPID_SUBJECT || 'mailto:notifications@ascenda.local',
   logger: console
+})
+const deviceApi = createDeviceApi({
+  verifyApp: verifyApp,
+  serviceRpc: serviceRpc,
+  writeJson: writeJson,
+  readRaw: readRaw,
+  parseJson: parseJson
 })
 
 async function runNotificationPump() {
@@ -266,6 +274,10 @@ async function handleGovernedWebhook(req, res) {
 
 const server = http.createServer(async function(req, res) {
   let url; try { url = new URL(req.url, 'http://localhost') } catch (_) { return writeJson(res, 400, { ok: false, error: 'INVALID_URL' }) }
+  if (url.pathname.indexOf('/api/devices') === 0) {
+    const handled = await deviceApi.handle(req, res, url)
+    if (handled !== false) return handled
+  }
   if (url.pathname === '/api/notifications/health' && req.method === 'GET') return writeJson(res, 200, { ok: true, version: 'S15.1', auth: 'actor-bound' })
   if (url.pathname === '/api/notifications/inbox' && req.method === 'GET') return handleNotificationInbox(req, res, url)
   if (url.pathname === '/api/notifications/read' && req.method === 'POST') return handleNotificationRead(req, res)
@@ -291,4 +303,4 @@ function start() {
   })
 }
 if (require.main === module) start()
-module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, push: push, server: server, start: start, runNotificationPump: runNotificationPump, handleNotificationInbox: handleNotificationInbox, handleNotificationRead: handleNotificationRead, bufferedProxyHeaders: bufferedProxyHeaders }
+module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, push: push, deviceApi: deviceApi, server: server, start: start, runNotificationPump: runNotificationPump, handleNotificationInbox: handleNotificationInbox, handleNotificationRead: handleNotificationRead, bufferedProxyHeaders: bufferedProxyHeaders }
