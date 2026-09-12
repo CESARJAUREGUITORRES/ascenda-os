@@ -66,6 +66,7 @@ ok(!gateway.includes("console.log(refresh"),'refresh token must never be logged'
 ok(!gateway.includes("console.log(tr.body"),'OAuth token response must never be logged')
 ok(!gateway.includes('setInterval('),'Google module must not own a recurrent interval')
 ok(!gateway.includes('setTimeout('),'Google module must not become a new recurrent network owner')
+ok(!/select=\*/i.test(gateway),'Google integration must not add broad select=* reads')
 
 const server=read('app/server.js')
 ok(server.includes("if (p.indexOf('/api/google/') === 0) return GOOGLE_INTEGRATION.handle(req, res)"),'server Google boundary missing')
