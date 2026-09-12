@@ -1,12 +1,12 @@
 # ASCENDA OS — MEMORY CURRENT
 
-**Captured:** 2026-09-03 America/Lima  
-**ACTIVE PROGRAM:** `WHATSAPP-REVENUE-HUB-V2`  
-**CURRENT MAIN AT CAPTURE:** `bab9f0865f779217aadc7c88af4ebf0e1fb0b3ee`  
-**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
-**LAST CLOSED LANE:** `WA-L9 — AUTONOMOUS DEMO READY`  
-**NEXT ELIGIBLE:** `WA-L10 — AUTONOMOUS PRODUCTION CANARY · NOT STARTED`  
-**CANARY:** `NOT AUTHORIZED · REQUIRES SEPARATE EXPLICIT OWNER AUTHORIZATION`
+**Captured:** 2026-09-11 America/Lima  
+**ACTIVE PROGRAM:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
+**MAIN AT PIVOT:** `60fd6b260c8abb4d71c8375f490ee05ef63252c3`  
+**ACTIVE HIGH/CRITICAL GATE:** `CONV-L0 #504` after governance merge  
+**PARENT:** `#502`  
+**LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
+**AUTONOMOUS CANARY:** `NOT AUTHORIZED`
 
 ## Authority order
 
@@ -16,203 +16,119 @@
 4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
 5. this file;
 6. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
-7. `docs/control/WA_AUTO_L9_TO_L11_CONTINUITY_CURRENT.md`;
-8. `docs/control/WHATSAPP_REVENUE_HUB_CURRENT.md`;
-9. `docs/control/WHATSAPP_REVENUE_HUB_V2_ROADMAP_CURRENT.md`;
-10. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
-11. exact GitHub + Supabase + Railway/runtime evidence;
-12. Notion Control Maestro / Roadmap / Closeout / WA-AUTO continuity.
+7. `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`;
+8. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
+9. `docs/control/ASCENDA_CONVERSATIONS_BLUEPRINT_REGISTRY_CURRENT.md`;
+10. `docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md`;
+11. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
+12. exact GitHub + Supabase + Railway/runtime evidence;
+13. Notion Control Maestro / CONV execution Skill.
 
-Historical chat/doc snapshots never override exact CURRENT + persisted runtime evidence.
+Historical WA docs/chats remain evidence only.
 
-## Global execution governance
+## Why the pivot happened
 
-- Exactly one mutable HIGH/CRITICAL lane at a time.
-- Every advance of `main` invalidates stale exact-head certification and requires revalidation for the active lane.
-- Protected merges use the certified PR head through `expected_head_sha` plus anti-drift verification.
-- `CODE PASS != DEPLOY PASS != PROD PASS`.
-- A completed lane does not implicitly authorize the next lane.
-- `AUTO_OFF -> CANARY` is a distinct owner decision. It must never be inferred from implementation, CI, deployment or broad continuation language.
-- `CANARY -> PROD` is also evidence-gated; no direct `AUTO_OFF -> PROD` transition is allowed by the L4 authority contract.
-- No synthetic production rows may be presented as real customer/provider evidence.
+Real WA canary work proved that the existing stack had accumulated too many coupled wrappers, repeated authorization/data reads and UI/provider/runtime compensation layers before the core commercial conversation experience was consistently reliable.
 
-## Reliability doctrine retained from P0 #432
+The owner approved a consolidation architecture:
+- preserve good ASCENDA assets;
+- stop feature-patching the legacy hot path;
+- use mature external projects as blueprints;
+- rebuild one small native Conversations Core behind the existing ASCENDA panel;
+- prove product quality before general autonomous production.
 
-Binding across all future WA work:
+## Target product
 
-- no heavy global analytical views on synchronous message/call/booking/sales hot paths;
-- no synchronous materialized-view refresh/rebuild on transactional writes;
-- no timeout inflation to hide query defects;
-- bounded/indexed operational reads;
-- no legacy+new duplicate generation;
-- browser fan-out governed by single-flight / bounded concurrency / jitter / cooldown;
-- enrichment and analytical work stay on cold paths;
-- mandatory regressions: Agenda + Call Center + Marketing + Sales/Commissions + Patients/Identity + shared Supabase/background;
-- exact-head, deploy and LIVE readbacks are separate proof layers.
+A reusable multi-company conversational sales engine that supports:
+- WhatsApp first, future channels through adapters;
+- natural context-aware sales conversation;
+- governed prices/promotions/locations/payment facts;
+- media;
+- real availability + BOOK/REBOOK;
+- human takeover;
+- hot-lead signals;
+- native follow-up and approved-template campaigns;
+- attribution/revenue continuity;
+- safe failure and observability.
 
-## WhatsApp Revenue Agent — closed foundation through WA-L9
+## Target architecture
 
-The product is no longer merely a chatbot. The certified architecture connects:
+`Panel -> Conversation API/Event Stream -> Conversations Core -> {Sales Agent, ChannelAdapter, ToolGateway, Job/Outbox}`.
 
-`Meta/WhatsApp ingress -> campaign/referral context -> governed identity -> conversation -> governed facts/pricing -> intent/readiness -> real availability -> BOOK/REBOOK -> handoff/follow-up -> attendance/sale -> attribution -> WhatsApp/AI cost`.
+Routine turn:
+`1 inbound -> 1 reasoning cycle -> 0–2 tools -> 1 outbound`.
 
-### Safety / authority foundation
+No global preload. No direct LLM->Meta. No direct LLM->SQL.
 
-Production remains deliberately dormant:
+## Preserved canonical authorities
 
-- `mode=AUTO_OFF`;
-- kill switch engaged;
-- `auto_reply=false`;
-- `ai_send=false`;
-- `auto_routing=false`;
-- `human_send=true`;
-- autonomous provider dispatch disabled;
-- active canary allowlist required before any CANARY transition.
+- Patient/identity: existing Revenue/Patients.
+- Catalog/pricing: existing canonical catalog/price authority.
+- Agenda/availability/booking: existing Agenda/booking.
+- Sales/revenue/commissions: existing Sales/Revenue.
+- Attribution: existing governed attribution.
+- Consent/STOP/privacy/audit: existing WA/security foundation.
+- Auth/2FA: existing Auth V3 boundaries.
 
-### L4 — Autonomous Authority + Kill Switch
+## Migration rule
 
-Production-certified authority layer with `AUTO_OFF | CANARY | PROD`, kill switch, allowlist, rate/daily/max-turn/cooldown/duplicate guards, provider/template/identity/safety gates, append-only decisions and fail-closed transitions.
+Each legacy component -> `KEEP | PORT | REPLACE | RETIRE | DELETE`.
 
-Important transition invariant: `AUTO_OFF -> CANARY` requires an active allowlisted conversation; `AUTO_OFF -> PROD` is forbidden; PROD requires prior CANARY evidence.
+DELETE is forbidden during build. It becomes eligible only after replacement parity, zero runtime callers/imports, CI migration, telemetry and rollback evidence.
 
-### L5 — Conversational BOOK/REBOOK
+## Current loop map
 
-Production-certified conversational booking wiring. Reuses canonical availability/booking authority; BOOK/REBOOK must follow real sede/date/slot evidence and explicit confirmation. REBOOK preserves the same appointment identity where contractually required. No invented slot/provider/appointment state.
+- #504 L0 Freeze/Inventory/Extraction/Benchmark
+- #505 L1 Meta Channel Gateway
+- #506 L2 Conversation Core + Panel
+- #507 L3 Sales Agent Runtime
+- #508 L4 Business Tools + bounded RAG
+- #509 L5 Booking/Media/Templates
+- #510 L6 Follow-up/Hot Leads/Campaigns
+- #511 L7 Benchmark + separately authorized CANARY
+- #512 L8 Cutover/Legacy Retirement/Replication
 
-### L6 — Meta Campaign Context & Attribution
+## Skills/tooling prepared
 
-Production-certified strong-key attribution chain:
+- GitHub connector as code/governance truth.
+- Supabase skill/connector.
+- Supabase Postgres Best Practices.
+- Railway skill/connector.
+- Notion Research Documentation.
+- Notion Spec-to-Implementation.
+- Notion Skill: `ASCENDA CONV-001 — Execution Protocol`.
+- OpenAI Agents SDK is optional for isolated L3 prototyping/evals only; not an approved production dependency.
 
-`provider touchpoint -> conversation_id -> governed BOOK/REBOOK -> appointment_id -> attendance -> explicit venta_id_match -> canonical venta_id`.
+## Blueprint registry
 
-No revenue/cost attribution by phone/name/username/BSUID alone. Marketing Attribution V2 remains authoritative.
+Primary references:
+- Chatwoot -> Meta transport/media/templates/inbox/handoff patterns.
+- Fazer clinical seller -> burst/debounce/lock/tools/follow-up patterns.
+- LangGraph -> state/decision/tool/observe/respond pattern.
+- Meta official samples/docs -> provider contract authority.
+- KronIA -> internal proof of selective on-demand context.
 
-### L7 — WhatsApp / AI Cost Intelligence
+No external runtime dependency is approved merely because it is a blueprint.
 
-Production-certified effective-dated pricing authority and scoped cost/journey reads. Missing/unverified rates fail closed as PARTIAL/UNKNOWN; zero provider-billable evidence may be KNOWN zero. No fabricated FX/rates and no global heavy cost view on hot paths.
+## Reliability / security
 
-### L8 — Security Gate + Meta 2026 Hardening
+Keep global doctrine:
+`CODE PASS != DEPLOY PASS != PROD PASS`.
 
-Production-certified under SAFE-OFF. Includes:
+No timeout inflation, heavy global analytics on hot paths, duplicate legacy+new execution, unsafe identity shortcuts, unbounded browser fan-out or secret exposure.
 
-- provider `pricing.type` evidence;
-- recipient-market-aware pricing authority;
-- per-business-phone/category billing observability;
-- consent/opt-in/opt-out/STOP evidence;
-- business-initiated messaging preflight;
-- signed webhook/idempotency/secrets/server-only boundaries;
-- PII/PHI minimization and redacted audit;
-- least privilege and cross-module P0 regressions.
+Cross-module regressions always cover Agenda, Call Center, Marketing, Sales/Commissions, Patients/Identity and shared Supabase/background pressure.
 
-### L9 — AUTONOMOUS DEMO READY
+## Production safety
 
-**CLOSED · PRODUCTION CERTIFIED · DORMANT SAFE-OFF.**  
-Issue `#453` CLOSED/completed.  
-Certified exact-head: `b0a65d5b340896263a3f75cb66ab7850fdb3c5fa`.  
-PR `#454` merged with `expected_head_sha`.  
-Merge/deploy: `f909e972aab243af954fc8e2fb15e5a37c68d1b6`.  
-Supabase PROD: `20260903225152 · wa_l9_shadow_demo_v1`.
+Legacy autonomous WA remains:
+`AUTO_OFF · KILL ON · AI SEND OFF · AUTO ROUTING OFF · ALLOWLIST 0`.
 
-L9 executes the exact L4+L8 authority inside rollback-only shadow execution. It can produce deterministic would-send evidence but structurally forbids provider dispatch and raw-content storage.
+No real autonomous CANARY before L7 PASS and a fresh explicit owner authorization.
 
-Production closeout evidence:
+## Immediate next action
 
-- Agenda 3209;
-- Call Center 37195;
-- Leads 6694;
-- Ventas 1393;
-- Pacientes 7760;
-- WA messages 21;
-- autonomous outbound 0;
-- L9 demo runs 0;
-- L9 would-send rows 0;
-- L9 provider-dispatch rows 0;
-- L9 raw-content rows 0.
+After governance PR certification/merge and explicit owner confirmation, execute only CONV-L0 #504:
+runtime graph -> UI/API graph -> DB pressure graph -> authority map -> extraction matrix -> blueprint parity -> frozen benchmark -> target contract freeze.
 
-Final governance closeout: `main@bab9f0865f779217aadc7c88af4ebf0e1fb0b3ee`, HIGH/CRITICAL lock `NONE`.
-
-## Meta pricing / policy 2026 — retained operational knowledge
-
-Current observed policy/rate logic must remain evidence-backed and effective-dated.
-
-Through 2026-09-30, Meta’s public pricing model charges delivered messages by recipient market/category. Service replies inside the customer-service window and qualifying utility replies are currently free; eligible Click-to-WhatsApp / Facebook CTA entry can create a 72-hour free-entry window.
-
-Peru current July-2026 public list evidence used during the L8 audit:
-
-- Marketing: USD 0.0703 / delivered message;
-- Utility: USD 0.0200;
-- Authentication: USD 0.0200.
-
-PEN rate-card evidence observed: Marketing PEN 0.2339; Utility/Auth PEN 0.0665. Actual WABA billing currency and invoice authority must be confirmed in Meta Billing Hub; do not replace an official WABA card with spot FX.
-
-For changes announced effective 2026-10-01, external corroboration indicates Service becomes billable after the first 1,000 Service messages per business phone number/month, Utility inside the open 24h window becomes billable, inbound remains free and Free Entry Point remains. Peru USD 0.0300 for Utility/Auth/Service was strongly corroborated but not directly fetched from Meta during the audit because the official developer card returned 429. Therefore **do not seed the October USD 0.0300 as VERIFIED in PROD until the clinic’s official Meta Billing Hub/WABA rate card is read.**
-
-Meta policy boundaries retained:
-
-- business-initiated conversations require approved templates;
-- free-form replies are governed by the customer-service window;
-- explicit opt-in and STOP/opt-out must be respected;
-- automation must preserve clear human escalation;
-- health/privacy data requires minimum-data discipline;
-- WhatsApp data must not be used to train/improve a general-purpose AI model;
-- the agent must remain business-specific, not a generic ask-anything AI service.
-
-Meta terms have an announced update effective 2026-09-23; recheck official terms before L10 live canary.
-
-## Groq cost baseline retained
-
-Verified current public rates at the L7/L8 audit:
-
-- GPT-OSS 20B: USD 0.075/M input, USD 0.30/M output;
-- GPT-OSS 120B: USD 0.15/M input, USD 0.60/M output.
-
-Once Meta service-message charging applies, provider delivery can dominate inference cost. Product default should remain one useful outbound message per turn where conversational UX allows; do not split one answer into multiple provider messages purely for style.
-
-## Remaining final roadmap
-
-### WA-L10 — AUTONOMOUS PRODUCTION CANARY
-
-`NEXT ELIGIBLE · NOT STARTED · CANARY NOT AUTHORIZED`.
-
-Purpose: controlled real autonomous traffic to a tiny allowlisted cohort, with L4/L8 authority, budgets, duplicate/idempotency guards, human handoff, rollback/kill-switch, provider delivery evidence, cost and cross-module regression monitoring.
-
-L10 can be prepared/certified up to the activation boundary under SAFE-OFF, but actual `AUTO_OFF -> CANARY`, allowlisting of live customer conversations, autonomous Meta dispatch and kill-switch disengagement require separate explicit owner authorization.
-
-### WA-L11 — GENERAL PRODUCTION
-
-May start only after L10 has real canary evidence and an explicit go/no-go decision. Requires controlled ramp, no direct AUTO_OFF->PROD shortcut, stable customer outcomes, provider/invoice reconciliation, performance/P0 regression proof, operational runbook, rollback and ownership/on-call controls.
-
-### Post-L11 — Customer Experience & Conversation Validation
-
-After general-production certification, run an explicit real-customer validation program. It is not a substitute for L10/L11 safety certification.
-
-Measure at minimum:
-
-- naturalness / non-robotic conversation;
-- first useful answer and full-turn latency;
-- intent understanding and context retention;
-- no repetitive loops or duplicate sends;
-- one outbound provider message per turn by default where appropriate;
-- governed facts/prices only;
-- booking ease, booking conversion and correct REBOOK continuity;
-- safe identity/privacy behavior;
-- clear human handoff and escalation;
-- STOP/opt-out behavior;
-- drop-off/friction by conversation stage;
-- WhatsApp + AI cost per qualified conversation / booking / attended appointment / sale;
-- attribution continuity from campaign to sale;
-- customer feedback and operator review;
-- auditability of every autonomous decision.
-
-Use real consented/allowlisted pilots and redacted evidence. Never fabricate production customer experience evidence.
-
-## Immediate execution boundary
-
-1. keep `AUTO_OFF + kill switch engaged`;
-2. refresh all technical memory/roadmap/Notion authority to this state;
-3. perform read-only L10 entry audit;
-4. build/certify any SAFE-OFF L10 preflight package if needed;
-5. stop at the explicit `AUTO_OFF -> CANARY` owner gate;
-6. after explicit authorization, execute real L10 canary;
-7. only with L10 PASS, proceed to L11;
-8. after L11 certification, run the real Customer Experience & Conversation Validation program.
+Do not begin L1 implementation until L0 exit is reviewed and approved.

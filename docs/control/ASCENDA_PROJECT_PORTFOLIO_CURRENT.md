@@ -1,115 +1,56 @@
 # ASCENDA OS — PROJECT PORTFOLIO CURRENT
 
-**Captured:** 2026-08-28 America/Lima  
-**Current functional main:** `99a2413a7fb13e5e18ec8f4b5e3ed0b49d159880`  
-**ACTIVE PORTFOLIO OWNER:** `WHATSAPP-REVENUE-HUB-V2`  
-**ACTIVE HIGH/CRITICAL GATE:** `WA-4B — SALES PLAYBOOK ENGINE`
+**Captured:** 2026-09-11 America/Lima  
+**Current main at architecture pivot:** `60fd6b260c8abb4d71c8375f490ee05ef63252c3`  
+**ACTIVE PORTFOLIO OWNER:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
+**ACTIVE HIGH/CRITICAL GATE:** `CONV-L0 #504 — Freeze, Inventory & Extraction Map`
 
 ## Current owner state
-WhatsApp Revenue Hub V2 retains the sole HIGH/CRITICAL mutable lane.
 
-`WA-7A.4 — Marketing Eligibility Foundation` remains `TEST CERTIFIED / PROD-READY / PROD-PROMOTION PENDING`.
+CONV-001 owns the sole HIGH/CRITICAL mutable lane.
 
-`WA-4A / WA-4A.1 / WA-4A.1B / WA-4A.1C` are now certified at their demonstrated TEST-first boundaries. The next mutable gate is `WA-4B — Sales Playbook Engine`.
+Legacy WA-L10 #456 is FROZEN / SAFE-OFF evidence only. No new conversational feature patching is permitted on the legacy hot path except narrowly scoped P0 security/privacy/data-loss/production-break remediation.
 
 ## Program map
 
-| Program | Certified / preserved input | Remaining | Portfolio state |
-|---|---|---|---|
-| WhatsApp Revenue Hub V2 | WA-V2-0; WA-3/3.5 offline; WA-7A.0/1/2/3 closed; WA-7A.4 TEST-certified; WA-4A/4A.1/4A.1B/4A.1C TEST-certified | WA-4B/C, WA-5, WA-6, WA-7B/C/D, WA-8, WA-9..14 + queued PROD promotions | **ACTIVE / SOLE MUTABLE OWNER** |
-| Revenue | REV-F1..F6 preserved/certified | REV-F7 and later | PAUSED / READ-ONLY while WA owns lock |
-| MKT Integrity / Call Center | prior Loop 6 V2.3 checkpoint preserved | terminal genuine-op gate | PAUSED / RECOVERABLE |
-| CIA / Email / Acquisition | certified facts/adapters; CIA-F17 recipient controls reused as WA dependency | later activation work | READ-ONLY DEPENDENCY SOURCE |
-| Sentinel | observability/integrity foundation preserved | regression/deferred maintenance | REGRESSION-ONLY |
-| KronIA | prior baseline preserved | later hardening | PAUSED |
-| Migration governance | existing safe owner slices | parity/baseline maintenance | MAINTENANCE ONLY |
+| Program | Preserved input | Current state |
+|---|---|---|
+| CONV-001 Conversations Core V1 | existing panel, WA evidence, Meta integration knowledge, canonical ASCENDA business authorities | **ACTIVE / SOLE MUTABLE OWNER** |
+| Legacy WhatsApp Revenue Hub WA-* | WA3/3.5 UI, L4 authority, L5 booking, L6 attribution, L7 cost, L8 security, L9/L10 evidence | **FROZEN / EVIDENCE + EXTRACTION SOURCE** |
+| Revenue REV-* | patient/product/revenue identity and 360 authorities | READ-ONLY dependency source |
+| Agenda / Call Center / Marketing | current operational systems | PROTECTED regression dependencies |
+| Sentinel | observability/integrity foundation | REGRESSION-ONLY |
+| KronIA | internal proof of selective/on-demand conversational context | READ-ONLY blueprint/reference |
+| Migration governance | current safe migration/rollback standards | MAINTENANCE dependency |
 
-## Truth ownership
-- F3 = product/catalog identity and facts;
-- F4 = payment/revenue/cartera/reconciliation truth;
-- F5 = patient identity + provenance;
-- F6 = derived intelligence/read models;
-- CIA = governed audience/channel/acquisition controls/facts;
-- Email = governed email channel facts/events;
-- WA = governed WhatsApp conversation/channel product;
-- Sentinel = observation/integrity.
+## Truth ownership retained
 
-WA integrates these sources and must not duplicate them.
+- Patient/identity -> existing canonical Revenue/Patients authorities.
+- Catalog/product/pricing -> existing canonical catalog/price authorities.
+- Agenda/availability/booking -> existing canonical Agenda/booking authorities.
+- Sales/revenue/commissions -> existing Revenue/Sales authorities.
+- Attribution -> existing governed attribution authorities.
+- Consent/STOP/privacy/audit -> existing WA/security authorities.
+- Conversations Core -> owns normalized channel events, conversation lifecycle, ownership, agent/tool orchestration and async conversation jobs.
 
-## WhatsApp foundation status
-Preserved separations:
+CONV-001 must consume these sources and must not create parallel patient, pricing, sales, agenda, attribution or consent masters.
 
-`channel alias != canonical patient identity != acquisition touchpoint != marketing eligibility != knowledge evidence`.
+## Architecture decision
 
-`IDENTITY != REACHABILITY != MARKETING ELIGIBILITY`.
+Native ASCENDA product:
+- ASCENDA panel remains the operator UI;
+- one new Conversations Core progressively replaces the legacy wrapper hot path;
+- Chatwoot/Fazer/LangGraph/Meta examples are engineering blueprints only;
+- no mandatory Chatwoot, n8n, Dify, Typebot or Evolution runtime;
+- tenant-aware interfaces are designed from day 1;
+- current Zi Vital production DB is not converted into multi-tenant SaaS by big-bang mutation.
 
-`ATTRIBUTION EVIDENCE != CONSENT`.
+## Execution sequence
 
-`LIVE PRICE AUTHORITY != DOCUMENT EXAMPLE PRICE`.
+`L0 #504 -> L1 #505 -> L2 #506 -> L3 #507 -> L4 #508 -> L5 #509 -> L6 #510 -> L7 #511 -> L8 #512`.
 
-`COMMERCIAL PHASE != CLINICAL LIFECYCLE`.
-
-`PROCESS TEMPLATE != PATIENT-SPECIFIC PRESCRIPTION`.
-
-`ADVISOR RECOMMENDATION != AUTONOMOUS SEND`.
-
-## WA-4A / Knowledge Fabric family
-### WA-4A
-Governed Knowledge Fabric established evidence-backed authority, provenance/freshness/conflict semantics and least-data behavior. Generic LLM knowledge remains non-authoritative.
-
-### WA-4A.1
-Zi Vital clinic knowledge is role-aware with public/advisor/owner/clinical boundaries. General business/clinical knowledge is governed instead of copied into prompts.
-
-### WA-4A.1B
-Commercial Knowledge Graph is certified over CURRENT 167 active services + 50 active products. It provides Domain / Approach / Commercial Phase / Clinical Lifecycle / Zi Vital-function semantics while preserving explicit clinical-evidence debt rather than inventing formulas.
-
-### WA-4A.1C
-PR #385 exact head `8354b65c5eaab022f7e4991e15ee48111205c799` passed dedicated Zero-Cost/DB/lint/rollback run `33140086173` plus Ascenda CI `33140086255`, then merged with `expected_head_sha` to `99a2413a7fb13e5e18ec8f4b5e3ed0b49d159880`.
-
-Certified TEST architecture:
-- 8 structural `STRUCTURAL_NOT_PRESCRIPTIVE` process templates;
-- 8 non-auto-assignable process/component roles;
-- 217/217 active catalog entities covered in isolated TEST context;
-- live catalog price authority with stale/anomaly fail-closed state;
-- topping authority separating paid add-ons from zero-price benefit candidates;
-- private read-only quote preview;
-- COMPLETE vs PROGRESSIVE preserves canonical scope/total;
-- no patient/lead/sales/REV/catalog/quote/payment/plan mutation;
-- rollback preserves canonical sources and WA-4A.1B.
-
-Post-merge PROD readback remains intentionally unchanged: 167 services, 50 products, 20 toppings, 7 offer-above-base review rows, fingerprint `4f2bdff1a36dc1c621c237a8da655155`, and all WA-4A.1C feature DDL remains absent. Therefore WA-4A.1C is `TEST CERTIFIED / PROD-READY / PROD-PROMOTION PENDING`.
-
-Railway is not part of this closeout because PR #385 does not alter Node/browser runtime; it contains migration/CI/control artifacts only.
-
-## TEST-first operating model while PROD promotion remains deferred
-New WhatsApp phases continue:
-
-`discover → necessity gate → isolated TEST build → contract/security/regression tests → exact-head Zero-Cost CI → anti-drift → merge expected head → prove PROD unchanged where applicable → TEST certificate / PROD-ready queue → CURRENT → Notion LAST → next lock`.
-
-Queued migrations/runtime packages are promoted later in certified order under a separate PROD recovery/promotion loop.
-
-## WA-4B immediate execution
-WA-4B owns the Sales Playbook Engine.
-
-Necessity gate already established:
-- existing Knowledge Fabric and WA-4A.1B already contain commercial rules and approved language;
-- WA-4A.1C already contains structural process roles and governed price/preview contracts;
-- therefore **no second sales-knowledge master or price/quote master is justified**.
-
-WA-4B should build the minimum orchestration layer that turns governed evidence + conversation context into structured advisor guidance.
-
-Expected advisor-only outputs may include:
-- commercial stage/objective;
-- recommended next action;
-- approved talking points;
-- objection-handling strategy;
-- quote/payment framing when applicable;
-- governed continuity/product/topping candidates when contextually eligible;
-- clinical/policy escalation reason;
-- evidence refs and freshness/conflict state;
-- `send_authority = HUMAN_ONLY`.
-
-Existing WA4/Copilot infrastructure remains SAFE-OFF. No autonomous AI send, campaign activation, auto-reply or auto-routing is authorized by this handoff.
+No later loop becomes active automatically. Each exit gate plus current owner/governance rules apply.
 
 ## Global rule
-At most one HIGH/CRITICAL feature/data workstream mutates shared CURRENT at a time. While WA-4B owns the lane, all other programs remain read-only/regression-only unless WA-4B requires a narrowly documented dependency.
+
+At most one HIGH/CRITICAL feature/data workstream mutates shared CURRENT at a time. While CONV-L0 owns the lane, all other programs remain read-only/regression-only unless L0 requires narrowly documented dependency inspection.
