@@ -59,3 +59,10 @@ jobs:
         run: |
           node --test app/wa-l10-autonomous-bridge.test.js
           node ci/wa-l10/autonomous_bridge_contract.test.js
+      - name: Legacy contracts migrated to L1 provider authority
+        shell: powershell
+        run: |
+          node ci/wa-closeout/wa-closeout-runtime-contract.js
+          node ci/wa-l8/security_contract.js
+          node ci/phase-s/wa_customer_window_s10_contract.js
+          node ci/phase-s/wa_s11_live_sync_meta_auth_contract.js
