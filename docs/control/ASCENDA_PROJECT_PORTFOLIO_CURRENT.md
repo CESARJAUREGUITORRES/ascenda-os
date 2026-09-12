@@ -3,13 +3,13 @@
 **Captured:** 2026-09-11 America/Lima  
 **Current main at L0 technical closeout:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
 **ACTIVE PORTFOLIO OWNER:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
-**ACTIVE HIGH/CRITICAL GATE:** `CONV-L1 #505 — Native Meta Channel Gateway`  
-**OWNER MODE:** `RUN UNTIL BLOCKED + REAL META TEST limitado a zi vital`  
-**LAST CLOSED:** `CONV-L0 #504`
+**ACTIVE HIGH/CRITICAL GATE:** `CONV-L2 #506 — Conversation Core + event-driven panel transport`  
+**OWNER MODE:** `RUN UNTIL BLOCKED hasta la siguiente prueba · WhatsApp humano activo · AI autonomy SAFE-OFF`  
+**LAST CLOSED:** `CONV-L1 #505 — PROVIDER CERTIFIED`
 
 ## Current owner state
 
-CONV-001 remains the active portfolio program. CONV-L1 #505 is the sole HIGH/CRITICAL mutable lane.
+CONV-001 remains the active portfolio program. CONV-L2 #506 is the sole HIGH/CRITICAL mutable lane.
 
 Legacy WA-L10 #456 is FROZEN / SAFE-OFF evidence only. No new conversational feature patching is permitted on the legacy hot path except narrowly scoped P0 security/privacy/data-loss/production-break remediation.
 
@@ -17,7 +17,7 @@ Legacy WA-L10 #456 is FROZEN / SAFE-OFF evidence only. No new conversational fea
 
 | Program | Preserved input | Current state |
 |---|---|---|
-| CONV-001 Conversations Core V1 | existing panel, WA evidence, Meta integration knowledge, canonical ASCENDA business authorities | **ACTIVE / CONV-L1 MUTABLE OWNER** |
+| CONV-001 Conversations Core V1 | existing panel, WA evidence, Meta integration knowledge, canonical ASCENDA business authorities | **ACTIVE / CONV-L2 MUTABLE OWNER** |
 | Legacy WhatsApp Revenue Hub WA-* | WA3/3.5 UI, L4 authority, L5 booking, L6 attribution, L7 cost, L8 security, L9/L10 evidence | **FROZEN / EVIDENCE + EXTRACTION SOURCE** |
 | Revenue REV-* | patient/product/revenue identity and 360 authorities | READ-ONLY dependency source |
 | Agenda / Call Center / Marketing | current operational systems | PROTECTED regression dependencies |
@@ -55,4 +55,4 @@ No later loop becomes active automatically. Each exit gate plus current owner/go
 
 ## Global rule
 
-At most one HIGH/CRITICAL feature/data workstream mutates shared CURRENT at a time. While CONV-L1 owns the lock, all other programs remain read-only/regression-only except narrowly required compatibility/regression work.
+At most one HIGH/CRITICAL feature/data workstream mutates shared CURRENT at a time. While CONV-L2 owns the lock, all other programs remain read-only/regression-only except narrowly required compatibility/regression work.
