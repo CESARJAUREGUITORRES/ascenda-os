@@ -270,4 +270,4 @@ Initial target:
 Legacy autonomous production:
 `AUTO_OFF · KILL ON · AI SEND OFF · AUTO ROUTING OFF · ALLOWLIST 0`.
 
-CONV-L1 #505 is CLOSED / PROVIDER CERTIFIED. CONV-L2 #506 is the only authorized HIGH/CRITICAL implementation lane under RUN UNTIL BLOCKED to the next bounded human-messaging/panel proof. Autonomous AI remains SAFE-OFF and L3 is not authorized.
+CONV-L1 #505 is CLOSED / PROVIDER CERTIFIED. CONV-L2 #506 is CLOSED. CONV-L3 #507 is CLOSED after the real-provider shadow benchmark V4 passed 13/13 with provider_send_eligible=false. CONV-L4 #508 has completed read-only authority discovery but is PAUSED for mutations while INT-GOOGLE-001 #542 owns the sole HIGH/CRITICAL lock. After Google closeout, CONV resumes at L4 and the previously authorized L4→L7 loop proceeds until the separately gated real one-chat canary. Autonomous AI remains SAFE-OFF.
