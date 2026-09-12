@@ -3,9 +3,9 @@
 **Captured:** 2026-09-11 America/Lima  
 **Canonical L0 closeout baseline:** `main@60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
 **ACTIVE PROGRAM:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
-**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
+**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY`  
+**OWNER MODE:** `RUN UNTIL BLOCKED + REAL META TEST limitado a zi vital`  
 **LAST CLOSED:** `CONV-L0 #504`  
-**NEXT ELIGIBLE:** `CONV-L1 #505 · NOT STARTED · NOT AUTHORIZED`  
 **PARENT:** `#502`  
 **LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
 **AUTONOMOUS CANARY:** `NOT AUTHORIZED`
@@ -65,7 +65,7 @@ Nothing is deleted until replacement parity + no runtime references/callers + CI
 ## Loop order
 
 - `CONV-L0 #504` — **CLOSED** · Freeze / inventory / extraction map / benchmark freeze.
-- `CONV-L1 #505` — Native Meta Channel Gateway.
+- `CONV-L1 #505` — **ACTIVE** · Native Meta Channel Gateway.
 - `CONV-L2 #506` — Conversation Core + panel transport.
 - `CONV-L3 #507` — Sales Agent Runtime.
 - `CONV-L4 #508` — Business Tools + bounded RAG.
