@@ -2,7 +2,7 @@
 
 **Program:** #502  
 **Immediate loop:** #504  
-**State:** PREPARED / AWAITING EXECUTION CONFIRMATION  
+**State:** EXECUTED · TECHNICAL EXIT CANDIDATE · CI/ANTI-DRIFT PENDING  
 **Production:** legacy autonomy SAFE-OFF
 
 ## Purpose
@@ -126,16 +126,16 @@ Every material design decision needs:
 
 ## L0 exit checklist
 
-- [ ] exact runtime graph complete;
-- [ ] exact UI/API call graph complete;
-- [ ] exact DB pressure graph complete;
-- [ ] all current state/authority owners identified;
-- [ ] KEEP/PORT/REPLACE/RETIRE matrix complete;
-- [ ] no destructive delete performed;
-- [ ] blueprint parity review complete;
-- [ ] 40-case benchmark frozen;
-- [ ] target contracts frozen;
-- [ ] protected-module regression baseline captured;
+- [x] exact runtime graph complete;
+- [x] exact UI/API call graph complete;
+- [x] exact DB pressure graph complete;
+- [x] all current state/authority owners identified;
+- [x] KEEP/PORT/REPLACE/RETIRE matrix complete;
+- [x] no destructive delete performed;
+- [x] blueprint parity review complete;
+- [x] 40-case benchmark frozen;
+- [x] target contracts frozen;
+- [x] protected-module regression baseline captured;
 - [ ] owner receives L0 closeout and explicitly authorizes L1 implementation.
 
 ## Stop conditions
@@ -158,3 +158,17 @@ Routine conversational semantic turn:
 - p50 useful response target <= 2.5 s;
 - p95 useful response target <= 5 s under benchmark load;
 - zero duplicate/unauthorized sends.
+
+
+## L0 generated evidence
+
+- `ASCENDA_CONVERSATIONS_L0_AUDIT_CURRENT.md`
+- `ASCENDA_CONVERSATIONS_L0_RUNTIME_UI_API_MAP_CURRENT.md`
+- `ASCENDA_CONVERSATIONS_L0_EXTRACTION_MATRIX_CURRENT.md`
+- `ASCENDA_CONVERSATIONS_L0_AUTHORITY_MAP_CURRENT.md`
+- `ASCENDA_CONVERSATIONS_L0_BLUEPRINT_PARITY_CURRENT.md`
+- `ASCENDA_CONVERSATIONS_TARGET_CONTRACTS_V1.md`
+- `ASCENDA_CONVERSATIONS_BENCHMARK_V1.md` frozen
+- `ASCENDA_CONVERSATIONS_L0_IMPACT_REPORT_CURRENT.md`
+
+Technical exit remains conditional on exact-head CI + anti-drift. L1 is not authorized by technical completion.
