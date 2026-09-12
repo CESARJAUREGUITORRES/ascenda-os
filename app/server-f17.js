@@ -8,6 +8,7 @@ const { createLegacyWhatsAppGateway } = require('./f17-whatsapp-legacy-gateway')
 const { createF17WaAdapter } = require('./f17-wa-adapter')
 const { createPushService } = require('./push-notifications-s14')
 const { createDeviceApi } = require('./device-api-v2')
+const { createGoogleIntegration } = require('./google-integration-v1')
 
 const EXTERNAL_PORT = parseInt(process.env.PORT || '4173', 10)
 const INNER_PORT = EXTERNAL_PORT === 4217 ? 4218 : 4217
@@ -62,13 +63,16 @@ function requestSupabase(name, payload, service) {
 const rpc = function(name, payload) { return requestSupabase(name, payload, false) }
 const serviceRpc = function(name, payload) { return requestSupabase(name, payload, true) }
 
-async function verifyApp(token, strong) {
+async function verifyPanel(token, panel, strong) {
   const t = String(token || '').trim()
   if (t.length < 32) return { ok: false, status: 401 }
   try {
-    const actorId = await rpc('aos_app_actor_v3', { p_token: t, p_required_panel: strong ? 'admin-chats' : null, p_require_2fa: strong === true })
+    const actorId = await rpc('aos_app_actor_v3', { p_token: t, p_required_panel: panel || null, p_require_2fa: strong === true })
     return UUID_RE.test(String(actorId || '')) ? { ok: true, actor_id: actorId } : { ok: false, status: 403 }
   } catch (_) { return { ok: false, status: 503 } }
+}
+async function verifyApp(token, strong) {
+  return verifyPanel(token, strong ? 'admin-chats' : null, strong)
 }
 
 const gateway = createLegacyWhatsAppGateway({ supabaseUrl: SB_URL, serviceRoleKey: SB_SERVICE_KEY, verifyApp: function(token) { return verifyApp(token, false) } })
@@ -84,6 +88,15 @@ const deviceApi = createDeviceApi({
   writeJson: writeJson,
   readRaw: readRaw,
   parseJson: parseJson
+})
+const googleIntegration = createGoogleIntegration({
+  verifyConfig: function(token, strong) { return verifyPanel(token, 'admin-config', strong) },
+  serviceRpc: serviceRpc,
+  readRaw: readRaw,
+  writeJson: writeJson,
+  supabaseUrl: SB_URL,
+  serviceRoleKey: SB_SERVICE_KEY,
+  env: process.env
 })
 
 async function runNotificationPump() {
@@ -278,6 +291,10 @@ const server = http.createServer(async function(req, res) {
     const handled = await deviceApi.handle(req, res, url)
     if (handled !== false) return handled
   }
+  if (url.pathname.indexOf('/api/google/') === 0) {
+    const handled = await googleIntegration.handle(req, res, url)
+    if (handled !== false) return handled
+  }
   if (url.pathname === '/api/notifications/health' && req.method === 'GET') return writeJson(res, 200, { ok: true, version: 'S15.1', auth: 'actor-bound' })
   if (url.pathname === '/api/notifications/inbox' && req.method === 'GET') return handleNotificationInbox(req, res, url)
   if (url.pathname === '/api/notifications/read' && req.method === 'POST') return handleNotificationRead(req, res)
@@ -291,7 +308,7 @@ const server = http.createServer(async function(req, res) {
 })
 
 server.on('clientError', function(_, socket) { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n') })
-function shutdown(signal) { stopNotificationPump(); server.close(function() { process.exit(0) }); if (child && !child.killed) child.kill(signal); setTimeout(function() { process.exit(1) }, 5000).unref() }
+function shutdown(signal) { stopNotificationPump(); googleIntegration.stopWorker(); server.close(function() { process.exit(0) }); if (child && !child.killed) child.kill(signal); setTimeout(function() { process.exit(1) }, 5000).unref() }
 process.on('SIGTERM', function() { shutdown('SIGTERM') }); process.on('SIGINT', function() { shutdown('SIGINT') })
 
 function start() {
@@ -300,6 +317,8 @@ function start() {
   server.listen(EXTERNAL_PORT, '0.0.0.0', function() {
     console.log('[F17] listening', { external: EXTERNAL_PORT, inner: INNER_PORT, gatewayConfigured: gateway.configured(), whatsappGoverned: true, pushVersion: 'AOS_PUSH_V1', notificationEvents: 'S15.1' })
     push.ensureVapid().then(function() { console.log('[S14] VAPID ready'); startNotificationPump() }).catch(function(e) { console.error('[S14] VAPID deferred', e.message); startNotificationPump() })
+    googleIntegration.startWorker()
+    console.log('[INT-GOOGLE-001] runtime', { configured: googleIntegration.configured(), flags: googleIntegration.flags() })
     if (String(process.env.AOS_CONV_L3_REAL_BENCHMARK_ON_BOOT || '') === '1') {
       setImmediate(function() {
         require('./conv-l3-real-model-benchmark').runBootBenchmark().catch(function(e) {
@@ -310,4 +329,4 @@ function start() {
   })
 }
 if (require.main === module) start()
-module.exports = { verifyApp: verifyApp, gateway: gateway, f17wa: f17wa, push: push, deviceApi: deviceApi, server: server, start: start, runNotificationPump: runNotificationPump, handleNotificationInbox: handleNotificationInbox, handleNotificationRead: handleNotificationRead, bufferedProxyHeaders: bufferedProxyHeaders }
+module.exports = { verifyApp: verifyApp, verifyPanel: verifyPanel, gateway: gateway, f17wa: f17wa, push: push, deviceApi: deviceApi, googleIntegration: googleIntegration, server: server, start: start, runNotificationPump: runNotificationPump, handleNotificationInbox: handleNotificationInbox, handleNotificationRead: handleNotificationRead, bufferedProxyHeaders: bufferedProxyHeaders }
