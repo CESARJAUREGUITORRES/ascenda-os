@@ -61,8 +61,11 @@ assert(contracts.includes('interface OutboundPolicy'), 'OutboundPolicy contract 
 assert(contracts.includes('interface ConversationJob'), 'JobOutbox contract missing')
 assert(benchmark.includes('FROZEN V1 BY CONV-L0'), '40-case benchmark is not frozen')
 assert(audit.includes('RC-1 — Deep proxy/process chain'), 'Root-cause audit missing')
-assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY`'), 'CONV-L1 active lock missing')
-assert(lock.includes('RUN UNTIL BLOCKED'), 'CONV-L1 owner execution mode missing')
+assert(/\*\*ACTIVE HIGH\/CRITICAL LOCK:\*\* `CONV-L[1-8] #[0-9]+ — /.test(lock), 'Active CONV HIGH/CRITICAL execution lock missing')
+assert(lock.includes('CONV-001 remains the active program.'), 'CONV-001 active-program marker missing')
+assert(lock.includes('**LAST CLOSED:** `CONV-L1 #505 — NATIVE META CHANNEL GATEWAY · PROVIDER CERTIFIED`'), 'CONV-L1 provider-certified closeout evidence missing')
+assert(lock.includes('RUN UNTIL BLOCKED'), 'CONV owner execution mode missing')
+assert(lock.includes('SAFE-OFF'), 'CONV production SAFE-OFF marker missing')
 assert(readiness.includes('TECHNICAL PASS / CLOSED'), 'L0 technical closeout marker missing')
 assert(readiness.includes('L1 OWNER AUTHORIZATION RECEIVED / ACTIVE'), 'L1 authorization transition missing')
 
