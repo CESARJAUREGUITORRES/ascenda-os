@@ -11,6 +11,8 @@ const runtime=read('app/public/aos-device-runtime-v2.js')
 const panel=read('app/public/admin-device-center-v2.html')
 const api=read('app/device-api-v2.js')
 const contract=read('docs/control/ASCENDA_APP_PWA_V2_CONTRACT_517.md')
+const panelRegistry=read('supabase/migrations/20260912164500_app_pwa_v2_device_center_panel_registry.sql')
+const panelRegistryRollback=read('supabase/rollback/20260912164500_app_pwa_v2_device_center_panel_registry_rollback.sql')
 
 ok(migration.includes('create table if not exists public.aos_devices_v1'),'device registry missing')
 ok(migration.includes('unique(user_id, installation_id)'),'stable user+installation identity missing')
@@ -59,5 +61,10 @@ ok(contract.includes('time_outside_app_sec'),'call duration semantics gate missi
 
 ok(rollback.includes('drop table if exists public.aos_devices_v1'),'device rollback missing')
 ok(rollback.includes('drop function if exists public.aos_devices_actor_v1(jsonb)'),'actor RPC rollback missing')
+ok(panelRegistry.includes("'devices-notifications'"),'governed device-center panel registry missing')
+ok(panelRegistry.includes("'asesor'"),'device-center panel must remain assignable beyond admin-only hierarchy')
+ok(!panelRegistry.includes("update public.aos_usuarios"),'panel registry must not auto-grant access')
+ok(panelRegistryRollback.includes("array_remove(coalesce(paneles_acceso"),'device-center panel rollback must revoke assignments')
+ok(panelRegistryRollback.includes("delete from public.aos_paneles_disponibles"),'device-center panel rollback must remove registry row')
 
 console.log('APP-PWA-V2 #517 contract: PASS')
