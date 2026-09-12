@@ -66,7 +66,9 @@ function createPushService(opts) {
       p256dh: p256dh,
       auth: auth,
       device_label: text(d.device_label, 160),
-      user_agent: text(userAgent, 500)
+      user_agent: text(userAgent, 500),
+      device_id: text(d.device_id, 80),
+      installation_id: text(d.installation_id, 80)
     })
   }
 

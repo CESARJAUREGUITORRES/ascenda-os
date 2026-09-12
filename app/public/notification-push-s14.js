@@ -4,7 +4,7 @@
 if(window.__AOS_PUSH_S14)return;
 window.__AOS_PUSH_S14=true;
 
-var S={busy:false,enabled:true,last:null,version:'AOS_PUSH_V1'};
+var S={busy:false,enabled:true,last:null,version:'AOS_PUSH_V1',device:null,devicePromise:null};
 try{S.enabled=localStorage.getItem('aos_push_enabled')!=='0';}catch(_){}
 
 function token(){try{return String(sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||'').trim();}catch(_){return '';}}
@@ -12,7 +12,34 @@ function api(path,opts){opts=opts||{};var t=token();var h=new Headers(opts.heade
 function b64ToBytes(base64String){var padding='='.repeat((4-base64String.length%4)%4),base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/'),raw=atob(base64),out=new Uint8Array(raw.length);for(var i=0;i<raw.length;i++)out[i]=raw.charCodeAt(i);return out;}
 function supported(){return !!(window.isSecureContext&&'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window);}
 function deviceLabel(){var mode='Browser';try{if(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)mode='ASCENDA PWA';}catch(_){}var p=String(navigator.platform||'').slice(0,60);return (mode+(p?' · '+p:'')).slice(0,120);}
-function saveSubscription(sub){var json=sub&&sub.toJSON?sub.toJSON():sub||{};return api('/api/push/subscribe',{method:'POST',body:{subscription:json,device_label:deviceLabel()}}).then(function(d){var reset=!!(d&&d.reset_required===true);S.last={registered:!reset,reset_required:reset,subscription_id:d.subscription_id||null,at:new Date().toISOString()};return d;});}
+function loadDeviceRuntime(){
+  if(window.AOS_DEVICE_RUNTIME_V2)return Promise.resolve(window.AOS_DEVICE_RUNTIME_V2);
+  return new Promise(function(resolve,reject){
+    var prior=document.querySelector('script[data-aos-device-runtime]');
+    if(prior){var n=0,t=setInterval(function(){if(window.AOS_DEVICE_RUNTIME_V2){clearInterval(t);resolve(window.AOS_DEVICE_RUNTIME_V2);}else if(++n>40){clearInterval(t);reject(new Error('DEVICE_RUNTIME_TIMEOUT'));}},50);return;}
+    var s=document.createElement('script');s.src='/aos-device-runtime-v2.js?v=20260912-app-pwa-v2-517';s.async=true;s.dataset.aosDeviceRuntime='1';
+    s.onload=function(){window.AOS_DEVICE_RUNTIME_V2?resolve(window.AOS_DEVICE_RUNTIME_V2):reject(new Error('DEVICE_RUNTIME_MISSING'));};
+    s.onerror=function(){reject(new Error('DEVICE_RUNTIME_LOAD_FAILED'));};document.head.appendChild(s);
+  });
+}
+function ensureDevice(){
+  if(S.device&&S.device.device_id)return Promise.resolve(S.device);
+  if(S.devicePromise)return S.devicePromise;
+  S.devicePromise=loadDeviceRuntime().then(function(rt){
+    var snap=rt.snapshot(),payload=Object.assign({},snap,{device_name:deviceLabel(),app_version:'APP-PWA-V2-517'});
+    return api('/api/devices/register',{method:'POST',body:payload}).then(function(d){S.device={device_id:d.device_id||null,installation_id:snap.installation_id||null};return S.device;});
+  }).catch(function(){return null;}).finally(function(){S.devicePromise=null;});
+  return S.devicePromise;
+}
+function saveSubscription(sub){
+  var json=sub&&sub.toJSON?sub.toJSON():sub||{};
+  return ensureDevice().then(function(dev){
+    var body={subscription:json,device_label:deviceLabel()};
+    if(dev&&dev.device_id)body.device_id=dev.device_id;
+    if(dev&&dev.installation_id)body.installation_id=dev.installation_id;
+    return api('/api/push/subscribe',{method:'POST',body:body});
+  }).then(function(d){var reset=!!(d&&d.reset_required===true);S.last={registered:!reset,reset_required:reset,subscription_id:d.subscription_id||null,device_id:d.device_id||(S.device&&S.device.device_id)||null,at:new Date().toISOString()};return d;});
+}
 function subscribeFresh(reg,cfg){return reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64ToBytes(cfg.public_key)});}
 function ensureSubscription(){if(S.busy||!S.enabled)return Promise.resolve(status());if(!supported())return Promise.resolve(status());if(Notification.permission!=='granted')return Promise.resolve(status());S.busy=true;return Promise.all([navigator.serviceWorker.ready,api('/api/push/config')]).then(function(parts){var reg=parts[0],cfg=parts[1];if(!cfg.public_key)throw new Error('PUSH_PUBLIC_KEY_MISSING');return reg.pushManager.getSubscription().then(function(existing){if(!existing)return subscribeFresh(reg,cfg).then(saveSubscription);return saveSubscription(existing).then(function(d){if(!d||d.reset_required!==true)return d;return Promise.resolve(existing.unsubscribe()).catch(function(){return false;}).then(function(){return subscribeFresh(reg,cfg).then(saveSubscription).then(function(out){if(out&&out.reset_required===true)throw new Error('PUSH_SUBSCRIPTION_RECOVERY_FAILED');if(S.last)S.last.recovered=true;return out;});});});});}).catch(function(e){S.last={registered:false,error:String(e&&e.message||e),at:new Date().toISOString()};return status();}).finally(function(){S.busy=false;});}
 function enable(){S.enabled=true;try{localStorage.setItem('aos_push_enabled','1');}catch(_){}if(!supported())return Promise.resolve(status());if(Notification.permission==='granted')return ensureSubscription();if(Notification.permission==='default')return Notification.requestPermission().then(function(p){return p==='granted'?ensureSubscription():status();});return Promise.resolve(status());}
