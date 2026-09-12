@@ -42,6 +42,6 @@ assert(!multi.includes('X.pollDelayMs=8000'),'legacy 8s supervisor baseline stil
 
 assert(lock.includes('CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT'),'L2 workstream lock missing');
 assert(l2.includes('CONV-L2 #506'),'L2 readiness missing');
-assert(l2.includes('AI autonomy: SAFE-OFF'),'L2 safety boundary missing');
+assert(l2.includes('**AI autonomy:** SAFE-OFF'),'L2 safety boundary missing');
 
 console.log('CONV_L2_CONVERSATION_CORE_CONTRACT_PASS');
