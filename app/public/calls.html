@@ -486,6 +486,14 @@ function aosClientUuid(){if(window.crypto&&crypto.randomUUID)return crypto.rando
 var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
 // ===== ENVÍO AUTOMÁTICO DE EMAIL AL CREAR CITA =====
+function aosQueueGoogleAppointment(id){
+  if(!id)return Promise.resolve({ok:false,skipped:true});
+  return fetch(window.location.origin+'/api/google/appointment/queue',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
+    body:JSON.stringify({appointment_id:String(id)})
+  }).then(function(r){return r.json().catch(function(){return {ok:false};});}).catch(function(){return {ok:false};});
+}
 function enviarEmailConfirmacionCita(datosCita) {
   var correo = (datosCita.correo || '').trim();
   if (!correo || correo.indexOf('@') < 0) {
@@ -728,6 +736,7 @@ function ccConfirmarCita(){
   Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(){
     if(CC.lead&&CC.lead.segId&&CC.lead.fromSeg){fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"ESTADO":"COMPLETADO","TS_ACTUALIZADO":new Date().toISOString()})});}
     closeCCModal('cc-m-cita');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';if(window.AOS_playSound)AOS_playSound('venta');if(window.AOS_showToast)AOS_showToast('Cita confirmada'+(CC.lead&&CC.lead.fromSeg?' · Seguimiento cerrado':''),'Excelente','toast-venta');
+    aosQueueGoogleAppointment(rowC.id);
     // Enviar email de confirmación automáticamente
     enviarEmailConfirmacionCita(rowC);
     CC.guardando=false;loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){CC.guardando=false;if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
@@ -1395,7 +1404,7 @@ function guardarCitaManual(){
   var grp=document.getElementById('cm-tipo-cita-grp');
   if(grp)grp.querySelectorAll('.tb').forEach(function(t){if(t.classList.contains('act'))tipoCita=t.getAttribute('data-val');});
   var doctora=document.getElementById('cm-doctora').value||'';
-  var rowC={
+  var rowC={id:aosClientUuid(),
     numero_limpio:num,numero:num,
     nombre:document.getElementById('cm-nombre').value.trim(),
     apellido:document.getElementById('cm-apellido').value.trim(),
