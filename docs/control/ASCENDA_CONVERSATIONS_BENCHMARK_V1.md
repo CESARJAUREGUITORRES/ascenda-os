@@ -3,7 +3,19 @@
 **Program:** CONV-001  
 **Owner loop:** CONV-L0 #504  
 **Execution loop:** CONV-L3/L4/L5; certification in L7 #511  
-**State:** CASE INDEX PREPARED · EXPECTATIONS TO BE FROZEN DURING L0
+**State:** **FROZEN V1 BY CONV-L0** · case IDs/critical-fail rules cannot be silently weakened during implementation
+
+## Freeze contract
+
+This benchmark is the product acceptance baseline for L3-L7.
+
+Implementation may add cases, but it may not remove or weaken these 40 cases to make a build pass. Any intended change to a frozen expectation must:
+1. identify the case ID;
+2. explain the product/policy reason;
+3. show impact on safety, sales UX and compatibility;
+4. be reviewed in CONV-001 governance before the benchmark is edited.
+
+A model/provider/framework change does not reset the benchmark.
 
 ## Scoring dimensions
 
