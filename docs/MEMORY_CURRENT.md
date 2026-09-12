@@ -19,12 +19,13 @@
 5. this file;
 6. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
 7. `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`;
-8. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
-9. `docs/control/ASCENDA_CONVERSATIONS_BLUEPRINT_REGISTRY_CURRENT.md`;
-10. `docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md`;
-11. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
-12. exact GitHub + Supabase + Railway/runtime evidence;
-13. Notion Control Maestro / CONV execution Skill.
+8. `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`;
+9. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
+10. `docs/control/ASCENDA_CONVERSATIONS_BLUEPRINT_REGISTRY_CURRENT.md`;
+11. `docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md`;
+12. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
+13. exact GitHub + Supabase + Railway/runtime evidence;
+14. Notion Control Maestro / CONV execution Skill.
 
 Historical WA docs/chats remain evidence only.
 
@@ -143,3 +144,8 @@ Preserved assets include the ASCENDA panel UX, conversation/message ledgers, can
 ## Immediate next action
 
 Present L0 closeout to the owner. **Do not begin CONV-L1 #505 until separate explicit owner authorization.**
+
+
+## Execution mode
+
+For future authorized CONV loops, use `RUN UNTIL BLOCKED`: after one explicit loop authorization, execute reversible in-scope analysis/implementation/CI/merge/deploy/readback steps without repeated owner prompts, and stop only at the owner boundaries defined in `ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`.
