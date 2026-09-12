@@ -475,8 +475,10 @@ function createGoogleIntegrationV1(opts) {
   function contactPayload(patient,appt,config) {
     var first=String(patient&&patient.Nombres||appt&&appt.nombre||'').trim()
     var last=String(patient&&patient.Apellidos||appt&&appt.apellido||'').trim()
-    var treatment=String(appt&&appt.tratamiento||patient&&patient.tratamiento_principal||appt&&appt.etiqueta_campana||'Cliente')
-    var stamp=appt&&appt.ts_creado||patient&&patient.created_at||Date.now()
+    var tagMode=String(config&&config.contact_tag_source||'tratamiento').toLowerCase()
+    var campaign=String(patient&&patient.ETIQUETA_BASE||appt&&appt.etiqueta_campana||'')
+    var treatment=String(tagMode==='campaign'?(campaign||patient&&patient.tratamiento_principal||appt&&appt.tratamiento):(patient&&patient.tratamiento_principal||appt&&appt.tratamiento||campaign)||'Cliente')
+    var stamp=patient&&patient.created_at||appt&&appt.ts_creado||Date.now()
     var yy=String(new Date(stamp).getFullYear()).slice(-2)
     var formatted=((first+' '+last).trim()+' - '+contactTag(treatment,config)+' - '+monthCode(stamp)+yy).trim()
     var phone=normalizePhone(patient&&patient['Teléfono']||patient&&patient.numero_limpio||appt&&appt.numero_limpio||appt&&appt.numero||'')
