@@ -1,6 +1,6 @@
 'use strict';
 
-const AGENT_RUNTIME_VERSION='CONV-L3-SHADOW-V1';
+const AGENT_RUNTIME_VERSION='CONV-L3-SHADOW-V2';
 const MAX_TOOL_CALLS=2;
 const DEFAULT_MAX_MESSAGES=12;
 const DEFAULT_MAX_CHARS=6000;
@@ -23,6 +23,15 @@ function clipMemory(messages,maxMessages,maxChars){
     used+=take;
   }
   return picked.reverse();
+}
+
+function semanticTurn(memory){
+  const src=Array.isArray(memory)?memory:[];
+  let start=0;
+  for(let i=src.length-1;i>=0;i--){
+    if(src[i]&&src[i].direction==='OUTBOUND'){start=i+1;break;}
+  }
+  return src.slice(start).filter(m=>m&&m.direction==='INBOUND').map(m=>text(m.body)).filter(Boolean).join('\n');
 }
 
 function detectBoundary(memory){
@@ -78,6 +87,7 @@ function createAgentRuntime(options){
     const modelResult=await modelAdapter.decide({
       conversation:{id:conversation.id||null,state:conversation.state||null,version:currentVersion},
       memory,
+      current_turn:semanticTurn(memory),
       available_tools:toolRegistry.map(x=>text(x&&x.name||x)).filter(Boolean),
       constraints:{max_tool_calls:MAX_TOOL_CALLS,provider_send:false,direct_sql:false,direct_meta:false}
     });
@@ -98,4 +108,4 @@ function createAgentRuntime(options){
   return {version:AGENT_RUNTIME_VERSION,shadowTurn};
 }
 
-module.exports={AGENT_RUNTIME_VERSION,MAX_TOOL_CALLS,clipMemory,detectBoundary,validateToolCalls,createAgentRuntime};
+module.exports={AGENT_RUNTIME_VERSION,MAX_TOOL_CALLS,clipMemory,semanticTurn,detectBoundary,validateToolCalls,createAgentRuntime};
