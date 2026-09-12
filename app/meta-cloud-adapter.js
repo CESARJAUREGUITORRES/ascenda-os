@@ -116,7 +116,7 @@ function createMetaCloudAdapter(config){
       if(!business.id||seenBusinesses.has(business.id))continue;seenBusinesses.add(business.id);
       for(const edge of ['owned_whatsapp_business_accounts','client_whatsapp_business_accounts']){
         try{
-          const out=await requester('GET',encodeURIComponent(business.id)+'/'+edge+'?fields='+encodeURIComponent('id,name')+'&limit=100',null,15000);
+          const out=await requester('GET',encodeURIComponent(business.id)+'/'+edge+'?fields='+encodeURIComponent('id,name')+'&limit=50',null,15000);
           for(const row of Array.isArray(out&&out.data&&out.data.data)?out.data.data:[]){
             const id=trim(row&&row.id,128);if(id&&!wabas.has(id))wabas.set(id,{id,name:trim(row&&row.name,256)||null,source:edge,businessId:business.id});
           }
@@ -125,7 +125,7 @@ function createMetaCloudAdapter(config){
     }
     if(!wabas.size){
       try{
-        const out=await requester('GET','me/assigned_whatsapp_business_accounts?fields='+encodeURIComponent('id,name')+'&limit=100',null,15000);
+        const out=await requester('GET','me/assigned_whatsapp_business_accounts?fields='+encodeURIComponent('id,name')+'&limit=50',null,15000);
         for(const row of Array.isArray(out&&out.data&&out.data.data)?out.data.data:[]){
           const id=trim(row&&row.id,128);if(id&&!wabas.has(id))wabas.set(id,{id,name:trim(row&&row.name,256)||null,source:'ME_ASSIGNED'});
         }
@@ -139,7 +139,7 @@ function createMetaCloudAdapter(config){
     const candidates=await discoverBusinessAccounts();
     for(const candidate of candidates){
       try{
-        const out=await requester('GET',encodeURIComponent(candidate.id)+'/phone_numbers?fields='+encodeURIComponent('id,display_phone_number,verified_name')+'&limit=100',null,15000);
+        const out=await requester('GET',encodeURIComponent(candidate.id)+'/phone_numbers?fields='+encodeURIComponent('id,display_phone_number,verified_name')+'&limit=50',null,15000);
         const rows=Array.isArray(out&&out.data&&out.data.data)?out.data.data:[];
         if(rows.some(row=>String(row&&row.id||'')===phoneNumberId)){
           resolvedWabaCache={id:candidate.id,name:candidate.name||null,source:candidate.source||'DISCOVERY'};
@@ -244,7 +244,7 @@ function createMetaCloudAdapter(config){
     const wabaId=await resolveWabaId();
     if(!wabaId)throw Object.assign(new Error('META_WABA_ID_UNAVAILABLE'),{status:503,definite:true,category:'PERMISSION'});
     const fields='id,name,status,category,language,components';
-    const out=await requester('GET',encodeURIComponent(wabaId)+'/message_templates?fields='+encodeURIComponent(fields)+'&limit=100',null,15000);
+    const out=await requester('GET',encodeURIComponent(wabaId)+'/message_templates?fields='+encodeURIComponent(fields)+'&limit=50',null,15000);
     const rows=Array.isArray(out&&out.data&&out.data.data)?out.data.data:[];
     return {
       ok:true,
