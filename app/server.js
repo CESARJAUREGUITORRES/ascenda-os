@@ -2032,6 +2032,7 @@ http.createServer(function(req, res) {
     if (_autoTickRunning || !bgCanRun()) return
     _autoTickRunning = true
     try { autoTick() } catch(e) { bgFail(); console.error('[TICK] Guard error:', e.message) }
+    GOOGLE_INTEGRATION.processQueueOnce().catch(function(e){ console.error('[GOOGLE-WORKER]',e&&e.message||e) })
     setTimeout(function(){ _autoTickRunning = false }, 50000)
   }
   setInterval(guardedAutoTick, 60000)
