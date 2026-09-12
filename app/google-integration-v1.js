@@ -131,17 +131,17 @@ function createGoogleIntegrationV1(opts) {
   }
 
   async function integrationRow() {
-    var r=await sb('/rest/v1/aos_integraciones?select=*&tipo=eq.google&nombre=eq.'+encodeURIComponent('Google Calendar + Contacts')+'&limit=1','GET')
+    var r=await sb('/rest/v1/aos_integraciones?select=id,nombre,estado,cuenta,config,multi_cuenta,updated_at&tipo=eq.google&nombre=eq.'+encodeURIComponent('Google Calendar + Contacts')+'&limit=1','GET')
     return r.status<300 && Array.isArray(r.body) && r.body[0] ? r.body[0] : null
   }
 
   async function connectionById(id) {
-    var r=await sb('/rest/v1/aos_google_connections_v1?select=*&id=eq.'+encodeURIComponent(id)+'&limit=1','GET')
+    var r=await sb('/rest/v1/aos_google_connections_v1?select=id,integration_id,account_email,google_account_id,refresh_token_enc,granted_scopes,selected_calendar_id,selected_calendar_name,calendar_enabled,contacts_enabled,is_primary,status,connected_by,token_version,last_success_at,last_error,created_at,updated_at&id=eq.'+encodeURIComponent(id)+'&limit=1','GET')
     return r.status<300 && Array.isArray(r.body) && r.body[0] ? r.body[0] : null
   }
 
   async function primaryConnection() {
-    var r=await sb('/rest/v1/aos_google_connections_v1?select=*&status=eq.CONNECTED&is_primary=eq.true&limit=1','GET')
+    var r=await sb('/rest/v1/aos_google_connections_v1?select=id,integration_id,account_email,google_account_id,refresh_token_enc,granted_scopes,selected_calendar_id,selected_calendar_name,calendar_enabled,contacts_enabled,is_primary,status,connected_by,token_version,last_success_at,last_error,created_at,updated_at&status=eq.CONNECTED&is_primary=eq.true&limit=1','GET')
     return r.status<300 && Array.isArray(r.body) && r.body[0] ? r.body[0] : null
   }
 
@@ -220,7 +220,7 @@ function createGoogleIntegrationV1(opts) {
     if(oauthError) return callbackPage(res,false,'Google canceló la autorización: '+oauthError)
     if(!state || !code) return callbackPage(res,false,'Respuesta OAuth incompleta.')
     var nowIso=new Date().toISOString()
-    var sr=await sb('/rest/v1/aos_google_oauth_states_v1?select=*&state_hash=eq.'+sha(state)+'&consumed_at=is.null&expires_at=gt.'+encodeURIComponent(nowIso)+'&limit=1','GET')
+    var sr=await sb('/rest/v1/aos_google_oauth_states_v1?select=state_hash,integration_id,session_fingerprint,requested_by,return_to,expires_at,consumed_at,created_at&state_hash=eq.'+sha(state)+'&consumed_at=is.null&expires_at=gt.'+encodeURIComponent(nowIso)+'&limit=1','GET')
     var st=sr.status<300 && Array.isArray(sr.body)&&sr.body[0]?sr.body[0]:null
     if(!st) return callbackPage(res,false,'La autorización expiró o ya fue utilizada.')
 
@@ -238,7 +238,7 @@ function createGoogleIntegrationV1(opts) {
     if(ur.status>=300 || !ur.body || !ur.body.email) return callbackPage(res,false,'No se pudo identificar la cuenta Google autorizada.')
     var email=String(ur.body.email).toLowerCase().trim()
 
-    var existingR=await sb('/rest/v1/aos_google_connections_v1?select=*&integration_id=eq.'+st.integration_id+'&account_email=eq.'+encodeURIComponent(email)+'&limit=1','GET')
+    var existingR=await sb('/rest/v1/aos_google_connections_v1?select=id,integration_id,account_email,google_account_id,refresh_token_enc,granted_scopes,selected_calendar_id,selected_calendar_name,calendar_enabled,contacts_enabled,is_primary,status,connected_by,token_version,last_success_at,last_error,created_at,updated_at&integration_id=eq.'+st.integration_id+'&account_email=eq.'+encodeURIComponent(email)+'&limit=1','GET')
     var existing=existingR.status<300&&Array.isArray(existingR.body)&&existingR.body[0]?existingR.body[0]:null
     var refreshEnc=null
     if(tr.body.refresh_token) refreshEnc=encryptSecret(tr.body.refresh_token)
@@ -376,11 +376,11 @@ function createGoogleIntegrationV1(opts) {
   async function upsertCalendar(connectionId,appointmentId) {
     var conn=await connectionById(connectionId)
     if(!conn || conn.status!=='CONNECTED') throw new Error('GOOGLE_CONNECTION_NOT_FOUND')
-    var ar=await sb('/rest/v1/aos_agenda_citas?select=*&id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
+    var ar=await sb('/rest/v1/aos_agenda_citas?select=id,fecha_cita,hora_cita,tratamiento,sede,nombre,apellido,correo,numero_limpio,numero,doctora,estado_cita,ts_creado,etiqueta_campana&id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
     var appt=ar.status<300&&Array.isArray(ar.body)&&ar.body[0]?ar.body[0]:null
     if(!appt) throw new Error('APPOINTMENT_NOT_FOUND')
     if(['CANCELADA','REAGENDADA'].indexOf(String(appt.estado_cita||'').toUpperCase())>=0) return deleteCalendar(connectionId,appointmentId)
-    var linkR=await sb('/rest/v1/aos_google_calendar_links_v1?select=*&connection_id=eq.'+conn.id+'&appointment_id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
+    var linkR=await sb('/rest/v1/aos_google_calendar_links_v1?select=id,connection_id,appointment_id,calendar_id,event_id,html_link,schedule_hash,sync_status,last_synced_at,last_error,created_at,updated_at&connection_id=eq.'+conn.id+'&appointment_id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
     var link=linkR.status<300&&Array.isArray(linkR.body)&&linkR.body[0]?linkR.body[0]:null
     var token=await accessToken(conn)
     var calId=conn.selected_calendar_id||'primary'
@@ -436,7 +436,7 @@ function createGoogleIntegrationV1(opts) {
   async function deleteCalendar(connectionId,appointmentId) {
     var conn=await connectionById(connectionId)
     if(!conn) throw new Error('GOOGLE_CONNECTION_NOT_FOUND')
-    var lr=await sb('/rest/v1/aos_google_calendar_links_v1?select=*&connection_id=eq.'+conn.id+'&appointment_id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
+    var lr=await sb('/rest/v1/aos_google_calendar_links_v1?select=id,connection_id,appointment_id,calendar_id,event_id,html_link,schedule_hash,sync_status,last_synced_at,last_error,created_at,updated_at&connection_id=eq.'+conn.id+'&appointment_id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
     var link=lr.status<300&&Array.isArray(lr.body)&&lr.body[0]?lr.body[0]:null
     if(!link) return {deleted:false,reason:'NO_LINK'}
     var token=await accessToken(conn)
@@ -453,12 +453,12 @@ function createGoogleIntegrationV1(opts) {
     var rows=[]
     var phone=String(appt.numero_limpio||appt.numero||'').replace(/\D/g,'')
     if(phone) {
-      var r=await sb('/rest/v1/aos_pacientes?select=*&numero_limpio=eq.'+encodeURIComponent(phone)+'&limit=2','GET')
+      var r=await sb('/rest/v1/aos_pacientes?select=ID_PACIENTE,Nombres,Apellidos,Teléfono,Email,numero_limpio,tratamiento_principal,created_at,ETIQUETA_BASE&numero_limpio=eq.'+encodeURIComponent(phone)+'&limit=2','GET')
       if(r.status<300&&Array.isArray(r.body)) rows=r.body
     }
     if(rows.length===1) return rows[0]
     if(validEmail(appt.correo)) {
-      var e=await sb('/rest/v1/aos_pacientes?select=*&Email=ilike.'+encodeURIComponent(String(appt.correo).trim())+'&limit=2','GET')
+      var e=await sb('/rest/v1/aos_pacientes?select=ID_PACIENTE,Nombres,Apellidos,Teléfono,Email,numero_limpio,tratamiento_principal,created_at,ETIQUETA_BASE&Email=ilike.'+encodeURIComponent(String(appt.correo).trim())+'&limit=2','GET')
       if(e.status<300&&Array.isArray(e.body)&&e.body.length===1) return e.body[0]
     }
     return null
@@ -517,10 +517,10 @@ function createGoogleIntegrationV1(opts) {
     if(!conn || conn.status!=='CONNECTED') throw new Error('GOOGLE_CONNECTION_NOT_FOUND')
     var patient=null, appt=null
     if(entityType==='PATIENT') {
-      var pr=await sb('/rest/v1/aos_pacientes?select=*&ID_PACIENTE=eq.'+encodeURIComponent(entityId)+'&limit=1','GET')
+      var pr=await sb('/rest/v1/aos_pacientes?select=ID_PACIENTE,Nombres,Apellidos,Teléfono,Email,numero_limpio,tratamiento_principal,created_at,ETIQUETA_BASE&ID_PACIENTE=eq.'+encodeURIComponent(entityId)+'&limit=1','GET')
       patient=pr.status<300&&Array.isArray(pr.body)&&pr.body[0]?pr.body[0]:null
     } else {
-      var ar=await sb('/rest/v1/aos_agenda_citas?select=*&id=eq.'+encodeURIComponent(entityId)+'&limit=1','GET')
+      var ar=await sb('/rest/v1/aos_agenda_citas?select=id,fecha_cita,hora_cita,tratamiento,sede,nombre,apellido,correo,numero_limpio,numero,doctora,estado_cita,ts_creado,etiqueta_campana&id=eq.'+encodeURIComponent(entityId)+'&limit=1','GET')
       appt=ar.status<300&&Array.isArray(ar.body)&&ar.body[0]?ar.body[0]:null
       if(appt) patient=await patientForAppointment(appt)
     }
@@ -528,7 +528,7 @@ function createGoogleIntegrationV1(opts) {
     var integ=await integrationRow()
     var data=contactPayload(patient,appt,integ&&integ.config||{})
     var token=await accessToken(conn)
-    var lr=await sb('/rest/v1/aos_google_contact_links_v1?select=*&connection_id=eq.'+conn.id+'&patient_id=eq.'+encodeURIComponent(data.patient_id)+'&limit=1','GET')
+    var lr=await sb('/rest/v1/aos_google_contact_links_v1?select=id,connection_id,patient_id,resource_name,etag,payload_hash,sync_status,last_synced_at,last_error,created_at,updated_at&connection_id=eq.'+conn.id+'&patient_id=eq.'+encodeURIComponent(data.patient_id)+'&limit=1','GET')
     var link=lr.status<300&&Array.isArray(lr.body)&&lr.body[0]?lr.body[0]:null
     var resourceName=link&&link.resource_name||''
     var etag=link&&link.etag||''
@@ -659,7 +659,7 @@ function createGoogleIntegrationV1(opts) {
     if(!MASTER_ON()) return {queued:0,reason:'GOOGLE_INTEGRATION_SAFE_OFF'}
     var conn=await primaryConnection()
     if(!conn || conn.status!=='CONNECTED') return {queued:0,reason:'GOOGLE_CONNECTION_NOT_FOUND'}
-    var ar=await sb('/rest/v1/aos_agenda_citas?select=*&id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
+    var ar=await sb('/rest/v1/aos_agenda_citas?select=id,fecha_cita,hora_cita,tratamiento,sede,nombre,apellido,correo,numero_limpio,numero,doctora,estado_cita,ts_creado,etiqueta_campana&id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
     var appt=ar.status<300&&Array.isArray(ar.body)&&ar.body[0]?ar.body[0]:null
     if(!appt && options.force_action!=='CALENDAR_DELETE') throw new Error('APPOINTMENT_NOT_FOUND')
     var status=String(appt&&appt.estado_cita||'').toUpperCase()
