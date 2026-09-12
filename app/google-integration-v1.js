@@ -426,8 +426,10 @@ function createGoogleIntegrationV1(opts) {
       schedule_hash:scheduleHash(appt),sync_status:'SYNCED',last_synced_at:new Date().toISOString(),
       last_error:null,updated_at:new Date().toISOString()
     }
-    await sb('/rest/v1/aos_google_calendar_links_v1?on_conflict=connection_id,appointment_id','POST',linkPayload,'resolution=merge-duplicates,return=minimal')
-    await sb('/rest/v1/aos_agenda_citas?id=eq.'+encodeURIComponent(appt.id),'PATCH',{gcal_event_id:eventId},'return=minimal')
+    var linkWrite=await sb('/rest/v1/aos_google_calendar_links_v1?on_conflict=connection_id,appointment_id','POST',linkPayload,'resolution=merge-duplicates,return=minimal')
+    if(linkWrite.status>=300) throw new Error('GOOGLE_CALENDAR_LINK_PERSIST_FAILED_'+linkWrite.status)
+    var agendaWrite=await sb('/rest/v1/aos_agenda_citas?id=eq.'+encodeURIComponent(appt.id),'PATCH',{gcal_event_id:eventId},'return=minimal')
+    if(agendaWrite.status>=300) throw new Error('GOOGLE_CALENDAR_LEDGER_PERSIST_FAILED_'+agendaWrite.status)
     return {event_id:eventId,html_link:linkPayload.html_link,attendee_invited:!!attendees}
   }
 
@@ -440,8 +442,10 @@ function createGoogleIntegrationV1(opts) {
     var token=await accessToken(conn)
     var r=await googleJson(token,'www.googleapis.com','/calendar/v3/calendars/'+encodeURIComponent(link.calendar_id)+'/events/'+encodeURIComponent(link.event_id)+'?sendUpdates=all','DELETE')
     if(r.status>=300 && r.status!==404 && r.status!==410) throw new Error('GOOGLE_CALENDAR_DELETE_FAILED_'+r.status)
-    await sb('/rest/v1/aos_google_calendar_links_v1?id=eq.'+link.id,'PATCH',{sync_status:'DELETED',last_synced_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()},'return=minimal')
-    await sb('/rest/v1/aos_agenda_citas?id=eq.'+encodeURIComponent(appointmentId),'PATCH',{gcal_event_id:null},'return=minimal')
+    var linkDeleteWrite=await sb('/rest/v1/aos_google_calendar_links_v1?id=eq.'+link.id,'PATCH',{sync_status:'DELETED',last_synced_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()},'return=minimal')
+    if(linkDeleteWrite.status>=300) throw new Error('GOOGLE_CALENDAR_DELETE_LINK_PERSIST_FAILED_'+linkDeleteWrite.status)
+    var agendaDeleteWrite=await sb('/rest/v1/aos_agenda_citas?id=eq.'+encodeURIComponent(appointmentId),'PATCH',{gcal_event_id:null},'return=minimal')
+    if(agendaDeleteWrite.status>=300) throw new Error('GOOGLE_CALENDAR_DELETE_LEDGER_PERSIST_FAILED_'+agendaDeleteWrite.status)
     return {deleted:true}
   }
 
@@ -554,10 +558,11 @@ function createGoogleIntegrationV1(opts) {
     }
     if(r.status>=300||!r.body||!r.body.resourceName) throw new Error('GOOGLE_CONTACT_UPSERT_FAILED_'+r.status)
     var pHash=sha(JSON.stringify(data.body))
-    await sb('/rest/v1/aos_google_contact_links_v1?on_conflict=connection_id,patient_id','POST',{
+    var contactLinkWrite=await sb('/rest/v1/aos_google_contact_links_v1?on_conflict=connection_id,patient_id','POST',{
       connection_id:conn.id,patient_id:data.patient_id,resource_name:r.body.resourceName,etag:r.body.etag||null,
       payload_hash:pHash,sync_status:'SYNCED',last_synced_at:new Date().toISOString(),last_error:null,updated_at:new Date().toISOString()
     },'resolution=merge-duplicates,return=minimal')
+    if(contactLinkWrite.status>=300) throw new Error('GOOGLE_CONTACT_LINK_PERSIST_FAILED_'+contactLinkWrite.status)
     return {resource_name:r.body.resourceName,display_name:data.formatted}
   }
 
