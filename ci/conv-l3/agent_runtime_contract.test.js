@@ -82,6 +82,25 @@ test('failed governed tool cannot be followed by fabricated tool-truth answer',a
   assert.equal(out.outcome,'HANDOFF');assert.equal(out.handoffReason,'GOVERNED_TOOL_UNAVAILABLE');assert.equal(out.response,undefined);assert.equal(out.toolTrace[0].ok,false);
 });
 
+test('numeric price without successful price tool fails closed',async()=>{
+  const a=runtime(async()=>({outcome:'RESPOND',response:{text:'El tratamiento cuesta S/ 799.'}}));
+  const out=await a.runTurn(Object.assign({},base,{inboundMessages:[m('INBOUND','Precio',0)]}));
+  assert.equal(out.outcome,'HANDOFF');assert.equal(out.handoffReason,'MISSING_GOVERNED_EVIDENCE');assert.deepEqual(out.missingTools,['get_prices']);
+});
+
+test('price fact is eligible only after governed price tool succeeds',async()=>{
+  const gw=gateway({get_prices:async()=>({items:[{price:799,currency:'PEN'}]})});
+  const a=rt.createAgentRuntime({modelAdapter:{run:async(_,tool)=>{const r=await tool({name:'get_prices'});assert.equal(r.ok,true);return {outcome:'RESPOND',response:{text:'El precio vigente es S/ 799.'}};}},toolGateway:gw});
+  const out=await a.runTurn(Object.assign({},base,{inboundMessages:[m('INBOUND','Precio',0)],allowedTools:['get_prices']}));
+  assert.equal(out.outcome,'RESPOND');assert.equal(out.toolTrace[0].tool,'get_prices');
+});
+
+test('internal runtime markers are never eligible customer output',async()=>{
+  const a=runtime(async()=>({outcome:'RESPOND',response:{text:'booking_readiness=HIGH'}}));
+  const out=await a.runTurn(Object.assign({},base,{inboundMessages:[m('INBOUND','Quiero reservar',0)]}));
+  assert.equal(out.outcome,'HANDOFF');assert.equal(out.handoffReason,'INTERNAL_POLICY_LEAK');
+});
+
 test('stale turn is suppressed after reasoning and before outbound eligibility',async()=>{
   const a=runtime(async()=>({outcome:'RESPOND',response:{text:'Respuesta vieja'}}),{recheck:async()=>({newerInbound:true})});
   const out=await a.runTurn(Object.assign({},base,{inboundMessages:[m('INBOUND','Primero',0)]}));
