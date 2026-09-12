@@ -350,12 +350,12 @@ function createGoogleIntegration(config){
     }
     if(!event||!event.id)throw Object.assign(new Error('GOOGLE_CALENDAR_EVENT_ID_MISSING'),{code:'GOOGLE_CALENDAR_EVENT_ID_MISSING'})
     await sb('POST','/rest/v1/aos_google_calendar_links_v1',{
-      appointment_id:String(appt.id),connection_id:conn.id,calendar_id:calendarId,google_event_id:event.id,
+      appointment_id:String(appt.id),connection_id:conn.id,calendar_id:calendarId,google_event_id:event.id,html_link:clean(event.htmlLink)||null,
       schedule_revision:clean(revision)||clean(appt.ts_actualizado)||'current',etag:clean(event.etag)||null,state:'ACTIVE',
       last_synced_at:new Date().toISOString(),updated_at:new Date().toISOString()
     },'resolution=merge-duplicates,return=minimal')
     await sb('PATCH','/rest/v1/aos_agenda_citas?id=eq.'+encodeURIComponent(appt.id),{gcal_event_id:event.id},'return=minimal')
-    return {ok:true,operation:'CALENDAR_UPSERT',appointment_id:String(appt.id),google_event_id:event.id}
+    return {ok:true,operation:'CALENDAR_UPSERT',appointment_id:String(appt.id),google_event_id:event.id,html_link:clean(event.htmlLink)||null}
   }
   function upperStatus(v){return clean(v).toUpperCase()}
 
