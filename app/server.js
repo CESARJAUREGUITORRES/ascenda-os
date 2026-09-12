@@ -1574,6 +1574,7 @@ http.createServer(function(req, res) {
         if (tipo === 'confirmacion_cita') {
           subject = '✅ Cita confirmada — ' + (d.sede || '') + ' · ' + (d.hora || '') + ' — ' + BRAND.nombre_empresa
           html = buildFromTemplate('confirmacion_cita', vars, function() { return buildEmailConfirmacionCita(d.nombre||'Paciente', d.tratamiento||'Consulta', d.hora||'', d.sede||'', d.fecha||'', {dni: d.dni, email: d.email || d.to, telefono: d.telefono}) }, tplCtx)
+          html += emailGoogleCalendarAction(d.calendar_url || '')
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'recibo_venta') {
           subject = '🧾 Recibo de pago — ' + BRAND.nombre_empresa
@@ -1615,6 +1616,7 @@ http.createServer(function(req, res) {
         } else if (tipo === 'reprogramacion') {
           subject = '🔄 Tu cita ha sido reprogramada — ' + BRAND.nombre_empresa
           html = buildFromTemplate('reprogramacion', vars, function() { return buildEmailReprogramacion ? buildEmailReprogramacion(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'') : emailShell('Cita reprogramada', '<p>Tu cita ha sido reprogramada.</p>') }), tplCtx
+          html += emailGoogleCalendarAction(d.calendar_url || '')
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else {
           res.writeHead(400); res.end('{"error":"template no reconocido: ' + tipo + '"}'); return
@@ -2127,6 +2129,16 @@ function loadCmpCache() {
 }
 setTimeout(loadCmpCache, 5000)
 setInterval(loadCmpCache, 1800000)
+
+function emailGoogleCalendarAction(calendarUrl) {
+  if (!calendarUrl) return ''
+  try {
+    var u = new URL(String(calendarUrl))
+    if (u.protocol !== 'https:' || ['calendar.google.com','www.google.com'].indexOf(u.hostname) < 0) return ''
+    var href = u.href.replace(/&/g,'&amp;').replace(/"/g,'%22').replace(/'/g,'%27')
+    return '<div style="margin:18px 0;text-align:center"><a href="' + href + '" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:11px 18px;border-radius:10px;background:#0A4FBF;color:#fff;font-weight:700;text-decoration:none;font-size:13px">📅 Ver en Google Calendar</a></div>'
+  } catch (_) { return '' }
+}
 
 function emailFirmaMedica(doctoraNombre) {
   if (!doctoraNombre) return ''
