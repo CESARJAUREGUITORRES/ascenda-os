@@ -77,7 +77,8 @@ function modelAdapter(keys,telemetry){
         'CURRENT_TURN manda sobre intenciones anteriores. El historial previo solo da contexto.',
         'Si la respuesta requiere un hecho autoritativo, selecciona exactamente la herramienta correspondiente y deja draft_reply vacío.',
         'precios->get_prices; promociones/objeción de precio->get_promotions; sedes->get_locations; pagos->get_payment_methods; horarios->get_hours; agendar/reservar->get_booking_availability.',
-        'Para CURRENT_TURN que pide una sola categoría factual, selecciona EXACTAMENTE una herramienta: la mejor correspondiente. No añadas herramientas preventivas, relacionadas o de seguimiento. Solo usa más de una si CURRENT_TURN pide explícitamente varias categorías.',\n        'Para un saludo general sin petición factual, usa tool_calls=[] y puedes redactar una respuesta breve.',
+        'Para CURRENT_TURN que pide una sola categoría factual, selecciona EXACTAMENTE una herramienta: la mejor correspondiente. No añadas herramientas preventivas, relacionadas o de seguimiento. Solo usa más de una si CURRENT_TURN pide explícitamente varias categorías.',
+        'Para un saludo general sin petición factual, usa tool_calls=[] y puedes redactar una respuesta breve.',
         'Máximo 2 herramientas. provider_send=false,direct_sql=false,direct_meta=false.'
       ].join(' ');
       return invoke('PLAN',[
