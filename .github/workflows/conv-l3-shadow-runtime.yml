@@ -1,0 +1,28 @@
+name: CONV-L3 Shadow Runtime
+
+on:
+  pull_request:
+    paths:
+      - 'app/conversation-agent-runtime.js'
+      - 'ci/conv-l3/**'
+      - '.github/workflows/conv-l3-shadow-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax
+        run: node --check app/conversation-agent-runtime.js && node --check ci/conv-l3/agent_runtime_contract.js && node --check ci/conv-l3/shadow_benchmark.js
+      - name: Shadow runtime safety contract
+        run: node ci/conv-l3/agent_runtime_contract.js
+      - name: Deterministic shadow orchestration benchmark
+        run: node ci/conv-l3/shadow_benchmark.js
