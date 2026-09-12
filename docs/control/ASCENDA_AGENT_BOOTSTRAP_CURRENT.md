@@ -1,9 +1,11 @@
 # ASCENDA OS — AGENT BOOTSTRAP CURRENT
 
 **Captured:** 2026-09-11 America/Lima  
-**Canonical baseline at pivot:** `main@60fd6b260c8abb4d71c8375f490ee05ef63252c3`  
+**Canonical L0 closeout baseline:** `main@60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
 **ACTIVE PROGRAM:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
-**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L0 #504` after governance merge  
+**ACTIVE HIGH/CRITICAL LOCK:** `NONE`  
+**LAST CLOSED:** `CONV-L0 #504`  
+**NEXT ELIGIBLE:** `CONV-L1 #505 · NOT STARTED · NOT AUTHORIZED`  
 **PARENT:** `#502`  
 **LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
 **AUTONOMOUS CANARY:** `NOT AUTHORIZED`
@@ -61,7 +63,7 @@ Nothing is deleted until replacement parity + no runtime references/callers + CI
 
 ## Loop order
 
-- `CONV-L0 #504` — Freeze / inventory / extraction map / benchmark freeze.
+- `CONV-L0 #504` — **CLOSED** · Freeze / inventory / extraction map / benchmark freeze.
 - `CONV-L1 #505` — Native Meta Channel Gateway.
 - `CONV-L2 #506` — Conversation Core + panel transport.
 - `CONV-L3 #507` — Sales Agent Runtime.
