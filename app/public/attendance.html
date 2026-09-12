@@ -1064,6 +1064,7 @@ function guardarProgSesion(sesionId,tratNombre){
     sesion_numero:sesData?sesData.sesion_numero:null,
     obs:obsText
   }).then(function(r){
+    aosQueueGoogleAppointment(citaId);
     /* Actualizar sesión con fecha programada */
     sbPatch('aos_sesiones_tratamiento','id=eq.'+sesionId,{
       estado:'PROGRAMADO',fecha_programado:fecha,hora_programado:hora,
@@ -1087,6 +1088,14 @@ function guardarProgSesion(sesionId,tratNombre){
   });
 }
 
+function aosQueueGoogleAppointment(id){
+  if(!id)return;
+  fetch(window.location.origin+'/api/google/appointment/queue',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
+    body:JSON.stringify({appointment_id:String(id)})
+  }).catch(function(){});
+}
 function abrirModalProg(trat,tipoCita){
   var c=AT.sel;if(!c)return;
   var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
