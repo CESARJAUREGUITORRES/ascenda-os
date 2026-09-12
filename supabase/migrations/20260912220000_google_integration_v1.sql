@@ -175,8 +175,132 @@ revoke all on function public.aos_google_claim_sync_v1(text,integer) from public
 grant execute on function public.aos_google_claim_sync_v1(text,integer) to service_role;
 
 -- External Google side effects are intentionally NOT triggered directly from legacy
--- agenda/patient table writes. Enqueue happens through the authenticated Node boundary
--- after the canonical ASCENDA operation succeeds.
+-- agenda/patient table writes. Legacy UI writes enqueue through the authenticated Node boundary.
+-- Governed booking ledgers are browser-write-closed and may enqueue internally.
+
+create or replace function public.aos_google_enqueue_authorized_appointment_v1(
+  p_appointment_id text,
+  p_action text default 'CALENDAR_UPSERT',
+  p_source text default 'GOVERNED_BOOKING'
+)
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $
+declare
+  c record;
+  a public.aos_agenda_citas%rowtype;
+  v_revision text;
+  v_action text := upper(coalesce(p_action,'CALENDAR_UPSERT'));
+begin
+  if nullif(btrim(coalesce(p_appointment_id,'')),'') is null then return; end if;
+  if v_action not in ('CALENDAR_UPSERT','CALENDAR_DELETE') then
+    raise exception 'GOOGLE_SYNC_INVALID_ACTION';
+  end if;
+
+  if v_action='CALENDAR_UPSERT' then
+    select * into a from public.aos_agenda_citas where id=p_appointment_id limit 1;
+    if not found then return; end if;
+    if upper(coalesce(a.estado_cita,'')) in ('CANCELADA','REAGENDADA') then
+      v_action:='CALENDAR_DELETE';
+    end if;
+  end if;
+
+  v_revision := case
+    when v_action='CALENDAR_DELETE' then md5(coalesce(p_appointment_id,'')||'|DELETE')
+    else md5(concat_ws('|',
+      coalesce(a.id,''),coalesce(a.fecha_cita::text,''),coalesce(a.hora_cita,''),
+      coalesce(a.tratamiento,''),coalesce(a.sede,''),coalesce(a.nombre,''),
+      coalesce(a.apellido,''),coalesce(a.correo,''),coalesce(a.numero_limpio,a.numero,''),
+      coalesce(a.doctora,''),coalesce(a.estado_cita,'')
+    ))
+  end;
+
+  for c in
+    select id,calendar_enabled,contacts_enabled
+    from public.aos_google_connections_v1
+    where status='CONNECTED' and is_primary=true
+      and (calendar_enabled=true or contacts_enabled=true)
+  loop
+    if c.calendar_enabled then
+      insert into public.aos_google_sync_outbox_v1(
+        idempotency_key,connection_id,entity_type,entity_id,action,payload
+      ) values (
+        'gcal-governed:'||c.id::text||':'||p_appointment_id||':'||v_action||':'||v_revision,
+        c.id,'APPOINTMENT',p_appointment_id,v_action,
+        jsonb_build_object('revision',v_revision,'source',coalesce(p_source,'GOVERNED_BOOKING'))
+      )
+      on conflict(idempotency_key) do nothing;
+    end if;
+
+    if c.contacts_enabled and v_action='CALENDAR_UPSERT' then
+      insert into public.aos_google_sync_outbox_v1(
+        idempotency_key,connection_id,entity_type,entity_id,action,payload
+      ) values (
+        'gcontact-governed:'||c.id::text||':'||p_appointment_id||':'||v_revision,
+        c.id,'APPOINTMENT',p_appointment_id,'CONTACT_UPSERT',
+        jsonb_build_object('revision',v_revision,'source',coalesce(p_source,'GOVERNED_BOOKING'))
+      )
+      on conflict(idempotency_key) do nothing;
+    end if;
+  end loop;
+end
+$;
+
+revoke all on function public.aos_google_enqueue_authorized_appointment_v1(text,text,text) from public, anon, authenticated;
+grant execute on function public.aos_google_enqueue_authorized_appointment_v1(text,text,text) to service_role;
+
+create or replace function public.aos_google_booking_operation_trigger_v1()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $
+begin
+  if new.operation_type in ('BOOK','REBOOK')
+     and new.status in ('BOOKED','REBOOKED')
+     and nullif(btrim(coalesce(new.appointment_id,'')),'') is not null then
+    perform public.aos_google_enqueue_authorized_appointment_v1(
+      new.appointment_id,'CALENDAR_UPSERT','BOOKING_OPERATIONS_V2'
+    );
+  end if;
+  return new;
+end
+$;
+
+drop trigger if exists trg_aos_google_booking_operation_v1 on public.aos_booking_operations_v2;
+create trigger trg_aos_google_booking_operation_v1
+after insert or update of status,appointment_id on public.aos_booking_operations_v2
+for each row execute function public.aos_google_booking_operation_trigger_v1();
+
+create or replace function public.aos_google_wa4_booking_action_trigger_v1()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $
+declare
+  v_action text;
+begin
+  if nullif(btrim(coalesce(new.agenda_id,'')),'') is null then return new; end if;
+  if new.status='BOOKED' then v_action:='CALENDAR_UPSERT';
+  elsif new.status in ('CANCELLED','REPLACED') then v_action:='CALENDAR_DELETE';
+  else return new;
+  end if;
+
+  perform public.aos_google_enqueue_authorized_appointment_v1(
+    new.agenda_id,v_action,'WA4_BOOKING_ACTIONS_V1'
+  );
+  return new;
+end
+$;
+
+drop trigger if exists trg_aos_google_wa4_booking_action_v1 on public.aos_wa4_booking_actions_v1;
+create trigger trg_aos_google_wa4_booking_action_v1
+after insert or update of status,agenda_id on public.aos_wa4_booking_actions_v1
+for each row execute function public.aos_google_wa4_booking_action_trigger_v1();
+
 update public.aos_integraciones
 set descripcion='Google Calendar y Contactos mediante OAuth seguro; cuenta reemplazable desde ASCENDA',
     multi_cuenta=true,
