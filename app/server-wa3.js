@@ -13,9 +13,6 @@ const INNER_PORT=EXTERNAL_PORT===4196?4197:4196;
 const SB_URL=process.env.SUPABASE_URL||'https://ituyqwstonmhnfshnaqz.supabase.co';
 const SB_ANON_KEY=process.env.SUPABASE_ANON_KEY||'';
 const SB_SERVICE_KEY=process.env.SUPABASE_SERVICE_ROLE_KEY||'';
-const WA_ACCESS_TOKEN=process.env.WHATSAPP_ACCESS_TOKEN||'';
-const WA_PHONE_NUMBER_ID=process.env.WHATSAPP_PHONE_NUMBER_ID||'';
-const WA_GRAPH_VERSION=process.env.WHATSAPP_GRAPH_VERSION||'';
 const WA_CANARY_MODE=process.env.WA_CANARY_MODE||'true';
 const WA_CANARY_ALLOW_TO=process.env.WA_CANARY_ALLOW_TO||'';
 const WA_L4_INTERNAL_TOKEN=process.env.WA_L4_INTERNAL_TOKEN||'';
@@ -118,7 +115,7 @@ async function ownedSend(req,res,id,body){if(!UUID_RE.test(id))return writeJson(
   const msgType=semanticType(payload),msgBody=semanticBody(payload);let reservation;try{reservation=await reserveOutbound(String(body.idempotency_key),auth.actor_id,payload,msgType);if(!reservation.owner){const row=reservation.row||{};return writeJson(res,row.state==='FAILED'?409:200,{ok:row.state!=='FAILED',idempotent:true,message_id:row.provider_message_id||null,status:row.state||'PENDING',error:row.state==='FAILED'?(row.error_code||'PREVIOUS_SEND_FAILED'):undefined});}
     const meta=await metaDispatch(payload);const messageId=meta&&meta.message_id;if(!messageId)throw Object.assign(new Error('META_MESSAGE_ID_MISSING'),{status:502,ambiguous:true});const now=new Date().toISOString();
     await sbRequest('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'ACCEPTED',provider_message_id:String(messageId),error_code:null,updated_at:now},true,'return=minimal');
-    await sbRequest('POST','/rest/v1/aos_wa_messages_v1?on_conflict=provider_message_id',{provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),conversation_id:id,direction:'OUTBOUND',from_number:null,to_number:payload.to,phone_number_id:(meta&&meta.phone_number_id)||WA_PHONE_NUMBER_ID,contact_name:null,message_type:msgType,message_body:msgBody,media_id:null,status:'accepted',actor_id:auth.actor_id,received_at:now,updated_at:now},true,'resolution=merge-duplicates,return=minimal');
+    await sbRequest('POST','/rest/v1/aos_wa_messages_v1?on_conflict=provider_message_id',{provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),conversation_id:id,direction:'OUTBOUND',from_number:null,to_number:payload.to,phone_number_id:(meta&&meta.phone_number_id)||null,contact_name:null,message_type:msgType,message_body:msgBody,media_id:null,status:'accepted',actor_id:auth.actor_id,received_at:now,updated_at:now},true,'resolution=merge-duplicates,return=minimal');
     await sbRequest('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{event_key:'outbound:'+String(messageId),event_type:'message.accepted',provider_message_id:String(messageId),status:'accepted',payload:{actor_id:auth.actor_id,message_type:msgType,conversation_id:id,source:'WA3_OWNED_HUMAN'}},true,'resolution=ignore-duplicates,return=minimal');
     await sbRequest('POST','/rest/v1/aos_wa_routing_events_v1',{conversation_id:id,box_id:auth.box_id||null,event_type:'message.human_accepted',actor_id:auth.actor_id,payload:{provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),message_type:msgType}},true,'return=minimal');
     writeJson(res,200,{ok:true,idempotent:false,message_id:String(messageId),message_type:msgType,status:'ACCEPTED',conversation_id:id,canary:String(WA_CANARY_MODE).toLowerCase()==='true'});
