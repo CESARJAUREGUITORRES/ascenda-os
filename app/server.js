@@ -1583,7 +1583,7 @@ http.createServer(function(req, res) {
           subject = '✅ Cita confirmada — ' + (d.sede || '') + ' · ' + (d.hora || '') + ' — ' + BRAND.nombre_empresa
           html = buildFromTemplate('confirmacion_cita', vars, function() { return buildEmailConfirmacionCita(d.nombre||'Paciente', d.tratamiento||'Consulta', d.hora||'', d.sede||'', d.fecha||'', {dni: d.dni, email: d.email || d.to, telefono: d.telefono}) }, tplCtx)
           html += emailFirmaMedica(d.doctora || d.atendio || '')
-          html += GOOGLE_INTEGRATION.emailCalendarButton(d.appointment_id || d.cita_id || d.agenda_id || '')
+          html = GOOGLE_INTEGRATION.injectEmailCalendarButton(html, d.appointment_id || d.cita_id || d.agenda_id || '')
         } else if (tipo === 'recibo_venta') {
           subject = '🧾 Recibo de pago — ' + BRAND.nombre_empresa
           html = buildFromTemplate('recibo_venta', vars, function() { return buildEmailReciboVenta(d.nombre||'Cliente', d.items||[], d.total||0, d.moneda||'PEN', d.metodo||'', d.sede||'', d.fecha||'', d.venta_id||'') }), tplCtx
