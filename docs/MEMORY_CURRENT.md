@@ -1,11 +1,11 @@
 # ASCENDA OS — MEMORY CURRENT
 
-**Captured:** 2026-09-11 America/Lima  
+**Captured:** 2026-09-12 America/Lima  
 **ACTIVE PROGRAM:** `CONV-001 — ASCENDA CONVERSATIONS CORE V1`  
 **MAIN AT L0 TECHNICAL CLOSEOUT:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
-**ACTIVE HIGH/CRITICAL GATE:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`  
-**OWNER MODE:** `RUN UNTIL BLOCKED hasta la siguiente prueba · WhatsApp humano activo · AI autonomy SAFE-OFF`  
-**LAST CLOSED:** `CONV-L1 #505 — PROVIDER CERTIFIED`  
+**ACTIVE HIGH/CRITICAL GATE:** `CONV-L3 #507 — SALES AGENT RUNTIME`  
+**OWNER MODE:** `RUN UNTIL BLOCKED · L3 SHADOW/OFFLINE · autonomous Meta send NOT AUTHORIZED`  
+**LAST CLOSED:** `CONV-L2 #506 — HUMAN ROUND-TRIP CERTIFIED`  
 **PARENT:** `#502`  
 **LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
 **AUTONOMOUS CANARY:** `NOT AUTHORIZED`
@@ -83,8 +83,8 @@ DELETE is forbidden during build. It becomes eligible only after replacement par
 
 - #504 L0 Freeze/Inventory/Extraction/Benchmark — **CLOSED**
 - #505 L1 Meta Channel Gateway — **CLOSED / PROVIDER CERTIFIED**
-- #506 L2 Conversation Core + Panel — **ACTIVE**
-- #507 L3 Sales Agent Runtime
+- #506 L2 Conversation Core + Panel — **CLOSED / HUMAN ROUND-TRIP CERTIFIED**
+- #507 L3 Sales Agent Runtime — **ACTIVE / SHADOW-OFFLINE**
 - #508 L4 Business Tools + bounded RAG
 - #509 L5 Booking/Media/Templates
 - #510 L6 Follow-up/Hot Leads/Campaigns
@@ -143,7 +143,7 @@ Preserved assets include the ASCENDA panel UX, conversation/message ledgers, can
 
 ## Immediate next action
 
-Execute CONV-L2 #506 under the owner's renewed run-until-blocked authorization. Reach the next bounded real human-messaging/panel proof on the existing test conversation while keeping autonomous AI SAFE-OFF. Stop before L3.
+Execute CONV-L3 #507 under the owner's renewed run-until-blocked authorization. Build and certify the provider-neutral AgentRuntime foundation, then bind a model-backed SHADOW/COPILOT path without autonomous provider send. Stop only at a new credential/cost/owner-authenticated UI boundary or a hard safety gate.
 
 
 ## Execution mode
@@ -173,3 +173,21 @@ Evidence:
 - certified Railway bootstrap restored after temporary probe runs.
 
 The owner then authorized continuing to the next proof so WhatsApp can be exposed as an active human-operated channel. This activates CONV-L2 #506 only; it does not authorize autonomous AI or L3.
+
+
+## L2 production closeout — 2026-09-12
+
+CONV-L2 #506 is closed at the human-messaging boundary.
+
+Evidence:
+- exact release `bea297e1c390b628c94542e63bc9365b82da98ce`;
+- Railway deployment `f16fb2f4-d2a2-44e1-b8f8-9a52a4ee1717` = SUCCESS;
+- `CONV L2 PANEL OK` sent once from ASCENDA as HUMAN and reconciled to DELIVERED;
+- `L2 RESPUESTA OK` persisted once as INBOUND through Meta webhook;
+- same canonical conversation id for both directions;
+- conversation remained `HUMAN_ACTIVE` with ACTIVE owner assignment;
+- no duplicate message body in the proof;
+- DB >2s / >5s = 0 at final readback;
+- autonomous safety remained `AUTO_OFF · KILL ON · AI SEND OFF · AUTO ROUTING OFF · ALLOWLIST 0`.
+
+The owner then explicitly authorized continuing autonomously until the next genuine intervention boundary. That activates CONV-L3 #507 for development, CI, SHADOW/OFFLINE evaluation, merge/deploy and readback only. Autonomous Meta sending remains unauthorized.
