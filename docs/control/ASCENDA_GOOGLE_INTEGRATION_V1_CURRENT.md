@@ -2,7 +2,8 @@
 
 **Captured:** 2026-09-12 America/Lima  
 **Program:** `INT-GOOGLE-001 — GOOGLE CALENDAR + CONTACTS`  
-**Active gate:** `GC-0/GC-1 — OAuth + secure connection foundation`  
+**Issue:** `#542`  
+**Active gate:** `GC-0→GC-7 — implementation + bounded human canary`  
 **Owner authorization:** `PROCEDE · implementar todo en el sistema · run until blocked hasta canary humano`  
 **Risk:** CRITICAL (OAuth, secrets, external side-effects, Agenda)  
 **Production sync flags:** SAFE-OFF
@@ -36,6 +37,7 @@ ASCENDA remains the source of truth. Google Calendar and Google Contacts are syn
   - `GOOGLE_INTEGRATION_ENABLED=false`
   - `GOOGLE_CALENDAR_SYNC_ENABLED=false`
   - `GOOGLE_CONTACT_SYNC_ENABLED=false`
+  - `GOOGLE_TOKEN_ENCRYPTION_KEY`
 
 Secrets remain environment-only and must never be committed or surfaced to the browser.
 
@@ -81,3 +83,23 @@ Contacts:
 - No mass backfill before canary.
 - Production feature flags remain false until the exact SHA is validated and the owner authorizes the live canary.
 - CONV-001 is paused for HIGH/CRITICAL mutations during this lock transfer; its production AI autonomy remains SAFE-OFF.
+
+
+## Implementation candidate — 2026-09-12
+
+Branch: `int-google-001-governed-integration-v1` from `main@17fc0109399db1eabf7116e29d50c6038eb30670`.
+
+Implemented on the isolated branch:
+- server-side OAuth start/callback with one-time hashed state;
+- AES-256-GCM encrypted refresh-token persistence in private service-role-only tables;
+- account connect/change/disconnect + calendar selection;
+- dormant projection outbox from canonical BOOKED/RESCHEDULED and CANCELADA transitions;
+- Calendar create/rebook-same-event/cancel with ASCENDA private correlation properties;
+- patient email attendee only when valid; Google `sendUpdates=none`, preserving Resend as communication authority;
+- Contacts exact identity resolution using canonical phone/email only; ambiguous/conflicting identity -> REVIEW, never name-only;
+- Configuración > Integraciones secure connector UI;
+- bounded human canary selector over existing future appointments;
+- post-canary backfill remains explicit and separate;
+- Resend appointment templates accept an allowlisted Google Calendar event action.
+
+All automatic Google flags remain SAFE-OFF until GC-7 evidence.
