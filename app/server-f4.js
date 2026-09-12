@@ -71,6 +71,51 @@ function sbService(method,endpoint,body,prefer){
   });
 }
 function sbServiceRpc(name,payload){return sbService('POST','/rest/v1/rpc/'+name,payload||{});}
+const WA_PROVIDER_STATUS_RANK={accepted:1,pending:1,sent:2,failed:3,delivered:4,read:5};
+function providerStatusRank(value){return WA_PROVIDER_STATUS_RANK[String(value||'').toLowerCase()]||0;}
+function providerStatusTimestamp(st){return String(st&&st.provider_timestamp||st&&st.created_at||new Date().toISOString());}
+async function applyProviderStatus(st){
+  const id=String(st&&st.provider_message_id||'').trim();const incoming=String(st&&st.status||'').toLowerCase();
+  if(!id||!providerStatusRank(incoming))return {applied:false,reason:'INVALID_STATUS'};
+  const currentOut=await sbService('GET','/rest/v1/aos_wa_messages_v1?provider_message_id=eq.'+encodeURIComponent(id)+'&select=provider_message_id,status&limit=1',null);
+  const row=Array.isArray(currentOut.data)?currentOut.data[0]||null:null;
+  if(!row)return {applied:false,reason:'MESSAGE_NOT_YET_PERSISTED'};
+  const current=String(row.status||'accepted').toLowerCase();
+  if(providerStatusRank(incoming)<providerStatusRank(current))return {applied:false,reason:'STALE_STATUS',current_status:current};
+  const ts=providerStatusTimestamp(st);
+  const patch={status:incoming,updated_at:new Date().toISOString()};
+  if(st.pricing_category!==undefined)patch.pricing_category=st.pricing_category||null;
+  if(st.pricing_model!==undefined)patch.pricing_model=st.pricing_model||null;
+  if(st.billable!==undefined)patch.billable=typeof st.billable==='boolean'?st.billable:null;
+  if(st.error_code!==undefined)patch.error_code=st.error_code||null;
+  if(st.error_title!==undefined)patch.error_title=st.error_title||null;
+  if(incoming==='sent')patch.sent_at=ts;
+  if(incoming==='delivered')patch.delivered_at=ts;
+  if(incoming==='read')patch.read_at=ts;
+  if(incoming==='failed')patch.failed_at=ts;
+  await sbService('PATCH','/rest/v1/aos_wa_messages_v1?provider_message_id=eq.'+encodeURIComponent(id),patch,'return=minimal');
+  return {applied:true,status:incoming};
+}
+async function reconcileProviderMessage(providerMessageId){
+  const id=String(providerMessageId||'').trim();if(!id)return {ok:false,error:'PROVIDER_MESSAGE_ID_REQUIRED'};
+  const out=await sbService('GET','/rest/v1/aos_wa_events_v1?event_type=eq.message.status&provider_message_id=eq.'+encodeURIComponent(id)+'&select=status,payload,created_at&order=created_at.asc',null);
+  const rows=Array.isArray(out.data)?out.data:[];
+  if(!rows.length)return {ok:true,reconciled:false,reason:'NO_STATUS_EVENT'};
+  let best=null;
+  for(const ev of rows){
+    const status=String(ev&&ev.status||'').toLowerCase();
+    if(!providerStatusRank(status))continue;
+    if(!best||providerStatusRank(status)>=providerStatusRank(best.status)){
+      const p=ev&&ev.payload&&typeof ev.payload==='object'?ev.payload:{};
+      best={provider_message_id:id,status,provider_timestamp:p.provider_timestamp||ev.created_at,
+        pricing_category:p.pricing_category||null,pricing_model:p.pricing_model||null,
+        billable:typeof p.billable==='boolean'?p.billable:null,error_code:p.error_code||null,error_title:null};
+    }
+  }
+  if(!best)return {ok:true,reconciled:false,reason:'NO_VALID_STATUS'};
+  const applied=await applyProviderStatus(best);
+  return {ok:true,reconciled:applied.applied===true,status:best.status,reason:applied.reason||null};
+}
 function strongToken(req){const t=String(req.headers['x-aos-app-token']||'').trim();return t.length>=32?t:'';}
 async function authorizeWaSender(req){const token=strongToken(req);if(!token)return null;const out=await sbRpc('aos_app_actor_v3',{p_token:token,p_required_panel:'admin-chats',p_require_2fa:true});if(out.status<200||out.status>=300)return null;const actor=out.data;return typeof actor==='string'&&/^[0-9a-f-]{36}$/i.test(actor)?actor:null;}
 function authorizeWaAutoRuntime(req){return l4.internalTokenValid(req.headers['x-aos-wa-auto-token'],WA_L4_INTERNAL_TOKEN);}
@@ -116,12 +161,8 @@ function handleWaVerify(req,res){
 }
 async function persistWaEnvelope(envelope){
   for(const m of envelope.messages){await sbService('POST','/rest/v1/aos_wa_messages_v1?on_conflict=provider_message_id',m,'resolution=merge-duplicates,return=minimal');}
-  for(const st of envelope.statuses){
-    const patch={status:st.status,pricing_category:st.pricing_category,pricing_model:st.pricing_model,billable:st.billable,error_code:st.error_code,error_title:st.error_title,updated_at:new Date().toISOString()};
-    if(st.status==='sent')patch.sent_at=st.provider_timestamp;if(st.status==='delivered')patch.delivered_at=st.provider_timestamp;if(st.status==='read')patch.read_at=st.provider_timestamp;if(st.status==='failed')patch.failed_at=st.provider_timestamp;
-    await sbService('PATCH','/rest/v1/aos_wa_messages_v1?provider_message_id=eq.'+encodeURIComponent(st.provider_message_id),patch,'return=minimal');
-  }
   for(const ev of envelope.events){await sbService('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',ev,'resolution=ignore-duplicates,return=minimal');}
+  for(const st of envelope.statuses){await applyProviderStatus(st);}
 }
 async function handleWaWebhook(req,res){
   if(!waConfigReadyInbound()){writeJson(res,503,{ok:false,error:'WA_GATEWAY_NOT_CONFIGURED'});return;}
@@ -168,6 +209,7 @@ async function handleWaSend(req,res,body){
       provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),direction:'OUTBOUND',from_number:null,to_number:wa.recipientKind(payload)==='PHONE'?wa.recipientAddress(payload):null,to_user_id:wa.recipientKind(payload)==='BSUID'?wa.recipientAddress(payload):null,phone_number_id:WA_PHONE_NUMBER_ID,contact_name:null,message_type:payload.type,message_body:payload.type==='text'?payload.text.body:null,media_id:null,status:'accepted',actor_id:actor,send_origin:'HUMAN',received_at:new Date().toISOString(),updated_at:new Date().toISOString()
     },'resolution=merge-duplicates,return=minimal');
     await sbService('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{event_key:'outbound:'+String(messageId),event_type:'message.accepted',provider_message_id:String(messageId),status:'accepted',payload:{actor_id:actor,message_type:payload.type,send_origin:'HUMAN'}},'resolution=ignore-duplicates,return=minimal');
+    await reconcileProviderMessage(String(messageId));
     writeJson(res,200,{ok:true,idempotent:false,message_id:String(messageId),status:'ACCEPTED',canary:String(WA_CANARY_MODE).toLowerCase()==='true'});
   }catch(e){
     if(reservation&&reservation.owner&&e.definite===true){try{await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'FAILED',error_code:String(e.message||'WA_SEND_FAILED').slice(0,128),updated_at:new Date().toISOString()},'return=minimal');}catch(_e){}}
@@ -217,6 +259,7 @@ async function handleWaAutoSend(req,res,body){
       provider_message_id:String(messageId),idempotency_key:String(body.idempotency_key),direction:'OUTBOUND',from_number:null,to_number:rk==='PHONE'?ra:null,to_user_id:rk==='BSUID'?ra:null,phone_number_id:WA_PHONE_NUMBER_ID,contact_name:null,message_type:payload.type,message_body:payload.type==='text'?payload.text.body:null,media_id:null,status:'accepted',actor_id:actor,conversation_id:authorityRequest.p_conversation_id,send_origin:'AUTO',authority_decision_id:authority.decision_id,received_at:new Date().toISOString(),updated_at:new Date().toISOString()
     },'resolution=merge-duplicates,return=minimal');
     await sbService('POST','/rest/v1/aos_wa_events_v1?on_conflict=event_key',{event_key:'auto-outbound:'+String(messageId),event_type:'auto.message.accepted',provider_message_id:String(messageId),status:'accepted',payload:{conversation_id:authorityRequest.p_conversation_id,authority_decision_id:authority.decision_id,message_type:payload.type,send_origin:'AUTO',raw_content_stored:false}},'resolution=ignore-duplicates,return=minimal');
+    await reconcileProviderMessage(String(messageId));
     writeJson(res,200,{ok:true,idempotent:false,decision_id:authority.decision_id,message_id:String(messageId),status:'ACCEPTED',send_origin:'AUTO',mode:authority.mode});
   }catch(e){
     if(reservation&&reservation.owner&&e.definite===true){try{await sbService('PATCH','/rest/v1/aos_wa_outbound_requests_v1?idempotency_key=eq.'+encodeURIComponent(body.idempotency_key),{state:'FAILED',error_code:l4.sanitizeReason(e.message||'WA_SEND_FAILED'),updated_at:new Date().toISOString()},'return=minimal');}catch(_e){}}
@@ -243,6 +286,14 @@ async function handleWaAutoTyping(req,res,body){
   }
 }
 
+async function handleMetaInternalReconcile(req,res,body){
+  if(!WA_L4_INTERNAL_TOKEN||WA_L4_INTERNAL_TOKEN.length<32)return writeJson(res,503,{ok:false,error:'WA_META_INTERNAL_AUTH_NOT_CONFIGURED'});
+  if(!authorizeWaAutoRuntime(req))return writeJson(res,403,{ok:false,error:'WA_META_INTERNAL_AUTH_REQUIRED'});
+  const id=String(body&&body.provider_message_id||'').trim();
+  if(!id)return writeJson(res,400,{ok:false,error:'PROVIDER_MESSAGE_ID_REQUIRED'});
+  try{return writeJson(res,200,await reconcileProviderMessage(id));}
+  catch(e){return writeJson(res,e.status||502,{ok:false,error:'WA_META_RECONCILE_UNAVAILABLE'});}
+}
 async function handleMetaInternalHealth(req,res){
   if(!WA_L4_INTERNAL_TOKEN||WA_L4_INTERNAL_TOKEN.length<32)return writeJson(res,503,{ok:false,error:'WA_META_INTERNAL_AUTH_NOT_CONFIGURED'});
   if(!authorizeWaAutoRuntime(req))return writeJson(res,403,{ok:false,error:'WA_META_INTERNAL_AUTH_REQUIRED'});
@@ -292,6 +343,7 @@ const server=http.createServer(async(req,res)=>{
   if(pathname==='/api/wa/meta/health-internal'&&req.method==='GET'){await handleMetaInternalHealth(req,res);return;}
   if(pathname==='/api/wa/meta/templates-internal'&&req.method==='GET'){await handleMetaInternalTemplates(req,res);return;}
   if(pathname==='/api/wa/meta/dispatch-internal'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleMetaInternalDispatch(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
+  if(pathname==='/api/wa/meta/reconcile-internal'&&req.method==='POST'){try{const parsed=await readJson(req,16*1024);await handleMetaInternalReconcile(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/wa/send'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleWaSend(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/wa/auto-send'&&req.method==='POST'){try{const parsed=await readJson(req,256*1024);await handleWaAutoSend(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
   if(pathname==='/api/wa/auto-typing'&&req.method==='POST'){try{const parsed=await readJson(req,16*1024);await handleWaAutoTyping(req,res,parsed.body);}catch(e){writeJson(res,e.status||400,{ok:false,error:e.message||'INVALID_REQUEST'});}return;}
