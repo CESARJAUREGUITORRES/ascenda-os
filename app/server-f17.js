@@ -299,7 +299,7 @@ function start() {
   child.on('exit', function(code) { process.exit(code == null ? 1 : code) })
   server.listen(EXTERNAL_PORT, '0.0.0.0', function() {
     console.log('[F17] listening', { external: EXTERNAL_PORT, inner: INNER_PORT, gatewayConfigured: gateway.configured(), whatsappGoverned: true, pushVersion: 'AOS_PUSH_V1', notificationEvents: 'S15.1' })
-    push.ensureVapid().then(function() { console.log('[S14] VAPID ready'); startNotificationPump() }).catch(function(e) { console.error('[S14] VAPID deferred', e.message); startNotificationPump() })
+    push.ensureVapid().then(function() { console.log('[S14] VAPID ready'); startNotificationPump() }).catch(function(e) { console.error('[S14] VAPID deferred', e.message); startNotificationPump() })\n    if (String(process.env.AOS_CONV_L3_REAL_BENCHMARK_ON_BOOT || '') === '1') {\n      setImmediate(function() {\n        require('./conv-l3-real-model-benchmark').runBootBenchmark().catch(function(e) {\n          console.error('[CONV-L3-REAL-BENCH] unexpected', { error: String(e && e.message || 'BENCH_ERROR').slice(0, 100) })\n        })\n      })\n    }
   })
 }
 if (require.main === module) start()
