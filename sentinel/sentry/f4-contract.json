@@ -2,6 +2,7 @@
   "schema_version": "sentinel-sentry-core/v1",
   "phase": "F4",
   "baseline_main": "e3ff8914447c06a2b94b3be5cccbade73526ce0d",
+  "current_alignment_contract": "sentinel/maintenance/current-alignment-v1.json",
   "sdk": {
     "package": "@sentry/node",
     "version": "10.70.0",
@@ -21,9 +22,9 @@
     "preload_variable": "NODE_OPTIONS",
     "preload_value": "--require ./sentinel-sentry-init.cjs",
     "preload_scope": "runtime-command-only-not-global-railway-variable",
-    "runtime_start_command": "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js",
+    "runtime_start_command": "env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s-f17.js",
     "required_working_directory": "app",
-    "child_inheritance": "server-phase-s-and-descendants-inherit-process-env",
+    "child_inheritance": "current-production-chain-inherits-process-env",
     "failure_mode": "fail-open-for-ascenda-fail-closed-for-telemetry"
   },
   "privacy": {
