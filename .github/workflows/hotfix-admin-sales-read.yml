@@ -1,0 +1,50 @@
+name: ASCENDA Admin Sales Read Hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/admin-home-lima-business-date-20260815
+    paths:
+      - 'scripts/ci/hotfix_admin_sales_rpc_isolation.js'
+      - '.github/workflows/hotfix-admin-sales-read.yml'
+      - 'app/public/admin-sales.html'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize-and-test:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          ref: hotfix/admin-home-lima-business-date-20260815
+          fetch-depth: 1
+      - name: Fast runner health
+        shell: cmd
+        run: |
+          git --version
+          "%RUNNER_TEMP%\..\..\externals\node24\bin\node.exe" --version
+      - name: Apply deterministic Sales read-path hotfix
+        shell: cmd
+        run: '"%RUNNER_TEMP%\..\..\externals\node24\bin\node.exe" scripts\ci\hotfix_admin_sales_rpc_isolation.js'
+      - name: Certify materialized Sales read path
+        shell: cmd
+        run: |
+          findstr /C:"var VS_SB='https://ituyqwstonmhnfshnaqz.supabase.co',VS_SK='" app\public\admin-sales.html
+          findstr /C:"if(!r.ok||!b||b.code||b.error)" app\public\admin-sales.html
+          findstr /C:"timeZone:'America/Lima'" app\public\admin-sales.html
+      - name: Commit materialized frontend only when changed
+        shell: cmd
+        run: |
+          git diff --quiet -- app/public/admin-sales.html
+          if not errorlevel 1 (
+            echo ADMIN_SALES_MATERIALIZATION=ALREADY_CURRENT
+            exit /b 0
+          )
+          git config user.name ascenda-ci
+          git config user.email ascenda-ci@users.noreply.github.com
+          git add app/public/admin-sales.html
+          git commit -m "hotfix(sales): isolate RPC client and fail closed on API errors"
+          git push origin HEAD:hotfix/admin-home-lima-business-date-20260815
