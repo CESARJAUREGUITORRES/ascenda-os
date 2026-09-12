@@ -3,10 +3,10 @@
 **Captured:** 2026-09-12 America/Lima  
 **ACTIVE PROGRAM:** `INT-GOOGLE-001 — GOOGLE CALENDAR + CONTACTS`  
 **MAIN AT L0 TECHNICAL CLOSEOUT:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
-**ACTIVE HIGH/CRITICAL GATE:** `GC-0/GC-1 — OAuth + secure connection foundation`  
+**ACTIVE HIGH/CRITICAL GATE:** `INT-GOOGLE-001 #542 / GC-0→GC-7`  
 **OWNER MODE:** `PROCEDE · implementar todo en el sistema · RUN UNTIL BLOCKED hasta canary humano`  
-**PAUSED LANE:** `CONV-001 / CONV-L2 — evidence preserved; no competing mutations`  
-**LAST CLOSED:** `CONV-L1 #505 — PROVIDER CERTIFIED`  
+**PAUSED LANE:** `CONV-001 / CONV-L4 #508 — preflight ready; no competing mutations until Google closeout`  
+**LAST CLOSED:** `CONV-L3 #507 — 13/13 REAL-PROVIDER SHADOW PASS`  
 **PARENT:** `#502`  
 **LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
 **AUTONOMOUS CANARY:** `NOT AUTHORIZED`
@@ -85,9 +85,9 @@ DELETE is forbidden during build. It becomes eligible only after replacement par
 
 - #504 L0 Freeze/Inventory/Extraction/Benchmark — **CLOSED**
 - #505 L1 Meta Channel Gateway — **CLOSED / PROVIDER CERTIFIED**
-- #506 L2 Conversation Core + Panel — **ACTIVE**
-- #507 L3 Sales Agent Runtime
-- #508 L4 Business Tools + bounded RAG
+- #506 L2 Conversation Core + Panel — **CLOSED**
+- #507 L3 Sales Agent Runtime — **CLOSED / 13/13**
+- #508 L4 Business Tools + bounded RAG — **PAUSED / READ-ONLY PREFLIGHT COMPLETE**
 - #509 L5 Booking/Media/Templates
 - #510 L6 Follow-up/Hot Leads/Campaigns
 - #511 L7 Benchmark + separately authorized CANARY
