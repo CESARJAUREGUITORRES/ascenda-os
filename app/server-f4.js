@@ -39,6 +39,7 @@ delete childEnv.WHATSAPP_APP_SECRET;
 delete childEnv.WHATSAPP_ACCESS_TOKEN;
 delete childEnv.WHATSAPP_PHONE_NUMBER_ID;
 delete childEnv.WHATSAPP_GRAPH_VERSION;
+delete childEnv.WHATSAPP_BUSINESS_ACCOUNT_ID;
 delete childEnv.WA_CANARY_MODE;
 delete childEnv.WA_CANARY_ALLOW_TO;
 delete childEnv.WA_L4_INTERNAL_TOKEN;
