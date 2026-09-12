@@ -1,5 +1,5 @@
 
-var _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+function aosClientUuid(){if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0,v=c==='x'?r:(r&3|8);return v.toString(16);});}\nvar _SB='https://ituyqwstonmhnfshnaqz.supabase.co',_SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 
 // ===== ENVÍO AUTOMÁTICO DE EMAIL AL CREAR CITA =====
 function enviarEmailConfirmacionCita(datosCita) {
@@ -25,8 +25,8 @@ function enviarEmailConfirmacionCita(datosCita) {
     headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
     body: JSON.stringify({
       to: correo,
-      template: 'confirmacion_cita',
-      nombre: nombre,
+      template: datosCita.email_template || 'confirmacion_cita',
+      appointment_id: datosCita.id || '',\n      nombre: nombre,
       tratamiento: datosCita.tratamiento || 'Consulta',
       hora: datosCita.hora_cita || datosCita.horaCita || '',
       sede: datosCita.sede || '',
@@ -218,7 +218,7 @@ function ccConfirmarCita(){
   var p={numero:CC.lead?CC.lead.num:'',estado:'CITA CONFIRMADA',nombre:document.getElementById('cc-c-nombre').value.trim(),apellido:document.getElementById('cc-c-apellido').value.trim(),dni:document.getElementById('cc-c-dni').value.trim(),correo:document.getElementById('cc-c-correo').value.trim(),tipoAtencion:document.getElementById('cc-c-tipo-at').value,sede:document.getElementById('cc-c-sede').value,fechaCita:document.getElementById('cc-c-fecha').value,horaCita:document.getElementById('cc-c-hora').value,tratamiento:document.getElementById('cc-c-trat').value,tipoCita:tipoCita||'CONSULTA NUEVA',obs:document.getElementById('cc-c-obs').value.trim(),rowNum:CC.lead?(CC.lead.rowNum||0):0};
   var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');
   var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:CC.lead?CC.lead.trat:'',estado:'CITA CONFIRMADA',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,anuncio:CC.lead?CC.lead.anuncio||'':'',lead_id_origen:CC.lead&&CC.lead.leadId?CC.lead.leadId:null,created_at:now.toISOString()};
-  var rowC={numero_limpio:numL,numero:p.numero,nombre:p.nombre||'',apellido:p.apellido||'',dni:p.dni||'',correo:p.correo||'',tipo_atencion:p.tipoAtencion||'',sede:p.sede||'',fecha_cita:p.fechaCita,hora_cita:p.horaCita||'',tratamiento:p.tratamiento||'',tipo_cita:p.tipoCita||'CONSULTA NUEVA',asesor:x.a,id_asesor:x.id,estado_cita:'PENDIENTE',origen_cita:'CALL_CENTER',lead_id_origen:CC.lead&&CC.lead.leadId?CC.lead.leadId:null,ts_creado:now.toISOString()};
+  var rowC={id:aosClientUuid(),numero_limpio:numL,numero:p.numero,nombre:p.nombre||'',apellido:p.apellido||'',dni:p.dni||'',correo:p.correo||'',tipo_atencion:p.tipoAtencion||'',sede:p.sede||'',fecha_cita:p.fechaCita,hora_cita:p.horaCita||'',tratamiento:p.tratamiento||'',tipo_cita:p.tipoCita||'CONSULTA NUEVA',asesor:x.a,id_asesor:x.id,estado_cita:'PENDIENTE',origen_cita:'CALL_CENTER',lead_id_origen:CC.lead&&CC.lead.leadId?CC.lead.leadId:null,ts_creado:now.toISOString()};
   console.log('[AOS-DEBUG] ccConfirmarCita rowC:',JSON.stringify(rowC));console.log('[AOS-DEBUG] ccConfirmarCita rowL:',JSON.stringify(rowL));
   Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(){
     if(CC.lead&&CC.lead.segId&&CC.lead.fromSeg){fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"ESTADO":"COMPLETADO","TS_ACTUALIZADO":new Date().toISOString()})});}
