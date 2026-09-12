@@ -94,9 +94,9 @@ L4 remains the phase that binds real business authorities to these contracts.
 Local isolated checks executed before branch write:
 
 - `node --check app/conversation-agent-runtime.js` = PASS
-- `node --test ci/conv-l3/agent_runtime_contract.test.js` = **13/13 PASS**
+- `node --test ci/conv-l3/agent_runtime_contract.test.js` = **16/16 PASS**
 
-Covered cases include greeting, burst aggregation, bounded memory, STOP, personalized clinical handoff, human ownership, typed tool budget, generic-tool rejection, governed-tool failure, stale-turn suppression, human takeover race and single-flight.
+Covered cases include greeting, burst aggregation, bounded memory, STOP, personalized clinical handoff, human ownership, typed tool budget, generic-tool rejection, governed-tool failure, unsupported numeric-price rejection, governed-price acceptance, internal-policy leak rejection, stale-turn suppression, human takeover race and single-flight.
 
 This is **architecture/safety evidence**, not yet the final L3 conversational-quality certificate.
 
