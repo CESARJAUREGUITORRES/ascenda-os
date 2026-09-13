@@ -7,6 +7,17 @@
 **Legacy WA-L10:** FROZEN SAFE-OFF  
 **Goal:** native, fast, governed, multi-company conversational sales platform integrated with ASCENDA.
 
+## Current execution state — 2026-09-13
+
+- L0 #504: CLOSED.
+- L1 #505: CLOSED / provider certified.
+- L2 #506: CLOSED / real panel roundtrip certified.
+- L3 #507: CLOSED / real-provider shadow benchmark 13/13.
+- Google #542: CLOSED / GC-0→GC-8; lock released.
+- **L4 #508: ACTIVE mutable owner.**
+- L5 #509 → L6 #510 → L7 #511 remain sequentially authorized after prior exit gates.
+- Production autonomous Meta send remains SAFE-OFF; stop at the bounded human canary after L7 PASS.
+
 ## 1. Product North Star
 
 ASCENDA Conversations must let a customer start on WhatsApp, receive a useful natural response in seconds, ask about services/prices/promotions/locations/payment, send bursts/audio/media, receive governed media, progress naturally to availability/booking, move to a human at any point, receive eligible follow-ups/templates, and generate hot-lead/booking/revenue signals.
