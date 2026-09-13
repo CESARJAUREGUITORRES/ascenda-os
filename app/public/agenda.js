@@ -177,7 +177,16 @@ function renderView(){
   } else {
     var sc2=el('ag-search-count');if(sc2)sc2.textContent='';
   }
-  var hist=(AG.history||[]);
+  var hist=(AG.history||[]).slice();
+  if(AG.filtro&&AG.filtro!=='REAGENDADA')hist=[];
+  if(q.length>=2){
+    hist=hist.filter(function(x){
+      return String(x.patient_name||'').toLowerCase().indexOf(q)>=0||
+        String(x.patient_number||'').replace(/\D/g,'').indexOf(q)>=0||
+        String(x.treatment||'').toLowerCase().indexOf(q)>=0;
+    });
+  }
+  AG._visibleHistory=hist;
   var countTxt=citas.length+' cita'+(citas.length!==1?'s':'');
   if(hist.length)countTxt+=' · '+hist.length+' reprogramada'+(hist.length!==1?'s':'');
   el('ag-list-count').textContent=countTxt;
@@ -206,7 +215,7 @@ function renderList(citas){
   var box=el('ag-content');
   box.innerHTML='<table class="ag-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Asesor</th><th>Estado</th><th>Atención</th><th style="width:36px;"></th></tr></thead><tbody id="ag-tbody"></tbody></table>';
   var tb=el('ag-tbody');
-  var hist=AG.history||[];
+  var hist=AG._visibleHistory||[];
   if(!citas.length&&!hist.length){tb.innerHTML='<tr><td colspan="8" class="ld">Sin citas</td></tr>';return;}
   var activeHtml=citas.map(function(c){
     var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
