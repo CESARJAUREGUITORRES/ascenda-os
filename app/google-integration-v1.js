@@ -413,7 +413,7 @@ function createGoogleIntegrationV1(opts) {
     var attention=String(appt.tipo_atencion||'').toUpperCase()
     var event={
       id:eventId,
-      summary:'📅 ZIVITAL · '+fullName+(appt.tratamiento?' · '+appt.tratamiento:''),
+      summary:'Zi Vital · '+(appt.tratamiento||'Cita'),
       description:[
         '✨ CITA ZIVITAL',
         '',
