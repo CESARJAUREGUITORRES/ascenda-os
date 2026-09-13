@@ -1,12 +1,12 @@
 # ASCENDA OS — MEMORY CURRENT
 
 **Captured:** 2026-09-12 America/Lima  
-**ACTIVE PROGRAM:** `INT-GOOGLE-001 — GOOGLE CALENDAR + CONTACTS`  
+**ACTIVE PROGRAM:** `CONV-001 — CONVERSATIONS CORE V1`  
 **MAIN AT L0 TECHNICAL CLOSEOUT:** `60b987f75e5efe8906c2eed0d8c560ff449de3b7`  
-**ACTIVE HIGH/CRITICAL GATE:** `GC-0/GC-1 — OAuth + secure connection foundation`  
+**ACTIVE HIGH/CRITICAL GATE:** `CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG`  
 **OWNER MODE:** `PROCEDE · implementar todo en el sistema · RUN UNTIL BLOCKED hasta canary humano`  
-**PAUSED LANE:** `CONV-001 / CONV-L2 — evidence preserved; no competing mutations`  
-**LAST CLOSED:** `CONV-L1 #505 — PROVIDER CERTIFIED`  
+**JUST CLOSED:** `INT-GOOGLE-001 #542 — GC-0→GC-8 COMPLETE / LOCK RELEASED`  
+**LAST CLOSED:** `CONV-L3 #507 — REAL-PROVIDER SHADOW 13/13 PASS`  
 **PARENT:** `#502`  
 **LEGACY WA-L10 #456:** `FROZEN · SAFE-OFF · EVIDENCE ONLY`  
 **AUTONOMOUS CANARY:** `NOT AUTHORIZED`
@@ -85,9 +85,9 @@ DELETE is forbidden during build. It becomes eligible only after replacement par
 
 - #504 L0 Freeze/Inventory/Extraction/Benchmark — **CLOSED**
 - #505 L1 Meta Channel Gateway — **CLOSED / PROVIDER CERTIFIED**
-- #506 L2 Conversation Core + Panel — **ACTIVE**
-- #507 L3 Sales Agent Runtime
-- #508 L4 Business Tools + bounded RAG
+- #506 L2 Conversation Core + Panel — **CLOSED**
+- #507 L3 Sales Agent Runtime — **CLOSED / 13/13**
+- #508 L4 Business Tools + bounded RAG — **ACTIVE**
 - #509 L5 Booking/Media/Templates
 - #510 L6 Follow-up/Hot Leads/Campaigns
 - #511 L7 Benchmark + separately authorized CANARY
@@ -129,7 +129,7 @@ Cross-module regressions always cover Agenda, Call Center, Marketing, Sales/Comm
 Legacy autonomous WA remains:
 `AUTO_OFF · KILL ON · AI SEND OFF · AUTO ROUTING OFF · ALLOWLIST 0`.
 
-No real autonomous CANARY before L7 PASS and a fresh explicit owner authorization.
+No real autonomous Meta send before L7 PASS. Owner authorization covers execution through L7 and stop at the bounded human canary; production Meta autonomy remains SAFE-OFF until that gate.
 
 ## L0 closeout findings
 
@@ -145,38 +145,4 @@ Preserved assets include the ASCENDA panel UX, conversation/message ledgers, can
 
 ## Immediate next action
 
-Execute CONV-L2 #506 under the owner's renewed run-until-blocked authorization. Reach the next bounded real human-messaging/panel proof on the existing test conversation while keeping autonomous AI SAFE-OFF. Stop before L3.
-
-
-## Execution mode
-
-For future authorized CONV loops, use `RUN UNTIL BLOCKED`: after one explicit loop authorization, execute reversible in-scope analysis/implementation/CI/merge/deploy/readback steps without repeated owner prompts, and stop only at the owner boundaries defined in `ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`.
-
-
-## L1 start
-
-Owner explicitly authorized `CONV-L1 #505 — RUN UNTIL BLOCKED + REAL META TEST LIMITADO A zi vital`. The newly rotated Meta token is owner-reported configuration and must be freshly certified by provider health before any real send. AI autonomy remains SAFE-OFF throughout L1.
-
-
-## L1 production closeout — 2026-09-12
-
-CONV-L1 #505 is provider-certified and closed.
-
-Evidence:
-- canonical MetaCloudAdapter is the only active provider transport boundary;
-- System User credential/asset/permissions READY;
-- WABA management READY and canonical WABA configured server-side;
-- real text, image, interactive-buttons and approved-template sends were accepted; required provider callbacks reconciled to delivered;
-- the owner confirmed the real text arrived in WhatsApp and replied; inbound persistence was independently observed;
-- approved template `hello_world/en_US` dispatched exactly once and reconciled `sent -> delivered`;
-- exact request/message/accepted-event cardinality = 1:1:1 for the final template proof;
-- production remained `AUTO_OFF · KILL ON · AI SEND OFF · AUTO ROUTING OFF · ALLOWLIST 0`;
-- protected DB pressure readback >2s = 0 and >5s = 0;
-- certified Railway bootstrap restored after temporary probe runs.
-
-The owner then authorized continuing to the next proof so WhatsApp can be exposed as an active human-operated channel. This activates CONV-L2 #506 only; it does not authorize autonomous AI or L3.
-
-
-## Google integration lock transfer — 2026-09-12
-
-Owner explicitly authorized implementation of Google Calendar + Contacts after completing Google Cloud OAuth setup and Railway secret configuration. INT-GOOGLE-001 now owns the single HIGH/CRITICAL mutable lane until the bounded human canary or a new explicit owner transfer. Calendar/Contacts feature flags remain false until certified.
+Execute CONV-L4 #508: typed server-side ToolGateway over canonical ASCENDA authorities, grounded business facts, bounded knowledge, deterministic + real-model shadow benchmarks, latency/DB budget, exact-head CI/deploy/readback. Continue L5→L7 only after each prior exit gate passes; stop at the real one-chat human canary.
