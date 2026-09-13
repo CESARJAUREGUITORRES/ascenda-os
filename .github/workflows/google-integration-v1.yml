@@ -93,8 +93,22 @@ jobs:
           set -euo pipefail
           docker rm -f "$DB_CONTAINER" >/dev/null 2>&1 || true
           docker run -d --name "$DB_CONTAINER" -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:59337:5432 supabase/postgres:17.6.1.136
-          for i in $(seq 1 60); do
-            docker exec "$DB_CONTAINER" pg_isready -U postgres -d postgres >/dev/null 2>&1 && exit 0
+          stable=0
+          for i in $(seq 1 120); do
+            if ! docker inspect -f '{{.State.Running}}' "$DB_CONTAINER" 2>/dev/null | grep -qx true; then
+              stable=0
+              sleep 1
+              continue
+            fi
+            if psql "$DB_URL" -X -qAt -c 'select 1' 2>/dev/null | grep -qx 1; then
+              stable=$((stable + 1))
+              if [ "$stable" -ge 5 ]; then
+                echo "SUPABASE_POSTGRES_STABLE_READY=PASS"
+                exit 0
+              fi
+            else
+              stable=0
+            fi
             sleep 1
           done
           docker logs "$DB_CONTAINER" || true
