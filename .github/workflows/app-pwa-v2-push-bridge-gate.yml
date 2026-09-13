@@ -1,0 +1,71 @@
+name: APP-PWA-V2 Push Device Bridge Zero-Cost Gate
+
+on:
+  pull_request:
+    branches: [main, app-pwa-v2-517-integration]
+    paths:
+      - 'supabase/migrations/20260912074500_app_pwa_v2_push_device_bridge.sql'
+      - 'supabase/rollback/20260912074500_app_pwa_v2_push_device_bridge_rollback.sql'
+      - 'ci/app-pwa-v2/push_device_bridge_*.sql'
+      - 'ci/app-pwa-v2/push_contract.js'
+      - '.github/workflows/app-pwa-v2-push-bridge-gate.yml'
+  push:
+    branches:
+      - 'app-pwa-v2-*'
+    paths:
+      - 'supabase/migrations/20260912074500_app_pwa_v2_push_device_bridge.sql'
+      - 'supabase/rollback/20260912074500_app_pwa_v2_push_device_bridge_rollback.sql'
+      - 'ci/app-pwa-v2/push_device_bridge_*.sql'
+      - 'ci/app-pwa-v2/push_contract.js'
+      - '.github/workflows/app-pwa-v2-push-bridge-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-pwa-v2-push-bridge-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  push-bridge-db:
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 12
+    env:
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59328/postgres
+      DB_CONTAINER: ascenda-app-pwa-v2-push-db
+    steps:
+      - uses: actions/checkout@v4
+      - name: Runner health
+        run: bash scripts/ci/runner-healthcheck.sh
+      - name: Static push policy contract
+        run: node ci/app-pwa-v2/push_contract.js
+      - name: Start isolated PostgreSQL 17
+        run: |
+          set -euo pipefail
+          docker rm -f "$DB_CONTAINER" >/dev/null 2>&1 || true
+          docker run -d --name "$DB_CONTAINER" -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:59328:5432 postgres:17-alpine
+          for i in $(seq 1 40); do
+            docker exec "$DB_CONTAINER" pg_isready -U postgres -d postgres >/dev/null 2>&1 && exit 0
+            sleep 1
+          done
+          docker logs "$DB_CONTAINER" || true
+          exit 1
+      - name: Build push baseline
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/app-pwa-v2/push_device_bridge_fixture.sql
+      - name: Apply device registry prerequisite
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260912073000_app_pwa_v2_device_registry.sql
+      - name: Apply exact push bridge twice
+        run: |
+          set -euo pipefail
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260912074500_app_pwa_v2_push_device_bridge.sql
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260912074500_app_pwa_v2_push_device_bridge.sql
+      - name: Device binding and S15.4 recovery contracts
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/app-pwa-v2/push_device_bridge_db_contract.sql
+      - name: Restore exact S15.4 function
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollback/20260912074500_app_pwa_v2_push_device_bridge_rollback.sql
+      - name: Rollback semantics
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/app-pwa-v2/push_device_bridge_rollback_contract.sql
+      - name: Cleanup isolated database
+        if: always()
+        run: docker rm -f "$DB_CONTAINER" >/dev/null 2>&1 || true

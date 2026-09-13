@@ -54,7 +54,9 @@ ok(client.includes("closest('#nav-admin-whatsapp,#nav-whatsapp-agent"),'permissi
 ok(client.includes("reg.pushManager.subscribe({userVisibleOnly:true"),'browser Push subscription missing')
 ok(sw.includes("self.addEventListener('push'"),'service-worker Push event missing')
 ok(sw.includes("payload.version!=='AOS_PUSH_V1'"),'service worker must enforce versioned notification envelope')
-ok(sw.includes("if(list.length){list.forEach"),'open ASCENDA clients must suppress duplicate system Web Push notification')
+ok(sw.includes("c.focused===true")&&sw.includes("c.visibilityState==='visible'"),'open-app push policy must distinguish attentive vs background ASCENDA clients')
+ok(sw.includes("if(!shouldSystemNotify(payload,list))return null"),'attentive ASCENDA client must suppress duplicate non-critical system Web Push notification')
+ok(sw.includes("p==='CRITICAL'||p==='URGENTE'||p==='HIGH'||p==='ALTA'"),'high/critical events must retain system notification override')
 ok(sw.includes("self.registration.showNotification(title,opts)"),'closed-app system notification missing')
 ok(sw.includes("u.pathname.indexOf('/api/push/')===0"),'service-worker app-token bridge must cover push APIs')
 
