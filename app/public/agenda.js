@@ -35,6 +35,30 @@ function _rpc(fn,p,ok,fail){fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:
 function _rest(path,opts){return fetch(_SB+'/rest/v1/'+path,Object.assign({headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'}},opts||{}));}
 function h(s){var o=String(s||'');o=o.split('&').join('&amp;');o=o.split(String.fromCharCode(60)).join('&lt;');o=o.split('>').join('&gt;');o=o.split('"').join('&quot;');return o;}
 function el(id){return document.getElementById(id);}
+function agToast(title,detail,type){
+  try{
+    if(typeof window.AOS_showToast==='function'){
+      window.AOS_showToast(title,detail||'',type||'');
+      return;
+    }
+  }catch(_){}
+  try{
+    if(window.parent&&window.parent!==window&&typeof window.parent.AOS_showToast==='function'){
+      window.parent.AOS_showToast(title,detail||'',type||'');
+      return;
+    }
+  }catch(_){}
+  console.log('[AGENDA]',title,detail||'');
+}
+function agSetSaveBusy(busy){
+  var b=el('ag-save-btn');
+  if(!b)return;
+  if(!b.dataset.idleText)b.dataset.idleText=b.textContent||'Guardar cita';
+  b.disabled=!!busy;
+  b.style.opacity=busy?'.72':'';
+  b.style.cursor=busy?'wait':'';
+  b.textContent=busy?'Guardando…':b.dataset.idleText;
+}
 
 var DIAS_S=['Dom','Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b'];
 var DIAS_L=['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
@@ -794,7 +818,9 @@ function agRebookErrorMessage(code){
     'AGV2_IDENTITY_CONFLICT':'La identidad del paciente requiere revisión antes de reagendar.',
     'AGV2_LEGACY_SITE_CLOSED':'La sede está cerrada en la fecha seleccionada.',
     'AGV2_LEGACY_OUTSIDE_BUSINESS_HOURS':'La hora está fuera del horario operativo de la sede.',
-    'AGV2_LEGACY_PROVIDER_NOT_SCHEDULED':'La doctora seleccionada no tiene turno válido en esa fecha y sede.'
+    'AGV2_LEGACY_PROVIDER_NOT_SCHEDULED':'La doctora seleccionada no tiene turno válido en esa fecha y sede.',
+    'AGV2_LEGACY_NO_STAFF_AT_TIME':'No hay personal de Enfermería con turno a esa hora.',
+    'AGV2_BRIDGE_INTERNAL_ERROR':'El motor de reagendamiento encontró un error interno controlado.'
   };
   return map[code]||('No se pudo reagendar: '+(code||'error desconocido'));
 }
@@ -837,7 +863,14 @@ function agRebookGoverned(origId,row,doctoraSel){
       body:JSON.stringify({p_token:token,p_idempotency_key:idem,p_appointment_id:origId,p_payload:payload})
     }).then(function(r){
       return r.json().catch(function(){return {ok:false,error:'HTTP_'+r.status};}).then(function(body){
-        if(!r.ok||!body||body.ok!==true)throw new Error(agRebookErrorMessage(body&&body.error));
+        if(!r.ok||!body||body.ok!==true){
+          var code=(body&&(body.error||body.code))||('HTTP_'+r.status);
+          var diag='';
+          if(body&&body.stage)diag+=' · etapa '+body.stage;
+          if(body&&body.sqlstate)diag+=' · '+body.sqlstate;
+          console.error('[AGENDA-REBOOK]',{http:r.status,body:body});
+          throw new Error(agRebookErrorMessage(code)+diag);
+        }
         return body;
       });
     });
@@ -851,8 +884,10 @@ function _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now) {
     // REAGENDAR V2: una sola cita, una sola transacción, mismo appointment_id.
     var rebookId=AG.reagendaOrigId;
     AG._guardando=true;
+    agSetSaveBusy(true);
     agRebookGoverned(rebookId,row,doctoraSel).then(function(result){
       AG._guardando=false;
+      agSetSaveBusy(false);
       var mailRow=Object.assign({},row,{id:rebookId,email_template:'reprogramacion',estado_cita:'PENDIENTE'});
       enviarEmailConfirmacionCita(mailRow);
       if(result&&result.google_queue_required){
@@ -861,11 +896,12 @@ function _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now) {
         agKickGoogleWorker();
       }
       AG.reagendando=false;AG.reagendaOrigId=null;
-      if(window.AOS_showToast)AOS_showToast('✅ Cita reagendada','Misma cita actualizada a '+fecha+' '+hora+' · Calendar se actualizará automáticamente','toast-venta');
+      agToast('✅ Cita reagendada','Misma cita actualizada a '+fecha+' '+hora+' · Calendar se actualizará automáticamente','toast-venta');
       agCloseEdit();agLoad();
     }).catch(function(e){
       AG._guardando=false;
-      if(window.AOS_showToast)AOS_showToast('No se pudo reagendar',e.message||'Revisa fecha y horario','toast-alerta');
+      agSetSaveBusy(false);
+      agToast('No se pudo reagendar',e.message||'Revisa fecha y horario','toast-alerta');
     });
   } else if(AG.editId){
     _rest('aos_agenda_citas?id=eq.'+AG.editId,{method:'PATCH',body:JSON.stringify(row)}).then(function(r){
