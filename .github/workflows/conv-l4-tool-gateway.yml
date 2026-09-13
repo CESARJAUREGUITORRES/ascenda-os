@@ -1,0 +1,33 @@
+name: ASCENDA CONV-L4 ToolGateway
+
+on:
+  pull_request:
+    paths:
+      - 'app/conversation-tool-gateway.js'
+      - 'app/conversation-business-tools.js'
+      - 'app/conv-l4-real-tool-benchmark.js'
+      - 'app/server-f17.js'
+      - 'ci/conv-l4/**'
+      - '.github/workflows/conv-l4-tool-gateway.yml'
+      - 'docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Syntax
+        run: |
+          node --check app/conversation-tool-gateway.js
+          node --check app/conversation-business-tools.js
+          node --check ci/conv-l4/tool_gateway_contract.js
+      - name: ToolGateway contract
+        run: node ci/conv-l4/tool_gateway_contract.js
