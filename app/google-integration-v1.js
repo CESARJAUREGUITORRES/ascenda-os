@@ -371,6 +371,7 @@ function createGoogleIntegrationV1(opts) {
     return {start:start,end:end}
   }
   function eventIdFor(connId,appointmentId){return 'a'+sha(String(connId)+':'+String(appointmentId)).slice(0,31)}
+  function shouldRetryCalendarWithoutAttendee(status,attendees){return Number(status)===400&&Array.isArray(attendees)&&attendees.length>0}
   function scheduleHash(appt){return sha([appt.id,appt.fecha_cita,appt.hora_cita,appt.tratamiento,appt.sede,appt.nombre,appt.apellido,appt.correo,appt.doctora,appt.estado_cita].join('|'))}
 
   function calendarSiteMeta(site){
@@ -457,6 +458,22 @@ function createGoogleIntegrationV1(opts) {
       if(r.status===409) {
         var patch2=Object.assign({},event); delete patch2.id
         r=await googleJson(token,'www.googleapis.com',path,'PATCH',patch2)
+      }
+    }
+    if(shouldRetryCalendarWithoutAttendee(r&&r.status,attendees)) {
+      var fallbackEvent=Object.assign({},event); delete fallbackEvent.attendees
+      var fallbackPath='/calendar/v3/calendars/'+encodeURIComponent(calId)+'/events/'+encodeURIComponent(eventId)+'?sendUpdates=none'
+      if(link) {
+        var fallbackPatch=Object.assign({},fallbackEvent); delete fallbackPatch.id
+        r=await googleJson(token,'www.googleapis.com',fallbackPath,'PATCH',fallbackPatch)
+        if(r.status===404) link=null
+      }
+      if(!link) {
+        r=await googleJson(token,'www.googleapis.com','/calendar/v3/calendars/'+encodeURIComponent(calId)+'/events?sendUpdates=none','POST',fallbackEvent)
+        if(r.status===409) {
+          var fallbackPatch2=Object.assign({},fallbackEvent); delete fallbackPatch2.id
+          r=await googleJson(token,'www.googleapis.com',fallbackPath,'PATCH',fallbackPatch2)
+        }
       }
     }
     if(!r || r.status>=300) throw new Error('GOOGLE_CALENDAR_UPSERT_FAILED_'+(r&&r.status||0))
@@ -851,7 +868,7 @@ function createGoogleIntegrationV1(opts) {
     emailCalendarButton:emailCalendarButton,
     injectEmailCalendarButton:injectEmailCalendarButton,
     calendarPublicUrl:calendarPublicUrl,
-    _test:{encryptSecret:encryptSecret,decryptSecret:decryptSecret,calendarLinkSignature:calendarLinkSignature,contactTag:contactTag,monthCode:monthCode}
+    _test:{encryptSecret:encryptSecret,decryptSecret:decryptSecret,calendarLinkSignature:calendarLinkSignature,contactTag:contactTag,monthCode:monthCode,shouldRetryCalendarWithoutAttendee:shouldRetryCalendarWithoutAttendee}
   }
 }
 
