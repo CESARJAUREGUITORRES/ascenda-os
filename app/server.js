@@ -1540,7 +1540,7 @@ http.createServer(function(req, res) {
           res.end(JSON.stringify({ok:false,error:'GOVERNED_ACTIVATION_REQUIRED',template:String(tipo||'')})); return
         }
         // Construir variables para la plantilla
-        var vars = { nombre: d.nombre||'Paciente', tratamiento: d.tratamiento||'', fecha: d.fecha||'', hora: d.hora||'', sede: d.sede||'', fecha_cita: d.fecha||d.fecha_cita||'', hora_cita: d.hora||d.hora_cita||'', monto: d.monto ? parseFloat(d.monto).toFixed(2) : '', metodo_pago: d.metodo_pago||d.metodo||'', saldo_actual: d.saldo_actual ? parseFloat(d.saldo_actual).toFixed(2) : '0.00', ultimo_tratamiento: d.ultimo_tratamiento||'', dias: d.dias||'', dias_sin_visita: d.dias_sin_visita||d.dias||'', ultima_fecha: d.ultima_fecha||'', catalogo_items: d.catalogo_items||'', pagados: d.pagados||'', dni: d.dni||'', email: d.email||d.to||'', telefono: d.telefono||'', venta_id: d.venta_id||'' }
+        var vars = { nombre: d.nombre||'Paciente', tratamiento: d.tratamiento||'', fecha: d.fecha||'', hora: d.hora||'', sede: d.sede||'', fecha_cita: d.fecha||d.fecha_cita||'', hora_cita: d.hora||d.hora_cita||'', fecha_anterior: d.fecha_anterior||'', hora_anterior: d.hora_anterior||'', sede_anterior: d.sede_anterior||'', monto: d.monto ? parseFloat(d.monto).toFixed(2) : '', metodo_pago: d.metodo_pago||d.metodo||'', saldo_actual: d.saldo_actual ? parseFloat(d.saldo_actual).toFixed(2) : '0.00', ultimo_tratamiento: d.ultimo_tratamiento||'', dias: d.dias||'', dias_sin_visita: d.dias_sin_visita||d.dias||'', ultima_fecha: d.ultima_fecha||'', catalogo_items: d.catalogo_items||'', pagados: d.pagados||'', dni: d.dni||'', email: d.email||d.to||'', telefono: d.telefono||'', venta_id: d.venta_id||'' }
 
         // Construir tabla de items dinámica para recibo/cotización
         if (d.items && d.items.length) {
@@ -1622,8 +1622,17 @@ http.createServer(function(req, res) {
           html = buildFromTemplate('confirmacion_pago', vars, function() { return buildEmailConfirmacionPago(d.nombre||'Paciente', d.tratamiento||'', d.monto||0, d.saldo_actual||0, d.metodo_pago||'') }), tplCtx
           html += emailFirmaMedica(d.doctora || d.atendio || '')
         } else if (tipo === 'reprogramacion') {
-          subject = '🔄 Tu cita ha sido reprogramada — ' + BRAND.nombre_empresa
-          html = buildFromTemplate('reprogramacion', vars, function() { return buildEmailReprogramacion ? buildEmailReprogramacion(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'') : emailShell('Cita reprogramada', '<p>Tu cita ha sido reprogramada.</p>') }), tplCtx
+          subject = 'Tu cita fue reprogramada | ' + BRAND.nombre_empresa
+          html = buildFromTemplate('reprogramacion', vars, function() {
+            return buildEmailReprogramacion(
+              d.nombre||'Paciente',
+              d.tratamiento||'',
+              d.hora||'',
+              d.sede||'',
+              d.fecha||'',
+              {fecha_anterior:d.fecha_anterior||'',hora_anterior:d.hora_anterior||'',sede_anterior:d.sede_anterior||''}
+            )
+          }, tplCtx)
           html += emailFirmaMedica(d.doctora || d.atendio || '')
           html = GOOGLE_INTEGRATION.injectEmailCalendarButton(html, d.appointment_id || d.cita_id || d.agenda_id || '')
         } else {
@@ -2291,7 +2300,11 @@ function logAction(agentId, tipoAccion, descripcion, metadata) {
 var _tplCache = {} // tipo → array de {body, asunto, segmento, tipo_tratamiento, prioridad}
 function loadTplCache() {
   sbFetch('/rest/v1/aos_email_plantillas?select=tipo,html_body,asunto,segmento,tipo_tratamiento,prioridad&activo=eq.true').then(function(rows) {
-    if (!rows) return
+    if (!Array.isArray(rows)) {
+      _tplCache = {}
+      console.log('[TPL] Cache no disponible; se usarán plantillas transaccionales de código')
+      return
+    }
     _tplCache = {}
     rows.forEach(function(r) {
       if (!r.html_body || r.html_body.length < 10) return
@@ -2619,6 +2632,43 @@ function buildEmailReactivacion(nombre, ultimoTrat, diasSinVisita) {
     '<div style="font-size:13px;color:#475569">Agenda tu cita esta semana y recibe atención preferencial.</div>' +
     '</div>' +
     '<div style="text-align:center;margin-top:20px"><a href="https://wa.me/51960618468?text=Hola%2C%20quiero%20reagendar%20mi%20tratamiento" style="display:inline-block;background:' + BRAND.color_secundario + ';color:#fff;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">💬 Quiero volver</a></div>'
+  )
+}
+
+// ═══ TEMPLATE: Reprogramación de cita — fallback transaccional seguro ═══
+function buildEmailReprogramacion(nombre, tratamiento, hora, sede, fecha, datos) {
+  var d=datos||{}
+  var esPL=sede&&sede.toUpperCase().indexOf('PUEBLO')>-1
+  var sedeNombre=esPL?'PUEBLO LIBRE':'SAN ISIDRO'
+  var sedeDir=esPL?'Av. Brasil 1170, Pueblo Libre - Lima':'Av. Javier Prado Este 996 - Ofi 501 - Lima · Edificio Capricornio'
+  var sedeMaps=esPL?'https://goo.gl/maps/Cw36T6YPudyRNmVe6':'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5'
+  var previo=(d.fecha_anterior||d.hora_anterior||d.sede_anterior)
+    ? '<div style="margin-bottom:14px;padding:12px 14px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:9px">'+
+      '<div style="font-size:10px;font-weight:800;color:#64748B;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px">Cita anterior</div>'+
+      '<div style="font-size:12px;color:#64748B;text-decoration:line-through">'+
+      [d.fecha_anterior||'',d.hora_anterior||'',d.sede_anterior||''].filter(Boolean).join(' · ')+
+      '</div></div>'
+    : ''
+  return emailShell(
+    '<div style="color:'+(BRAND.color_header_texto||'#FFFFFF')+';font-size:22px;font-weight:800">Tu cita fue reprogramada</div>',
+    '<p style="color:#475569;font-size:15px;margin:0 0 18px">Hola <b>'+(nombre||'').split(' ')[0]+'</b>, actualizamos tu cita. Guarda estos nuevos datos:</p>'+
+    previo+
+    emailCard(
+      '<div style="font-size:13px;font-weight:800;color:'+BRAND.color_secundario+';margin-bottom:12px">📅 NUEVA FECHA DE TU CITA</div>'+
+      '<table style="width:100%;font-size:13px;border-collapse:collapse">'+
+      '<tr><td style="padding:6px 0;color:#64748B;width:110px">Día:</td><td style="padding:6px 0;font-weight:800;color:#071D4A">'+(fecha||'')+'</td></tr>'+
+      '<tr><td style="padding:6px 0;color:#64748B">Hora:</td><td style="padding:6px 0;font-weight:800;color:#071D4A">'+(hora||'')+'</td></tr>'+
+      '<tr><td style="padding:6px 0;color:#64748B">Servicio:</td><td style="padding:6px 0;font-weight:700;color:#071D4A">'+(tratamiento||'')+'</td></tr>'+
+      '<tr><td style="padding:6px 0;color:#64748B">Sede:</td><td style="padding:6px 0;font-weight:800;color:'+BRAND.color_secundario+'">'+sedeNombre+'</td></tr>'+
+      '</table>'
+    )+
+    '<div style="margin-top:14px;padding:14px;background:#F8FAFF;border-radius:10px;border:1px solid #E2E8F0">'+
+      '<div style="font-size:11px;font-weight:800;color:#071D4A;margin-bottom:4px">📍 '+sedeNombre+'</div>'+
+      '<div style="font-size:13px;color:#475569">'+sedeDir+'</div>'+
+      '<a href="'+sedeMaps+'" style="display:inline-block;margin-top:7px;font-size:11px;color:'+BRAND.color_secundario+';font-weight:700;text-decoration:none">Ver ubicación en Google Maps →</a>'+
+    '</div>'+
+    '<div style="margin-top:12px;padding:12px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:9px;color:#92400E;font-size:12px">⏱️ Te recomendamos llegar <b>15 minutos antes</b> y presentar tu documento en recepción.</div>'+
+    '<p style="margin:18px 0 0;text-align:center;color:#475569;font-size:13px">La invitación de Google Calendar también se actualizará con esta nueva fecha.</p>'
   )
 }
 
