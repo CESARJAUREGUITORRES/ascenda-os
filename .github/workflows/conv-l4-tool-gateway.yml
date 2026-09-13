@@ -28,6 +28,7 @@ jobs:
         run: |
           node --check app/conversation-tool-gateway.js
           node --check app/conversation-business-tools.js
+          node --check app/conv-l4-real-tool-benchmark.js
           node --check ci/conv-l4/tool_gateway_contract.js
       - name: ToolGateway contract
         run: node ci/conv-l4/tool_gateway_contract.js
