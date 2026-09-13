@@ -75,6 +75,8 @@ const server=read('app/server.js')
 ok(server.includes("if (p.indexOf('/api/google/') === 0) return GOOGLE_INTEGRATION.handle(req, res)"),'server Google boundary missing')
 ok(server.includes('GOOGLE_INTEGRATION.injectEmailCalendarButton'),'email Calendar injection missing')
 ok(server.includes('GOOGLE_INTEGRATION.processQueueOnce()'),'Google retry worker must reuse existing server scheduler')
+ok(!server.includes('if (_autoTickRunning || !bgCanRun()) return'),'Google worker must not be blocked by unrelated background circuit')
+ok(server.includes('if (bgCanRun()) {'),'existing business background must remain circuit-guarded')
 ok(server.includes('EMAIL_GATEWAY.verifyApp'),'existing app auth boundary must remain')
 
 const admin=read('app/public/admin-config.html')
