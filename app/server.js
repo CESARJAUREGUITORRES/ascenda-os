@@ -2029,9 +2029,12 @@ http.createServer(function(req, res) {
   // PERFORMANCE GUARD: comprobar cron cada 60s; el cron de negocio no cambia.
   var _autoTickRunning = false
   function guardedAutoTick() {
-    if (_autoTickRunning || !bgCanRun()) return
+    if (_autoTickRunning) return
     _autoTickRunning = true
-    try { autoTick() } catch(e) { bgFail(); console.error('[TICK] Guard error:', e.message) }
+    if (bgCanRun()) {
+      try { autoTick() } catch(e) { bgFail(); console.error('[TICK] Guard error:', e.message) }
+    }
+    // Google owns its own fail-safe queue semantics and must not be paused by unrelated agent/background failures.
     GOOGLE_INTEGRATION.processQueueOnce().catch(function(e){ console.error('[GOOGLE-WORKER]',e&&e.message||e) })
     setTimeout(function(){ _autoTickRunning = false }, 50000)
   }
