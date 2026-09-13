@@ -1,9 +1,9 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-12 America/Lima  
-**ACTIVE HIGH/CRITICAL LOCK:** `INT-GOOGLE-001 / GC-0/GC-1 — GOOGLE CALENDAR + CONTACTS OAUTH FOUNDATION`  
+**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG`  
 **OWNER AUTHORIZATION:** `PROCEDE · implementar todo en el sistema · RUN UNTIL BLOCKED hasta canary humano`  
-**PAUSED HIGH/CRITICAL LANE:** `CONV-001 / CONV-L2 — preserve evidence; no competing mutations`  
+**PAUSED HIGH/CRITICAL LANE:** `none; INT-GOOGLE-001 #542 closed and released lock`  
 **Legacy WA-L10 #456:** `FROZEN · SAFE-OFF EVIDENCE ONLY · NO NEW FEATURE PATCHING`  
 **P0 #485:** `CLOSED / COMPLETED — PROD RECURRENCE+LOAD PASS`  
 **GitHub authority:** Issue `#502` = `OPEN`; Issue `#456` = `OPEN / FROZEN`  
@@ -50,6 +50,6 @@ WA-L10 #456 remains preserved for audit/evidence and rollback knowledge, but is 
 
 ## Immediate next gate
 
-**INT-GOOGLE-001 / GC-0/GC-1 is ACTIVE.** Build and certify server-side OAuth, encrypted connection persistence and the existing Configuración > Integraciones Google connector. Keep all Google sync flags SAFE-OFF until the bounded human canary. CONV production AI autonomy remains SAFE-OFF.
+**CONV-L4 #508 is ACTIVE.** Implement and certify the typed server-side ToolGateway over canonical ASCENDA business authorities, then continue L5 → L6 → L7. Production autonomous WhatsApp dispatch remains SAFE-OFF until the separately authorized one-chat human canary.
 
 See Issue #502 and `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`.
