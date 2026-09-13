@@ -38,8 +38,8 @@ assert.notStrictEqual(gw._test.calendarLinkSignature('appt-1'),gw._test.calendar
 assert.strictEqual(gw._test.contactTag('Toxina Botulínica',{}),'TOX','ZIVITAL tag normalization')
 assert.strictEqual(gw._test.monthCode('2026-06-15T10:00:00-05:00'),'JUN','Spanish month contract')
 const injected=gw.injectEmailCalendarButton('<html><body><p>Cita</p></body></html>','appt-1')
-ok(injected.indexOf('Ver en Google Calendar')>0,'calendar CTA missing')
-ok(injected.indexOf('Ver en Google Calendar')<injected.toLowerCase().indexOf('</body>'),'calendar CTA must be inside body')
+ok(injected.indexOf('Abrir y guardar en Google Calendar')>0,'calendar CTA missing')
+ok(injected.indexOf('Abrir y guardar en Google Calendar')<injected.toLowerCase().indexOf('</body>'),'calendar CTA must be inside body')
 
 const gateway=read('app/google-integration-v1.js')
 for(const token of [
@@ -67,6 +67,9 @@ ok(!gateway.includes("console.log(tr.body"),'OAuth token response must never be 
 ok(!gateway.includes('setInterval('),'Google module must not own a recurrent interval')
 ok(!gateway.includes('setTimeout('),'Google module must not become a new recurrent network owner')
 ok(!/select=\*/i.test(gateway),'Google integration must not add broad select=* reads')
+ok(gateway.includes('✨ CITA ZIVITAL'),'Calendar event must carry patient-friendly ZIVITAL detail')
+ok(gateway.includes("reminders:{useDefault:false"),'Calendar event must carry explicit reminders')
+ok(gateway.includes('Estamos preparando tu cita en Google Calendar'),'Calendar link must explain short sync window')
 
 const server=read('app/server.js')
 ok(server.includes("if (p.indexOf('/api/google/') === 0) return GOOGLE_INTEGRATION.handle(req, res)"),'server Google boundary missing')
@@ -85,7 +88,11 @@ for(const p of ['app/public/agenda.js','app/public/calls.js','app/public/calls.h
   ok(src.includes('appointment_id'),'email caller must carry appointment_id: '+p)
   ok(src.includes('X-ASCENDA-Session'),'email caller must keep session auth: '+p)
 }
-ok(read('app/public/agenda.js').includes("email_template='reprogramacion'"),'Agenda rebook must use reprogram email')
+const agendaSrc=read('app/public/agenda.js')
+ok(agendaSrc.includes('aos_agenda_rebook_v2'),'Agenda rebook must use transactional AGV2 RPC')
+ok(agendaSrc.includes("email_template:'reprogramacion'"),'Agenda rebook must use reprogram email after commit')
+ok(!agendaSrc.includes("row.email_template='reprogramacion'"),'Agenda rows must never contain non-schema email_template')
+ok(!agendaSrc.includes("Original marcada + nueva creada"),'legacy split-write rebook UX must be removed')
 ok(read('app/public/citas.html').includes("email_template:'reprogramacion'"),'Citas rebook must use reprogram email')
 
 const migration=read('supabase/migrations/20260912220000_google_integration_v1.sql')

@@ -373,10 +373,31 @@ function createGoogleIntegrationV1(opts) {
   function eventIdFor(connId,appointmentId){return 'a'+sha(String(connId)+':'+String(appointmentId)).slice(0,31)}
   function scheduleHash(appt){return sha([appt.id,appt.fecha_cita,appt.hora_cita,appt.tratamiento,appt.sede,appt.nombre,appt.apellido,appt.correo,appt.doctora,appt.estado_cita].join('|'))}
 
+  function calendarSiteMeta(site){
+    var key=String(site||'').toUpperCase();
+    if(key.indexOf('PUEBLO')>=0)return {
+      name:'PUEBLO LIBRE',
+      address:'Av. Brasil 1170, Pueblo Libre - Lima',
+      maps:'https://goo.gl/maps/Cw36T6YPudyRNmVe6'
+    };
+    return {
+      name:'SAN ISIDRO',
+      address:'Av. Javier Prado Este 996 - Ofi 501 - Lima · Edificio Capricornio',
+      maps:'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5'
+    };
+  }
+  function calendarDateLabel(dateLike){
+    var raw=String(dateLike||'');
+    var d=new Date(raw+'T12:00:00-05:00');
+    if(Number.isNaN(d.getTime()))return raw;
+    try{return new Intl.DateTimeFormat('es-PE',{weekday:'long',day:'2-digit',month:'long',year:'numeric',timeZone:'America/Lima'}).format(d);}
+    catch(e){return raw;}
+  }
+
   async function upsertCalendar(connectionId,appointmentId) {
     var conn=await connectionById(connectionId)
     if(!conn || conn.status!=='CONNECTED') throw new Error('GOOGLE_CONNECTION_NOT_FOUND')
-    var ar=await sb('/rest/v1/aos_agenda_citas?select=id,fecha_cita,hora_cita,tratamiento,sede,nombre,apellido,correo,numero_limpio,numero,doctora,estado_cita,ts_creado,etiqueta_campana&id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
+    var ar=await sb('/rest/v1/aos_agenda_citas?select=id,fecha_cita,hora_cita,tratamiento,sede,nombre,apellido,correo,numero_limpio,numero,doctora,estado_cita,tipo_atencion,tipo_cita,obs,ts_creado,etiqueta_campana&id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
     var appt=ar.status<300&&Array.isArray(ar.body)&&ar.body[0]?ar.body[0]:null
     if(!appt) throw new Error('APPOINTMENT_NOT_FOUND')
     if(['CANCELADA','REAGENDADA'].indexOf(String(appt.estado_cita||'').toUpperCase())>=0) return deleteCalendar(connectionId,appointmentId)
@@ -388,20 +409,39 @@ function createGoogleIntegrationV1(opts) {
     var times=appointmentTimes(appt)
     var fullName=[appt.nombre,appt.apellido].filter(Boolean).join(' ').trim()||'Paciente'
     var attendees=validEmail(appt.correo)?[{email:String(appt.correo).trim()}]:undefined
+    var siteMeta=calendarSiteMeta(appt.sede)
+    var attention=String(appt.tipo_atencion||'').toUpperCase()
     var event={
       id:eventId,
-      summary:'ZIVITAL · '+fullName+(appt.tratamiento?' · '+appt.tratamiento:''),
+      summary:'📅 ZIVITAL · '+fullName+(appt.tratamiento?' · '+appt.tratamiento:''),
       description:[
-        'Cita ZIVITAL',
-        appt.tratamiento?'Tratamiento: '+appt.tratamiento:'',
-        appt.doctora?'Profesional: '+appt.doctora:'',
+        '✨ CITA ZIVITAL',
+        '',
+        '👤 Paciente: '+fullName,
+        appt.tratamiento?'💆 Servicio: '+appt.tratamiento:'',
+        '📅 Fecha: '+calendarDateLabel(appt.fecha_cita),
+        '🕒 Hora: '+String(appt.hora_cita||'').slice(0,5),
+        '📍 Sede: '+siteMeta.name,
+        '🏢 Dirección: '+siteMeta.address,
+        attention?'🩺 Atención: '+attention:'',
+        appt.doctora?'👩‍⚕️ Profesional: '+appt.doctora:'',
+        '',
+        '⏱️ Te recomendamos llegar 15 minutos antes y presentar tu documento en recepción.',
+        '🗺️ Cómo llegar: '+siteMeta.maps,
+        '',
+        '💛 Gracias por confiar en Zi Vital. ¡Te esperamos!',
+        '',
         'Referencia ASCENDA: '+appt.id
       ].filter(Boolean).join('\n'),
-      location:appt.sede||'',
+      location:siteMeta.address,
       start:{dateTime:times.start,timeZone:'America/Lima'},
       end:{dateTime:times.end,timeZone:'America/Lima'},
       extendedProperties:{private:{ascenda_appointment_id:String(appt.id),ascenda_source:'ASCENDA_OS',ascenda_schedule_hash:scheduleHash(appt)}},
-      reminders:{useDefault:true}
+      reminders:{useDefault:false,overrides:[
+        {method:'popup',minutes:1440},
+        {method:'popup',minutes:120},
+        {method:'popup',minutes:30}
+      ]}
     }
     if(attendees) event.attendees=attendees
     var send=attendees?'all':'none'
@@ -520,7 +560,7 @@ function createGoogleIntegrationV1(opts) {
       var pr=await sb('/rest/v1/aos_pacientes?select=ID_PACIENTE,Nombres,Apellidos,Teléfono,Email,numero_limpio,tratamiento_principal,created_at,ETIQUETA_BASE&ID_PACIENTE=eq.'+encodeURIComponent(entityId)+'&limit=1','GET')
       patient=pr.status<300&&Array.isArray(pr.body)&&pr.body[0]?pr.body[0]:null
     } else {
-      var ar=await sb('/rest/v1/aos_agenda_citas?select=id,fecha_cita,hora_cita,tratamiento,sede,nombre,apellido,correo,numero_limpio,numero,doctora,estado_cita,ts_creado,etiqueta_campana&id=eq.'+encodeURIComponent(entityId)+'&limit=1','GET')
+      var ar=await sb('/rest/v1/aos_agenda_citas?select=id,fecha_cita,hora_cita,tratamiento,sede,nombre,apellido,correo,numero_limpio,numero,doctora,estado_cita,tipo_atencion,tipo_cita,obs,ts_creado,etiqueta_campana&id=eq.'+encodeURIComponent(entityId)+'&limit=1','GET')
       appt=ar.status<300&&Array.isArray(ar.body)&&ar.body[0]?ar.body[0]:null
       if(appt) patient=await patientForAppointment(appt)
     }
@@ -659,7 +699,7 @@ function createGoogleIntegrationV1(opts) {
     if(!MASTER_ON()) return {queued:0,reason:'GOOGLE_INTEGRATION_SAFE_OFF'}
     var conn=await primaryConnection()
     if(!conn || conn.status!=='CONNECTED') return {queued:0,reason:'GOOGLE_CONNECTION_NOT_FOUND'}
-    var ar=await sb('/rest/v1/aos_agenda_citas?select=id,fecha_cita,hora_cita,tratamiento,sede,nombre,apellido,correo,numero_limpio,numero,doctora,estado_cita,ts_creado,etiqueta_campana&id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
+    var ar=await sb('/rest/v1/aos_agenda_citas?select=id,fecha_cita,hora_cita,tratamiento,sede,nombre,apellido,correo,numero_limpio,numero,doctora,estado_cita,tipo_atencion,tipo_cita,obs,ts_creado,etiqueta_campana&id=eq.'+encodeURIComponent(appointmentId)+'&limit=1','GET')
     var appt=ar.status<300&&Array.isArray(ar.body)&&ar.body[0]?ar.body[0]:null
     if(!appt && options.force_action!=='CALENDAR_DELETE') throw new Error('APPOINTMENT_NOT_FOUND')
     var status=String(appt&&appt.estado_cita||'').toUpperCase()
@@ -748,7 +788,12 @@ function createGoogleIntegrationV1(opts) {
     if(!MASTER_ON() || !CAL_ON()) return ''
     var url=calendarPublicUrl(appointmentId)
     if(!url) return ''
-    return '<div style="text-align:center;margin:22px 0 10px"><a href="'+url+'" style="display:inline-block;background:#0A4FBF;color:#fff;text-decoration:none;padding:12px 20px;border-radius:10px;font-weight:700;font-family:Arial,sans-serif">📅 Ver en Google Calendar</a></div>'
+    return '<div style="max-width:560px;margin:16px auto 0;font-family:DM Sans,Arial,sans-serif;background:#F8FAFF;border:1px solid #BFDBFE;border-radius:12px;padding:18px 20px;box-sizing:border-box;text-align:center">' +
+      '<div style="font-size:16px;font-weight:800;color:#071D4A;margin-bottom:6px">📅 Lleva tu cita contigo</div>' +
+      '<div style="font-size:12px;line-height:1.55;color:#475569;margin-bottom:14px">Abre tu cita en Google Calendar, confirma tu asistencia y deja que tu celular te recuerde la fecha y hora.</div>' +
+      '<a href="'+url+'" style="display:inline-block;background:#0A4FBF;color:#fff;text-decoration:none;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:800;font-family:Arial,sans-serif">✅ Abrir y guardar en Google Calendar</a>' +
+      '<div style="font-size:10px;line-height:1.45;color:#64748B;margin-top:10px">Recomendado: acepta la invitación para verla en tu calendario y recibir recordatorios.</div>' +
+      '</div>'
   }
   function injectEmailCalendarButton(markup,appointmentId) {
     var button=emailCalendarButton(appointmentId)
@@ -762,10 +807,18 @@ function createGoogleIntegrationV1(opts) {
     var id=String(url.searchParams.get('appointment_id')||'')
     var sig=String(url.searchParams.get('sig')||'')
     if(!id||!sig||sig.length!==32||!crypto.timingSafeEqual(Buffer.from(sig),Buffer.from(calendarLinkSignature(id)))) return html(res,403,'<h2>Enlace de Calendar no válido.</h2>')
-    var r=await sb('/rest/v1/aos_google_calendar_links_v1?select=html_link,sync_status&appointment_id=eq.'+encodeURIComponent(id)+'&sync_status=eq.SYNCED&order=updated_at.desc&limit=1','GET')
-    var link=r.status<300&&Array.isArray(r.body)&&r.body[0]?r.body[0]:null
+    async function lookup(){
+      var r=await sb('/rest/v1/aos_google_calendar_links_v1?select=html_link,sync_status&appointment_id=eq.'+encodeURIComponent(id)+'&sync_status=eq.SYNCED&order=updated_at.desc&limit=1','GET')
+      return r.status<300&&Array.isArray(r.body)&&r.body[0]?r.body[0]:null
+    }
+    var link=await lookup()
+    if(!link&&MASTER_ON()&&CAL_ON()){
+      try{await processQueueOnce()}catch(e){}
+      link=await lookup()
+    }
+    if(link&&/^https:\/\/www\.google\.com\/calendar\//.test(String(link.html_link||''))) return redirect(res,link.html_link)
     if(link&&/^https:\/\/calendar\.google\.com\//.test(String(link.html_link||''))) return redirect(res,link.html_link)
-    html(res,202,'<!doctype html><meta charset="utf-8"><body style="font-family:Arial;padding:40px"><h2>📅 Cita ASCENDA</h2><p>La cita está registrada. Google Calendar todavía está sincronizando este evento.</p></body>')
+    html(res,202,'<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="3"><title>Zi Vital · Google Calendar</title></head><body style="margin:0;background:#F5F7FB;font-family:Arial,sans-serif;color:#071D4A"><div style="max-width:520px;margin:70px auto;padding:0 20px"><div style="background:#fff;border:1px solid #E2E8F0;border-radius:16px;padding:28px;box-shadow:0 8px 30px rgba(7,29,74,.08);text-align:center"><div style="font-size:30px;margin-bottom:10px">📅</div><h2 style="margin:0 0 10px">Estamos preparando tu cita en Google Calendar</h2><p style="font-size:14px;line-height:1.6;color:#475569;margin:0">Tu cita en <b>Zi Vital</b> ya está registrada. Estamos terminando de vincular el evento y esta página se actualizará automáticamente en unos segundos.</p><div style="margin-top:18px;font-size:12px;color:#64748B">No necesitas volver a agendarla.</div></div></div></body></html>')
   }
 
   async function handle(req,res) {

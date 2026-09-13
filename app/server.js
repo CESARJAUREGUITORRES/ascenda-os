@@ -1625,7 +1625,7 @@ http.createServer(function(req, res) {
           subject = '🔄 Tu cita ha sido reprogramada — ' + BRAND.nombre_empresa
           html = buildFromTemplate('reprogramacion', vars, function() { return buildEmailReprogramacion ? buildEmailReprogramacion(d.nombre||'Paciente', d.tratamiento||'', d.hora||'', d.sede||'', d.fecha||'') : emailShell('Cita reprogramada', '<p>Tu cita ha sido reprogramada.</p>') }), tplCtx
           html += emailFirmaMedica(d.doctora || d.atendio || '')
-          html += GOOGLE_INTEGRATION.emailCalendarButton(d.appointment_id || d.cita_id || d.agenda_id || '')
+          html = GOOGLE_INTEGRATION.injectEmailCalendarButton(html, d.appointment_id || d.cita_id || d.agenda_id || '')
         } else {
           res.writeHead(400); res.end('{"error":"template no reconocido: ' + tipo + '"}'); return
         }
