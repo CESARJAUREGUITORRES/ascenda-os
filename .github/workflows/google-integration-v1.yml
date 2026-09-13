@@ -79,7 +79,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: 2.101.0
+          version: 2.117.0
       - name: Runtime and browser contracts
         run: |
           set -euo pipefail
