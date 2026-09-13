@@ -781,26 +781,84 @@ function agGuardarEdit(){
   _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now);
 }
 
+function agRebookErrorMessage(code){
+  var map={
+    'AGENDA_2FA_PANEL_REQUIRED':'Tu sesión o permiso de Agenda expiró. Vuelve a iniciar sesión.',
+    'AGV2_APPOINTMENT_NOT_FOUND':'La cita original ya no existe. Actualiza Agenda.',
+    'AGV2_REBOOK_STATE_BLOCKED':'Esta cita ya no puede reagendarse desde su estado actual.',
+    'AGV2_REBOOK_TREATMENT_UNRESOLVED':'No se pudo resolver el tratamiento de esta cita.',
+    'AGV2_AUTHORITY_BLOCKED':'El servicio no tiene disponibilidad clínica válida para esa fecha/sede.',
+    'AGV2_EXACT_PROVIDER_REQUIRED':'Selecciona la doctora que atenderá la cita.',
+    'AGV2_SLOT_NO_LONGER_AVAILABLE':'Ese horario ya no está disponible. Elige otra hora.',
+    'AGV2_DATE_TIME_INVALID':'La fecha u hora seleccionada no es válida.',
+    'AGV2_IDENTITY_CONFLICT':'La identidad del paciente requiere revisión antes de reagendar.'
+  };
+  return map[code]||('No se pudo reagendar: '+(code||'error desconocido'));
+}
+function agResolveProfessionalId(nombre){
+  if(!nombre)return Promise.resolve(null);
+  return _rest('aos_perfiles_profesional?select=id,nombre_publico&nombre_publico=eq.'+encodeURIComponent(nombre)+'&visible=eq.true&limit=2',{method:'GET'}).then(function(r){
+    if(!r.ok)throw new Error('No se pudo validar la doctora seleccionada.');
+    return r.json();
+  }).then(function(rows){
+    if(!rows||rows.length!==1)throw new Error('No se pudo identificar de forma única a la doctora seleccionada.');
+    return String(rows[0].id||'');
+  });
+}
+function agKickGoogleWorker(){
+  return fetch(window.location.origin+'/api/google/worker/run-once',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
+    body:'{}'
+  }).catch(function(){});
+}
+function agRebookGoverned(origId,row,doctoraSel){
+  var token=sessionStorage.getItem('aos_app_token')||'';
+  if(!token)return Promise.reject(new Error('Tu sesión de ASCENDA expiró. Vuelve a iniciar sesión.'));
+  var role=String(row.tipo_atencion||'ENFERMERIA').toUpperCase();
+  var profPromise=role==='DOCTORA'?agResolveProfessionalId(doctoraSel):Promise.resolve(null);
+  return profPromise.then(function(profId){
+    var idem=('agenda-rebook-v2:'+origId+':'+row.fecha_cita+':'+row.hora_cita+':'+row.sede+':'+role+':'+(profId||'POOL')).replace(/\s+/g,'_').slice(0,160);
+    var payload={
+      site:row.sede,
+      date:row.fecha_cita,
+      time:row.hora_cita,
+      slot_role:role,
+      reason:row.obs||'Reagendamiento desde Agenda'
+    };
+    if(profId)payload.professional_id=profId;
+    return fetch(_SB+'/rest/v1/rpc/aos_agenda_rebook_v2',{
+      method:'POST',
+      headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},
+      body:JSON.stringify({p_token:token,p_idempotency_key:idem,p_appointment_id:origId,p_payload:payload})
+    }).then(function(r){
+      return r.json().catch(function(){return {ok:false,error:'HTTP_'+r.status};}).then(function(body){
+        if(!r.ok||!body||body.ok!==true)throw new Error(agRebookErrorMessage(body&&body.error));
+        return body;
+      });
+    });
+  });
+}
+
 function _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now) {
   var row={nombre:el('ed-nombre').value.trim(),apellido:el('ed-apellido').value.trim(),numero:num,numero_limpio:num,dni:el('ed-dni').value.trim(),correo:el('ed-correo').value.trim(),asesor:asesor,id_asesor:AMAP[asesor]||'',sede:sede,tipo_atencion:el('ed-tipo-at').value,fecha_cita:fecha,hora_cita:hora,tratamiento:el('ed-trat').value,tipo_cita:el('ed-tipo-cita').value,estado_cita:el('ed-estado').value||'PENDIENTE',obs:el('ed-obs').value.trim(),ts_actualizado:now.toISOString()};
   if (doctoraSel) row.doctora = doctoraSel;
   if(AG.reagendando && AG.reagendaOrigId){
-    // REAGENDAR: marcar original como REAGENDADA + crear nueva cita
-    var origPatch={estado_cita:'REAGENDADA',obs:(el('ed-obs').value.trim()?el('ed-obs').value.trim()+' | ':'')+'Reagendada a '+fecha,ts_actualizado:now.toISOString()};
-    row.id=aosClientUuid();row.ts_creado=now.toISOString();row.origen_cita='REAGENDADA';row.estado_cita='PENDIENTE';row.email_template='reprogramacion';
-    Promise.all([
-      _rest('aos_agenda_citas?id=eq.'+AG.reagendaOrigId,{method:'PATCH',body:JSON.stringify(origPatch)}),
-      _rest('aos_agenda_citas',{method:'POST',body:JSON.stringify(row)})
-    ]).then(function(results){
-      var allOk=results.every(function(r){return r.ok;});
-      if(!allOk)throw new Error('Error al reagendar');
-      var oldId=AG.reagendaOrigId;
+    // REAGENDAR V2: una sola cita, una sola transacción, mismo appointment_id.
+    var rebookId=AG.reagendaOrigId;
+    AG._guardando=true;
+    agRebookGoverned(rebookId,row,doctoraSel).then(function(result){
+      AG._guardando=false;
+      var mailRow=Object.assign({},row,{id:rebookId,email_template:'reprogramacion',estado_cita:'PENDIENTE'});
+      enviarEmailConfirmacionCita(mailRow);
+      agKickGoogleWorker();
       AG.reagendando=false;AG.reagendaOrigId=null;
-      aosQueueGoogleAppointment(oldId,'CALENDAR_DELETE');
-      aosQueueGoogleAppointment(row.id,'');
-      enviarEmailConfirmacionCita(row);
-      if(window.AOS_showToast)AOS_showToast('Cita reagendada','Original marcada + nueva creada en '+fecha,'toast-venta');agCloseEdit();agLoad();
-    }).catch(function(e){if(window.AOS_showToast)AOS_showToast('Error',e.message||'','toast-alerta');});
+      if(window.AOS_showToast)AOS_showToast('✅ Cita reagendada','Misma cita actualizada a '+fecha+' '+hora+' · Calendar se actualizará automáticamente','toast-venta');
+      agCloseEdit();agLoad();
+    }).catch(function(e){
+      AG._guardando=false;
+      if(window.AOS_showToast)AOS_showToast('No se pudo reagendar',e.message||'Revisa fecha y horario','toast-alerta');
+    });
   } else if(AG.editId){
     _rest('aos_agenda_citas?id=eq.'+AG.editId,{method:'PATCH',body:JSON.stringify(row)}).then(function(r){
       if(!r.ok)throw new Error('HTTP '+r.status);
