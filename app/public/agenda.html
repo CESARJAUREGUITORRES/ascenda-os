@@ -285,7 +285,7 @@
 
 <script>
 (function(){
-  var VERSION='20260912.1950';
+  var VERSION='20260912.2025';
   window.__AOS_AGENDA_ASSET_VERSION__=VERSION;
   function notify(title,detail){
     try{
@@ -309,7 +309,7 @@
   };
 })();
 </script>
-<script src="/agenda.js?v=20260912.1950"></script>
+<script src="/agenda.js?v=20260912.2025"></script>
 <script>
 (function(){
   function ready(){
@@ -323,7 +323,7 @@
   }
   console.warn('[AGENDA-RUNTIME] carga primaria incompleta; reintentando asset');
   var retry=document.createElement('script');
-  retry.src='/agenda.js?v=20260912.1950-retry';
+  retry.src='/agenda.js?v=20260912.2025-retry';
   retry.onload=function(){
     window.__AOS_AGENDA_RUNTIME_READY__=ready();
     if(!window.__AOS_AGENDA_RUNTIME_READY__)window.agendaRuntimeProblem('El motor de Agenda no terminó de cargar. Recarga ASCENDA.');
