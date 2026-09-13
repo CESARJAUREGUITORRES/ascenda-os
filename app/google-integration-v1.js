@@ -372,6 +372,7 @@ function createGoogleIntegrationV1(opts) {
   }
   function eventIdFor(connId,appointmentId){return 'a'+sha(String(connId)+':'+String(appointmentId)).slice(0,31)}
   function shouldRetryCalendarWithoutAttendee(status,attendees){return Number(status)===400&&Array.isArray(attendees)&&attendees.length>0}
+  function shouldSkipContactSyncError(error){var e=String(error||'');return e.indexOf('CONTACT_IDENTITY_CONFLICT')===0||e.indexOf('PATIENT_NOT_RESOLVED')===0}
   function scheduleHash(appt){return sha([appt.id,appt.fecha_cita,appt.hora_cita,appt.tratamiento,appt.sede,appt.nombre,appt.apellido,appt.correo,appt.doctora,appt.estado_cita].join('|'))}
 
   function calendarSiteMeta(site){
@@ -626,7 +627,7 @@ function createGoogleIntegrationV1(opts) {
   async function finishQueue(row,ok,error) {
     var patch={updated_at:new Date().toISOString(),locked_at:null,locked_by:null}
     if(ok) { patch.state='ACCEPTED'; patch.accepted_at=new Date().toISOString(); patch.last_error=null }
-    else if(String(error||'').indexOf('CONTACT_IDENTITY_CONFLICT')===0) { patch.state='SKIPPED'; patch.last_error=String(error).slice(0,500) }
+    else if(shouldSkipContactSyncError(error)) { patch.state='SKIPPED'; patch.last_error=String(error).slice(0,500) }
     else {
       patch.state='FAILED'; patch.last_error=String(error||'UNKNOWN').slice(0,500)
       patch.available_at=new Date(Date.now()+Math.min(3600000,Math.max(30000,row.attempt_count*row.attempt_count*30000))).toISOString()
@@ -868,7 +869,7 @@ function createGoogleIntegrationV1(opts) {
     emailCalendarButton:emailCalendarButton,
     injectEmailCalendarButton:injectEmailCalendarButton,
     calendarPublicUrl:calendarPublicUrl,
-    _test:{encryptSecret:encryptSecret,decryptSecret:decryptSecret,calendarLinkSignature:calendarLinkSignature,contactTag:contactTag,monthCode:monthCode,shouldRetryCalendarWithoutAttendee:shouldRetryCalendarWithoutAttendee}
+    _test:{encryptSecret:encryptSecret,decryptSecret:decryptSecret,calendarLinkSignature:calendarLinkSignature,contactTag:contactTag,monthCode:monthCode,shouldRetryCalendarWithoutAttendee:shouldRetryCalendarWithoutAttendee,shouldSkipContactSyncError:shouldSkipContactSyncError}
   }
 }
 
