@@ -1,0 +1,107 @@
+name: ASCENDA Linux Runner Recovery Bridge
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/linux-runner-recovery-bridge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: linux-runner-recovery-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  recover-ascenda-linux:
+    name: Probe FAST slot ${{ matrix.slot }} for ASCENDA Linux host
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        slot: [1, 2]
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 5
+    steps:
+      - name: Probe host and restore ASCENDA Linux listener only when WSL exists
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Write-Host ("FAST_HOST=" + $env:RUNNER_NAME + " MACHINE=" + $env:COMPUTERNAME)
+
+          $wslList = & wsl.exe -l -q 2>&1
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host 'ASCENDA_RECOVERY_HOST=NOT_WSL_CAPABLE'
+            exit 0
+          }
+          $distros = (($wslList | Out-String) -replace [char]0,'')
+          Write-Host ("WSL_DISTROS=" + ($distros -replace "\r?\n", ','))
+          if ($distros -notmatch '(?im)^Ubuntu\s*$') {
+            Write-Host 'ASCENDA_RECOVERY_HOST=NO_UBUNTU_DISTRO'
+            exit 0
+          }
+
+          $script = @'
+          set -euo pipefail
+
+          ASC_USER='ascenda-runner'
+          ASC_HOME='/home/ascenda-runner'
+
+          echo '[RECOVERY] Ubuntu bridge active'
+          if [ ! -d "$ASC_HOME" ]; then
+            echo 'ASCENDA_RECOVERY_HOST=NO_ASCENDA_HOME'
+            exit 0
+          fi
+
+          service docker start >/dev/null 2>&1 || true
+
+          current_listener() {
+            ps -eo user=,args= | awk '$1=="ascenda-runner" && $0 ~ /Runner\.Listener/ {print}'
+          }
+
+          echo '[RECOVERY] Existing ASCENDA listener:'
+          current_listener || true
+
+          if current_listener | grep -q 'Runner.Listener'; then
+            echo 'ASCENDA_LINUX_LISTENER=ALREADY_RUNNING'
+            exit 0
+          fi
+
+          RUN_SH="$(find "$ASC_HOME" -maxdepth 4 -type f -name run.sh -path '*actions-runner*' -print -quit)"
+          if [ -z "$RUN_SH" ]; then
+            echo 'ASCENDA_RUNNER_RUN_SH_NOT_FOUND' >&2
+            exit 21
+          fi
+          RUNNER_DIR="$(dirname "$RUN_SH")"
+          echo "[RECOVERY] Runner dir: $RUNNER_DIR"
+
+          # Use only the existing registration/service. Never config/re-register.
+          if [ -x "$RUNNER_DIR/svc.sh" ]; then
+            cd "$RUNNER_DIR"
+            ./svc.sh start >/tmp/ascenda-runner-svc-start.log 2>&1 || true
+            sleep 3
+          fi
+
+          if ! current_listener | grep -q 'Runner.Listener'; then
+            echo '[RECOVERY] Service listener absent; starting existing run.sh as ascenda-runner'
+            su -s /bin/bash -c "cd '$RUNNER_DIR' && nohup ./run.sh >/tmp/ascenda-zero-cost-v2-listener.log 2>&1 </dev/null &" "$ASC_USER"
+            sleep 5
+          fi
+
+          echo '[RECOVERY] Final ASCENDA listener:'
+          current_listener || true
+
+          if ! current_listener | grep -q 'Runner.Listener'; then
+            echo 'ASCENDA_LINUX_LISTENER_RECOVERY_FAILED' >&2
+            test -f /tmp/ascenda-runner-svc-start.log && tail -n 80 /tmp/ascenda-runner-svc-start.log || true
+            test -f /tmp/ascenda-zero-cost-v2-listener.log && tail -n 80 /tmp/ascenda-zero-cost-v2-listener.log || true
+            exit 22
+          fi
+
+          echo 'ASCENDA_LINUX_LISTENER=READY'
+          '@
+
+          $script | wsl.exe -d Ubuntu -u root -- bash -s
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
