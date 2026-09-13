@@ -88,12 +88,12 @@ jobs:
           node --check app/public/agenda.js
           node --check app/public/calls.js
           node ci/google-integration-v1/contract.js
-      - name: Start isolated PostgreSQL 17
+      - name: Start isolated Supabase PostgreSQL 17
         run: |
           set -euo pipefail
           docker rm -f "$DB_CONTAINER" >/dev/null 2>&1 || true
-          docker run -d --name "$DB_CONTAINER" -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:59337:5432 postgres:17-alpine
-          for i in $(seq 1 40); do
+          docker run -d --name "$DB_CONTAINER" -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:59337:5432 supabase/postgres:17.6.1.136
+          for i in $(seq 1 60); do
             docker exec "$DB_CONTAINER" pg_isready -U postgres -d postgres >/dev/null 2>&1 && exit 0
             sleep 1
           done
@@ -108,11 +108,8 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260912220000_google_integration_v1.sql
       - name: DB security and outbox contracts
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/google-integration-v1/db_contract.sql
-      - name: Install lint extension in ephemeral PostgreSQL
-        run: |
-          set -euo pipefail
-          docker exec -u root "$DB_CONTAINER" sh -lc 'apk add --no-cache postgresql-plpgsql_check'
-          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c 'create extension if not exists plpgsql_check'
+      - name: Enable lint extension in ephemeral PostgreSQL
+        run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c 'create extension if not exists plpgsql_check'
       - name: PostgreSQL lint
         run: supabase db lint --db-url "$DB_URL" --schema public --level error
       - name: Exact rollback / zero residue
