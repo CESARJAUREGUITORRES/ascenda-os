@@ -109,7 +109,14 @@ ok(manualBlock.includes('aosQueueGoogleAppointment(rowC.id)'),'Call Center manua
 const tipifStart=callsSrc.indexOf('function ccConfirmarCita')
 const tipifEnd=callsSrc.indexOf('function ccConfirmarSeguimiento')
 ok(tipifStart>=0&&tipifEnd>tipifStart,'Call Center appointment typification function missing')
-ok(callsSrc.slice(tipifStart,tipifEnd).includes('results.every(function(r){return r&&r.ok;})'),'Call Center appointment typification must verify both writes')
+ok(callsSrc.slice(tipifStart,tipifEnd).includes('results.every(function(r){return r&&r.ok;})'),'Call Center legacy appointment typification must verify both writes')
+
+const loop6=read('app/public/calls-loop6.js')
+ok(loop6.includes('aos_callcenter_commit_action_v1'),'Call Center runtime must keep atomic governed commit')
+ok(loop6.includes('aos_callcenter_confirm_queue_appointment_v1'),'Call Center queue runtime must keep governed appointment commit')
+ok(loop6.includes('cc6PostCommitAppointment(res,payload)'),'Call Center governed commits must share post-commit integrations')
+ok(loop6.includes('aosQueueGoogleAppointment(agendaId)'),'Call Center governed appointments must queue Google Calendar/Contacts')
+ok(loop6.includes('id:agendaId'),'Call Center confirmation email must carry appointment_id for Calendar CTA')
 
 const historyMigration=read('supabase/migrations/20260913011500_agenda_rebook_history_projection_v1.sql')
 for(const token of ['aos_agenda_rebook_history_v1','aos_agenda_rebook_history_day_v1','LEGACY_INLINE_V4','CORE_V2_HISTORY_V1'])
