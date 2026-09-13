@@ -121,7 +121,7 @@
     <div style="display:flex;align-items:center;gap:10px;">
       <div class="ag-title">Agenda</div>
       <div class="ag-filters">
-        <select class="psel" id="ag-sede" onchange="agLoad()"><option value="">Ambas sedes</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select>
+        <select class="psel" id="ag-sede" onchange="agendaSafeLoad()"><option value="">Ambas sedes</option><option value="SAN ISIDRO">San Isidro</option><option value="PUEBLO LIBRE">Pueblo Libre</option></select>
         <select class="psel" id="ag-estado" onchange="agFilterLocal()"><option value="">Todos</option><option value="PENDIENTE">Pendiente</option><option value="ASISTIO">Asistieron</option><option value="NO ASISTIO">No asistieron</option><option value="CANCELADA">Canceladas</option></select>
       </div>
     </div>
@@ -138,7 +138,7 @@
         <div class="nav-arrow" onclick="agNav(1)">&gt;</div>
         <div class="nav-today" onclick="agHoy()">Hoy</div>
       </div>
-      <input type="date" class="psel" id="ag-fecha" onchange="agLoad()" style="width:125px;">
+      <input type="date" class="psel" id="ag-fecha" onchange="agendaSafeLoad()" style="width:125px;">
       <button class="ag-btn" onclick="agAbrirNueva()">+ Nueva cita</button>
     </div>
   </div>
@@ -260,7 +260,7 @@
     </div>
     <div class="mfoot">
       <button class="mcanc" onclick="agCloseEdit()">Cancelar</button>
-      <button class="mconf gr" onclick="agGuardarEdit()">Guardar cita</button>
+      <button class="mconf gr" id="ag-save-btn" onclick="agendaSafeSave()">Guardar cita</button>
     </div>
   </div>
 </div>
@@ -283,4 +283,55 @@
   </div>
 </div>
 
-<script src="/agenda.js"></script>
+<script>
+(function(){
+  var VERSION='20260912.1935';
+  window.__AOS_AGENDA_ASSET_VERSION__=VERSION;
+  function notify(title,detail){
+    try{
+      if(window.parent&&window.parent!==window&&typeof window.parent.AOS_showToast==='function'){
+        window.parent.AOS_showToast(title,detail||'','toast-alerta');return;
+      }
+    }catch(_){}
+    try{alert(title+(detail?'\n'+detail:''));}catch(_){}
+  }
+  window.agendaRuntimeProblem=function(detail){
+    console.error('[AGENDA-RUNTIME]',detail||'Runtime no disponible');
+    notify('Agenda se está actualizando',detail||'Recarga el panel e inténtalo nuevamente.');
+  };
+  window.agendaSafeLoad=function(){
+    if(typeof window.agLoad==='function') return window.agLoad();
+    window.agendaRuntimeProblem('No se cargó el motor de Agenda. Recarga el panel.');
+  };
+  window.agendaSafeSave=function(){
+    if(typeof window.agGuardarEdit==='function') return window.agGuardarEdit();
+    window.agendaRuntimeProblem('No se cargó el guardado de citas. No se realizó ningún cambio.');
+  };
+})();
+</script>
+<script src="/agenda.js?v=20260912.1935"></script>
+<script>
+(function(){
+  function ready(){
+    return typeof window.agLoad==='function' &&
+      typeof window.agGuardarEdit==='function' &&
+      typeof window.agReagendar==='function';
+  }
+  if(ready()){
+    window.__AOS_AGENDA_RUNTIME_READY__=true;
+    return;
+  }
+  console.warn('[AGENDA-RUNTIME] carga primaria incompleta; reintentando asset');
+  var retry=document.createElement('script');
+  retry.src='/agenda.js?v=20260912.1935-retry';
+  retry.onload=function(){
+    window.__AOS_AGENDA_RUNTIME_READY__=ready();
+    if(!window.__AOS_AGENDA_RUNTIME_READY__)window.agendaRuntimeProblem('El motor de Agenda no terminó de cargar. Recarga ASCENDA.');
+  };
+  retry.onerror=function(){
+    window.__AOS_AGENDA_RUNTIME_READY__=false;
+    window.agendaRuntimeProblem('No se pudo descargar el motor de Agenda. No se guardó ningún cambio.');
+  };
+  document.head.appendChild(retry);
+})();
+</script>
