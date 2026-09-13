@@ -1,0 +1,85 @@
+name: ASCENDA CI Queue Hygiene
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/ascenda-ci-queue-hygiene.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  cancel-stale-ascenda-runs:
+    name: Cancel stale ASCENDA OS runs
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      KEEP_BRANCH: ${{ github.event.pull_request.head.ref || github.ref_name }}
+    steps:
+      - name: Cancel queued and in-progress runs outside current workstream
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $headers = @{
+            Authorization = "Bearer $env:GH_TOKEN"
+            Accept = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          $api = "https://api.github.com/repos/$env:REPO"
+          $currentRun = [int64]'${{ github.run_id }}'
+          $keepBranch = $env:KEEP_BRANCH
+
+          Write-Host "QUEUE_HYGIENE_KEEP_BRANCH=$keepBranch"
+          Write-Host "QUEUE_HYGIENE_CURRENT_RUN=$currentRun"
+
+          $targets = @()
+          foreach ($status in @('in_progress','queued')) {
+            $uri = "$api/actions/runs?status=$status&per_page=100"
+            $resp = Invoke-RestMethod -Method Get -Uri $uri -Headers $headers
+            foreach ($run in @($resp.workflow_runs)) {
+              if ([int64]$run.id -eq $currentRun) { continue }
+              if ([string]$run.head_branch -eq $keepBranch) { continue }
+              $targets += [pscustomobject]@{
+                id = [int64]$run.id
+                name = [string]$run.name
+                branch = [string]$run.head_branch
+                sha = [string]$run.head_sha
+                status = [string]$run.status
+                created_at = [string]$run.created_at
+              }
+            }
+          }
+
+          $targets = @($targets | Sort-Object id -Unique)
+          Write-Host ("STALE_RUN_COUNT=" + $targets.Count)
+
+          $cancelled = 0
+          $alreadyTerminal = 0
+          $failed = 0
+          foreach ($run in $targets) {
+            Write-Host ("CANCEL id={0} status={1} branch={2} workflow={3}" -f $run.id,$run.status,$run.branch,$run.name)
+            try {
+              Invoke-RestMethod -Method Post -Uri "$api/actions/runs/$($run.id)/cancel" -Headers $headers | Out-Null
+              $cancelled++
+            } catch {
+              $code = $null
+              try { $code = [int]$_.Exception.Response.StatusCode } catch {}
+              if ($code -eq 409) {
+                Write-Host ("SKIP_TERMINAL id=" + $run.id)
+                $alreadyTerminal++
+              } else {
+                Write-Warning ("CANCEL_FAILED id={0} code={1} message={2}" -f $run.id,$code,$_.Exception.Message)
+                $failed++
+              }
+            }
+          }
+
+          Write-Host "QUEUE_HYGIENE_CANCELLED=$cancelled"
+          Write-Host "QUEUE_HYGIENE_ALREADY_TERMINAL=$alreadyTerminal"
+          Write-Host "QUEUE_HYGIENE_FAILED=$failed"
+          if ($failed -gt 0) { exit 2 }
