@@ -202,7 +202,23 @@ begin
       )
       on conflict (idempotency_key) do nothing;
     end if;
-    return jsonb_set(v_result,'{bridge_mode}','"CORE_V2_HISTORY_V1"'::jsonb,true);
+    v_result := jsonb_set(v_result,'{bridge_mode}','"CORE_V2_HISTORY_V1"'::jsonb,true);
+    v_result := jsonb_set(
+      v_result,
+      '{before}',
+      jsonb_build_object(
+        'appointment_id',v_cita.id,
+        'treatment',v_cita.tratamiento,
+        'site',v_cita.sede,
+        'date',v_cita.fecha_cita,
+        'time',left(coalesce(v_cita.hora_cita,''),5),
+        'role',v_cita.tipo_atencion,
+        'professional_name',v_cita.doctora,
+        'status',v_cita.estado_cita
+      ),
+      true
+    );
+    return v_result;
   end if;
 
   if coalesce(v_result->>'error','')<>'AGV2_REBOOK_TREATMENT_UNRESOLVED' then
