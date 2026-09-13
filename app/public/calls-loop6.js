@@ -99,7 +99,7 @@ function cc6QueueCommit(payload,sourceModal){
     cc6ClearPending(pending.fp);
     if(sourceModal&&typeof window.closeCCModal==='function')closeCCModal(sourceModal);
     if(window.AOS_playSound)AOS_playSound(res.callState==='CITA CONFIRMADA'?'venta':'notif');
-    cc6PostCommitAppointment(res,payload);
+    if(payload.correo&&typeof window.enviarEmailConfirmacionCita==='function')enviarEmailConfirmacionCita({correo:payload.correo,nombre:payload.nombre,apellido:payload.apellido,fecha_cita:payload.fecha_cita,hora_cita:payload.hora_cita,tratamiento:payload.tratamiento,sede:payload.sede,dni:payload.dni,numero_limpio:payload.numero});
     cc6QueueFinishModal(res,payload);
     return res;
   }).catch(function(err){
