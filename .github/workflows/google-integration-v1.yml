@@ -108,6 +108,11 @@ jobs:
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260912220000_google_integration_v1.sql
       - name: DB security and outbox contracts
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/google-integration-v1/db_contract.sql
+      - name: Install lint extension in ephemeral PostgreSQL
+        run: |
+          set -euo pipefail
+          docker exec -u root "$DB_CONTAINER" sh -lc 'apk add --no-cache postgresql-plpgsql_check'
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c 'create extension if not exists plpgsql_check'
       - name: PostgreSQL lint
         run: supabase db lint --db-url "$DB_URL" --schema public --level error
       - name: Exact rollback / zero residue
