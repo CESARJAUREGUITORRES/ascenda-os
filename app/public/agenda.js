@@ -791,7 +791,10 @@ function agRebookErrorMessage(code){
     'AGV2_EXACT_PROVIDER_REQUIRED':'Selecciona la doctora que atenderá la cita.',
     'AGV2_SLOT_NO_LONGER_AVAILABLE':'Ese horario ya no está disponible. Elige otra hora.',
     'AGV2_DATE_TIME_INVALID':'La fecha u hora seleccionada no es válida.',
-    'AGV2_IDENTITY_CONFLICT':'La identidad del paciente requiere revisión antes de reagendar.'
+    'AGV2_IDENTITY_CONFLICT':'La identidad del paciente requiere revisión antes de reagendar.',
+    'AGV2_LEGACY_SITE_CLOSED':'La sede está cerrada en la fecha seleccionada.',
+    'AGV2_LEGACY_OUTSIDE_BUSINESS_HOURS':'La hora está fuera del horario operativo de la sede.',
+    'AGV2_LEGACY_PROVIDER_NOT_SCHEDULED':'La doctora seleccionada no tiene turno válido en esa fecha y sede.'
   };
   return map[code]||('No se pudo reagendar: '+(code||'error desconocido'));
 }
@@ -827,7 +830,8 @@ function agRebookGoverned(origId,row,doctoraSel){
       reason:row.obs||'Reagendamiento desde Agenda'
     };
     if(profId)payload.professional_id=profId;
-    return fetch(_SB+'/rest/v1/rpc/aos_agenda_rebook_v2',{
+    if(doctoraSel)payload.professional_name=doctoraSel;
+    return fetch(_SB+'/rest/v1/rpc/aos_agenda_rebook_bridge_v1',{
       method:'POST',
       headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},
       body:JSON.stringify({p_token:token,p_idempotency_key:idem,p_appointment_id:origId,p_payload:payload})
@@ -851,7 +855,11 @@ function _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now) {
       AG._guardando=false;
       var mailRow=Object.assign({},row,{id:rebookId,email_template:'reprogramacion',estado_cita:'PENDIENTE'});
       enviarEmailConfirmacionCita(mailRow);
-      agKickGoogleWorker();
+      if(result&&result.google_queue_required){
+        aosQueueGoogleAppointment(rebookId,'');
+      }else{
+        agKickGoogleWorker();
+      }
       AG.reagendando=false;AG.reagendaOrigId=null;
       if(window.AOS_showToast)AOS_showToast('✅ Cita reagendada','Misma cita actualizada a '+fecha+' '+hora+' · Calendar se actualizará automáticamente','toast-venta');
       agCloseEdit();agLoad();
