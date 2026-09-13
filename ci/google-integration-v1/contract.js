@@ -91,11 +91,19 @@ for(const p of ['app/public/agenda.js','app/public/calls.js','app/public/calls.h
   ok(src.includes('X-ASCENDA-Session'),'email caller must keep session auth: '+p)
 }
 const agendaSrc=read('app/public/agenda.js')
-ok(agendaSrc.includes('aos_agenda_rebook_v2'),'Agenda rebook must use transactional AGV2 RPC')
+ok(agendaSrc.includes('aos_agenda_rebook_bridge_v1'),'Agenda rebook must use transactional canonical-to-legacy bridge')
 ok(agendaSrc.includes("email_template:'reprogramacion'"),'Agenda rebook must use reprogram email after commit')
 ok(!agendaSrc.includes("row.email_template='reprogramacion'"),'Agenda rows must never contain non-schema email_template')
 ok(!agendaSrc.includes("Original marcada + nueva creada"),'legacy split-write rebook UX must be removed')
 ok(read('app/public/citas.html').includes("email_template:'reprogramacion'"),'Citas rebook must use reprogram email')
+const rebookBridge=read('supabase/migrations/20260913003000_agenda_rebook_legacy_bridge_v1.sql')
+for(const token of [
+  'aos_agenda_rebook_bridge_v1','aos_agenda_rebook_legacy_safe_v1',
+  'AGV2_REBOOK_TREATMENT_UNRESOLVED','AGV2_LEGACY_OUTSIDE_BUSINESS_HOURS',
+  'for update','pg_advisory_xact_lock','google_queue_required'
+]) ok(rebookBridge.toLowerCase().includes(token.toLowerCase()),'rebook bridge missing '+token)
+ok(!/insert\s+into\s+public\.aos_agenda_citas/i.test(rebookBridge),'rebook bridge must preserve same appointment row')
+
 
 const migration=read('supabase/migrations/20260912220000_google_integration_v1.sql')
 for(const token of [
