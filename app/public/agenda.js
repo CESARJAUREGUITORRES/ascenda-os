@@ -6,22 +6,64 @@ var _SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im
 // ===== EMAIL AUTOMÁTICO AL CREAR/REAGENDAR CITA =====
 function enviarEmailConfirmacionCita(d) {
   var correo = (d.correo || '').trim();
-  if (!correo || correo.indexOf('@') < 0) return;
+  if (!correo || correo.indexOf('@') < 0) return Promise.resolve({ok:false,skipped:true,reason:'NO_EMAIL'});
   var nombre = ((d.nombre || '') + ' ' + (d.apellido || '')).trim();
   var fechaRaw = d.fecha_cita || '';
   var fechaLabel = fechaRaw;
+  var fechaAnteriorRaw = d.fecha_anterior || '';
+  var fechaAnteriorLabel = fechaAnteriorRaw;
   try {
-    var dp = new Date(fechaRaw + 'T12:00:00');
     var dias = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
     var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    var dp = new Date(fechaRaw + 'T12:00:00');
     fechaLabel = dias[dp.getDay()] + ' ' + dp.getDate() + ' de ' + meses[dp.getMonth()] + ', ' + dp.getFullYear();
+    if(fechaAnteriorRaw){
+      var da = new Date(fechaAnteriorRaw + 'T12:00:00');
+      fechaAnteriorLabel = dias[da.getDay()] + ' ' + da.getDate() + ' de ' + meses[da.getMonth()] + ', ' + da.getFullYear();
+    }
   } catch(e) {}
-  fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
-    method: 'POST', headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
-    body: JSON.stringify({ to: correo, template: d.email_template || 'confirmacion_cita', appointment_id:d.id||'', nombre: nombre, tratamiento: d.tratamiento || 'Consulta', hora: d.hora_cita || '', sede: d.sede || '', fecha: fechaLabel, dni: d.dni || '', telefono: d.numero_limpio || d.numero || '', email: correo })
-  }).then(function(r) { return r.json(); }).then(function(res) {
-    if (res && (res.ok || res.id)) { if (window.AOS_showToast) AOS_showToast('📧 Email enviado', correo, ''); }
-  }).catch(function() {});
+  var template=d.email_template || 'confirmacion_cita';
+  var recipientKey=(d.id||correo)+'_'+template+'_'+fechaRaw+'_'+(d.hora_cita||'');
+  return fetch('https://ascenda-os-production.up.railway.app/api/send-template', {
+    method: 'POST',
+    headers:{'Content-Type':'application/json','X-ASCENDA-Session':(sessionStorage.getItem('aos_app_token')||'')},
+    body: JSON.stringify({
+      to: correo,
+      template: template,
+      appointment_id:d.id||'',
+      nombre: nombre,
+      tratamiento: d.tratamiento || 'Consulta',
+      hora: d.hora_cita || '',
+      sede: d.sede || '',
+      fecha: fechaLabel,
+      fecha_anterior: fechaAnteriorLabel || '',
+      hora_anterior: d.hora_anterior || '',
+      sede_anterior: d.sede_anterior || '',
+      dni: d.dni || '',
+      telefono: d.numero_limpio || d.numero || '',
+      email: correo,
+      destinatario_id:recipientKey
+    })
+  }).then(function(r) {
+    return r.json().catch(function(){return {ok:false,error:'HTTP_'+r.status};}).then(function(res){
+      if(!r.ok || !res || (!res.ok && !res.id && !res.skip)){
+        var msg=(res&&res.error)||('HTTP '+r.status);
+        console.error('[EMAIL-CITA]',template,msg);
+        agToast('⚠️ Cita guardada · correo pendiente',msg,'toast-alerta');
+        return {ok:false,error:msg};
+      }
+      if(res.skip){
+        console.log('[EMAIL-CITA] envío idempotente omitido:',res.reason||'skip');
+        return res;
+      }
+      agToast(template==='reprogramacion'?'📧 Reprogramación enviada':'📧 Confirmación enviada',correo,'');
+      return res;
+    });
+  }).catch(function(e) {
+    console.error('[EMAIL-CITA]',template,e);
+    agToast('⚠️ Cita guardada · correo pendiente',e.message||'No se pudo enviar el correo','toast-alerta');
+    return {ok:false,error:e.message||'EMAIL_FAILED'};
+  });
 }
 function aosQueueGoogleAppointment(id,forceAction){
   if(!id)return Promise.resolve({ok:false,skipped:true});
@@ -63,7 +105,7 @@ function agSetSaveBusy(busy){
 var DIAS_S=['Dom','Lun','Mar','Mi\u00e9','Jue','Vie','S\u00e1b'];
 var DIAS_L=['Domingo','Lunes','Martes','Mi\u00e9rcoles','Jueves','Viernes','S\u00e1bado'];
 var MESES=['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-var AG={fecha:(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})(),data:null,sel:null,editId:null,filtro:'',vista:'list'};
+var AG={fecha:(function(){var n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');})(),data:null,history:[],sel:null,editId:null,filtro:'',vista:'list'};
 var AMAP={'WILMER':'ZIV-004','RUVILA':'ZIV-002','MIREYA':'ZIV-003','SRA CARMEN':'ZIV-005','CESAR':'ZIV-001'};
 var ESTADOS=[{val:'PENDIENTE',lbl:'Pendiente',cls:'est-btn-pend'},{val:'CITA CONFIRMADA',lbl:'Confirmada',cls:'est-btn-conf'},{val:'ASISTIO',lbl:'Asisti\u00f3',cls:'est-btn-asist'},{val:'EFECTIVA',lbl:'Efectiva',cls:'est-btn-efect'},{val:'NO ASISTIO',lbl:'No Asisti\u00f3',cls:'est-btn-noasist'},{val:'CANCELADA',lbl:'Cancelada',cls:'est-btn-cancel'}];
 
@@ -86,10 +128,25 @@ function agLoad(){
   if(AG.vista==='month'){loadMonth();return;}
   var sede=el('ag-sede').value;
   _rpc('aos_agenda_dia',{p_fecha:AG.fecha,p_sede:sede||'',p_asesor_filtro:''},function(d){
-    if(!d)return;AG.data=d;
+    if(!d)return;AG.data=d;AG.history=[];
     renderKPIs(d.resumen||{});renderView();renderTurnos(d.turnos||[]);
+    agLoadRebookHistory();
   });
   loadTrats();
+}
+function agLoadRebookHistory(){
+  var token=sessionStorage.getItem('aos_app_token')||'';
+  if(!token){AG.history=[];return;}
+  var sede=(el('ag-sede')||{}).value||'';
+  _rpc('aos_agenda_rebook_history_day_v1',{
+    p_token:token,p_date:AG.fecha,p_site:sede||null
+  },function(r){
+    AG.history=(r&&r.ok===true&&Array.isArray(r.items))?r.items:[];
+    renderView();
+  },function(){
+    AG.history=[];
+    renderView();
+  });
 }
 function loadTrats(){
   var sel=el('ed-trat');if(!sel)return;
@@ -120,7 +177,10 @@ function renderView(){
   } else {
     var sc2=el('ag-search-count');if(sc2)sc2.textContent='';
   }
-  el('ag-list-count').textContent=citas.length+' cita'+(citas.length!==1?'s':'');
+  var hist=(AG.history||[]);
+  var countTxt=citas.length+' cita'+(citas.length!==1?'s':'');
+  if(hist.length)countTxt+=' · '+hist.length+' reprogramada'+(hist.length!==1?'s':'');
+  el('ag-list-count').textContent=countTxt;
   if(AG.vista==='grid')renderGrid(citas);
   else renderList(citas);
 }
@@ -144,10 +204,11 @@ function agClearSearch(){
 
 function renderList(citas){
   var box=el('ag-content');
-  box.innerHTML='<table class="ag-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Asesor</th><th>Estado</th><th>Atenci\u00f3n</th><th style="width:36px;"></th></tr></thead><tbody id="ag-tbody"></tbody></table>';
+  box.innerHTML='<table class="ag-table"><thead><tr><th>Hora</th><th>Paciente</th><th>Tratamiento</th><th>Sede</th><th>Asesor</th><th>Estado</th><th>Atención</th><th style="width:36px;"></th></tr></thead><tbody id="ag-tbody"></tbody></table>';
   var tb=el('ag-tbody');
-  if(!citas.length){tb.innerHTML='<tr><td colspan="8" class="ld">Sin citas</td></tr>';return;}
-  tb.innerHTML=citas.map(function(c){
+  var hist=AG.history||[];
+  if(!citas.length&&!hist.length){tb.innerHTML='<tr><td colspan="8" class="ld">Sin citas</td></tr>';return;}
+  var activeHtml=citas.map(function(c){
     var cli=((c.nombre||'')+' '+(c.apellido||'')).trim();
     var hora=(c.hora_cita||'').toString().substring(0,5);
     var num=(c.numero_limpio||c.numero||'').replace(/\D/g,'');
@@ -155,8 +216,24 @@ function renderList(citas){
     var origenBadge=(c.origen_cita==='PROGRAMACION')?'<span style="font-size:6px;background:#EBF2FF;color:#0A4FBF;padding:1px 3px;border-radius:3px;margin-left:2px">PROG</span>':'';
     return '<tr onclick="agDetalle(\''+h(c.id)+'\')"><td style="font-weight:700;white-space:nowrap;">'+h(hora||'--')+'</td><td><div style="font-weight:700;font-size:11px;">'+h((cli||'--').substring(0,25))+'</div><div style="font-size:9px;color:#9AAAC8;">'+h(c.numero_limpio||c.numero||'')+'</div></td><td style="font-size:10px;">'+h((c.tratamiento||'').substring(0,18))+origenBadge+'</td><td style="font-size:10px;color:#6B7BA8;">'+h((c.sede||'').substring(0,10))+'</td><td style="font-size:10px;">'+h((c.asesor||'').substring(0,10))+'</td><td><span class="est-b '+estCls(c.estado_cita)+'">'+h(c.estado_cita||'')+'</span></td><td style="font-size:10px;color:#6B7BA8;">'+h(atencionLabel(c).substring(0,15))+'</td><td style="text-align:center;" onclick="event.stopPropagation()">'+waBtn+'</td></tr>';
   }).join('');
+  var historyHtml='';
+  if(hist.length){
+    historyHtml='<tr><td colspan="8" style="padding:9px 10px;background:#F8F5FF;border-top:1px solid #E9D5FF;border-bottom:1px solid #E9D5FF;font-size:9px;font-weight:800;color:#7C3AED;letter-spacing:.4px;">↪ HISTORIAL DE REPROGRAMACIONES · NO OCUPA CUPO</td></tr>';
+    historyHtml+=hist.map(function(x){
+      var dest=(x.new_date||'')+' · '+(x.new_time||'')+' · '+(x.new_site||'');
+      return '<tr style="background:#FCFAFF;opacity:.88;" title="Registro histórico. La cita activa está en '+h(dest)+'">'+
+        '<td style="font-weight:700;white-space:nowrap;color:#7C3AED;">'+h(x.previous_time||'--')+'</td>'+
+        '<td><div style="font-weight:700;font-size:11px;color:#5B21B6;">'+h((x.patient_name||'--').substring(0,25))+'</div><div style="font-size:9px;color:#A78BFA;">'+h(x.patient_number||'')+'</div></td>'+
+        '<td style="font-size:10px;color:#5B21B6;">'+h((x.treatment||'').substring(0,18))+'<div style="font-size:8px;color:#7C3AED;margin-top:2px;">↪ '+h(dest)+'</div></td>'+
+        '<td style="font-size:10px;color:#7C3AED;">'+h((x.previous_site||'').substring(0,12))+'</td>'+
+        '<td style="font-size:9px;color:#9AAAC8;">Historial</td>'+
+        '<td><span style="display:inline-block;padding:3px 7px;border-radius:999px;background:#F3E8FF;color:#7C3AED;font-size:8px;font-weight:800;">REAGENDADA</span></td>'+
+        '<td style="font-size:10px;color:#7C3AED;">'+h(x.previous_role||'')+'</td>'+
+        '<td style="text-align:center;color:#A78BFA;font-size:14px;">↪</td></tr>';
+    }).join('');
+  }
+  tb.innerHTML=activeHtml+historyHtml;
 }
-
 function renderGrid(citas){
   var docs=citas.filter(function(c){return(c.tipo_atencion||'').toUpperCase()==='DOCTORA';});
   var enfs=citas.filter(function(c){return(c.tipo_atencion||'').toUpperCase()!=='DOCTORA';});
@@ -888,7 +965,15 @@ function _ejecutarGuardarCita(num, fecha, hora, sede, asesor, doctoraSel, now) {
     agRebookGoverned(rebookId,row,doctoraSel).then(function(result){
       AG._guardando=false;
       agSetSaveBusy(false);
-      var mailRow=Object.assign({},row,{id:rebookId,email_template:'reprogramacion',estado_cita:'PENDIENTE'});
+      var prev=(result&&result.before)||{};
+      var mailRow=Object.assign({},row,{
+        id:rebookId,
+        email_template:'reprogramacion',
+        estado_cita:'PENDIENTE',
+        fecha_anterior:prev.date||'',
+        hora_anterior:prev.time||'',
+        sede_anterior:prev.site||''
+      });
       enviarEmailConfirmacionCita(mailRow);
       if(result&&result.google_queue_required){
         aosQueueGoogleAppointment(rebookId,'');
