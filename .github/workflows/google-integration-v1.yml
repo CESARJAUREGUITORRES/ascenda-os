@@ -66,7 +66,7 @@ jobs:
     runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 18
     env:
-      DB_URL: postgresql://postgres:postgres@127.0.0.1:59337/postgres
+      DB_URL: postgresql://postgres:postgres@127.0.0.1:59337/postgres?sslmode=disable
       DB_CONTAINER: ascenda-google-v1-db
     steps:
       - uses: actions/checkout@v4
