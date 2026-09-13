@@ -44,7 +44,7 @@ function enviarEmailConfirmacionCita(datosCita) {
       dni: datosCita.dni || '',
       telefono: datosCita.numero_limpio || datosCita.numero || '',
       email: correo,
-      destinatario_id: (datosCita.numero_limpio || correo) + '_cita_' + fechaRaw
+      destinatario_id: (datosCita.id || datosCita.numero_limpio || correo) + '_' + (datosCita.email_template || 'confirmacion_cita') + '_' + fechaRaw + '_' + (datosCita.hora_cita || datosCita.horaCita || '')
     })
   }).then(function(r) { return r.json(); }).then(function(d) {
     if (d && (d.ok || d.id)) {
@@ -230,7 +230,10 @@ function ccConfirmarCita(){
   var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:CC.lead?CC.lead.trat:'',estado:'CITA CONFIRMADA',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,anuncio:CC.lead?CC.lead.anuncio||'':'',lead_id_origen:CC.lead&&CC.lead.leadId?CC.lead.leadId:null,created_at:now.toISOString()};
   var rowC={id:aosClientUuid(),numero_limpio:numL,numero:p.numero,nombre:p.nombre||'',apellido:p.apellido||'',dni:p.dni||'',correo:p.correo||'',tipo_atencion:p.tipoAtencion||'',sede:p.sede||'',fecha_cita:p.fechaCita,hora_cita:p.horaCita||'',tratamiento:p.tratamiento||'',tipo_cita:p.tipoCita||'CONSULTA NUEVA',asesor:x.a,id_asesor:x.id,estado_cita:'PENDIENTE',origen_cita:'CALL_CENTER',lead_id_origen:CC.lead&&CC.lead.leadId?CC.lead.leadId:null,ts_creado:now.toISOString()};
   console.log('[AOS-DEBUG] ccConfirmarCita rowC:',JSON.stringify(rowC));console.log('[AOS-DEBUG] ccConfirmarCita rowL:',JSON.stringify(rowL));
-  Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(){
+  Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(results){
+    if(!results.every(function(r){return r&&r.ok;})){
+      throw new Error('No se pudo guardar la cita y la tipificación de forma completa.');
+    }
     if(CC.lead&&CC.lead.segId&&CC.lead.fromSeg){fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"ESTADO":"COMPLETADO","TS_ACTUALIZADO":new Date().toISOString()})});}
     closeCCModal('cc-m-cita');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';if(window.AOS_playSound)AOS_playSound('venta');if(window.AOS_showToast)AOS_showToast('Cita confirmada'+(CC.lead&&CC.lead.fromSeg?' · Seguimiento cerrado':''),'Excelente','toast-venta');
     aosQueueGoogleAppointment(rowC.id);
@@ -892,6 +895,8 @@ function guardarCitaManual(){
     closeCCModal('cc-m-cita-manual');
     if(window.AOS_playSound)AOS_playSound('venta');
     if(window.AOS_showToast)AOS_showToast('Cita agendada','Cita + llamada registradas','toast-venta');
+    // Calendar + Contacts usan el mismo boundary autenticado que Agenda.
+    aosQueueGoogleAppointment(rowC.id);
     // Enviar email de confirmación automáticamente
     enviarEmailConfirmacionCita(rowC);
     loadMetrics();loadHistorial();
