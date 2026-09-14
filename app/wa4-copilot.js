@@ -189,9 +189,31 @@ function gatePublicCatalogMoney(bundle,processContexts,stage,runtime){
   });
   return Object.assign({},bundle,{items,price_authority:'WA4A1C_ONLY',price_stage:allowPrice});
 }
+function isGenericHifuContext(inbound,runtime){
+  const state=runtime&&runtime.state||{};
+  if(String(state.treatment||'')!=='HIFU')return false;
+  const t=normalizeText(inbound);
+  // Generic HIFU in Zi Vital means the governed ZI FROZEN facial family.
+  // Body-specific language must preserve the corporal HIFU catalogue.
+  return !/\b(brazo|brazos|abdomen|corporal|cuerpo|entrepierna|entrepiernas|espalda|muslo|muslos|flanco|flancos|pierna|piernas)\b/.test(t);
+}
+function preferHifuFrozenRows(rows,inbound,runtime){
+  const xs=Array.isArray(rows)?rows:[];
+  if(!isGenericHifuContext(inbound,runtime))return xs;
+  const frozen=xs.filter(function(r){
+    if(!r||String(r.domain||'').toUpperCase()!=='CATALOG')return false;
+    const facts=r.facts&&typeof r.facts==='object'?r.facts:{};
+    const name=normalizeText(r.title||facts.nombre||'');
+    return /^zi frozen\b/.test(name);
+  });
+  if(!frozen.length)return xs;
+  const nonCatalog=xs.filter(function(r){return r&&String(r.domain||'').toUpperCase()!=='CATALOG';});
+  return frozen.concat(nonCatalog);
+}
 function knowledgeQuery(inbound,runtime){
   const s=runtime&&runtime.state||{};
-  return [String(inbound||''),s.treatment||'',s.campaign_source||''].filter(Boolean).join(' | ').slice(0,5000);
+  const hint=isGenericHifuContext(inbound,runtime)?'ZI FROZEN HIFU facial':'';
+  return [String(inbound||''),s.treatment||'',hint,s.campaign_source||''].filter(Boolean).join(' | ').slice(0,5000);
 }
 function isPriceFastLane(runtime){
   const intents=new Set(runtime&&Array.isArray(runtime.intents)?runtime.intents:[]);
@@ -264,10 +286,12 @@ async function buildGovernedContext(serviceRpc,serviceGet,inbound,maxItems,clini
   }
   const baseLimit=Math.max(4,Math.min(Number(maxItems||12),16));
   const query=knowledgeQuery(inbound,runtime);
-  const [publicRows,advisorRows]=await Promise.all([
+  let [publicRows,advisorRows]=await Promise.all([
     searchKnowledge(serviceRpc,query,'PUBLIC_CLIENT',baseLimit,null),
     searchKnowledge(serviceRpc,query,'ADVISOR_INTERNAL',baseLimit,null)
   ]);
+  publicRows=preferHifuFrozenRows(publicRows,inbound,runtime);
+  advisorRows=preferHifuFrozenRows(advisorRows,inbound,runtime);
   const rawPublicBundle=knowledge.buildKnowledgeBundle(publicRows,baseLimit,'PUBLIC_CLIENT');
   const advisorBase=knowledge.buildKnowledgeBundle(advisorRows,baseLimit,'ADVISOR_INTERNAL');
   const ruleQueries=playbooks.ruleSearchQueries(stage);
@@ -444,4 +468,4 @@ function createCopilot(deps){
     }
   };
 }
-module.exports={createCopilot,buildGovernedContext,buildFastPriceContext,gatePublicCatalogMoney,adapterSummary,deterministicBookingDraft,deterministicNoPromotionDraft,deterministicOwnerApprovedIntroDraft,deterministicToxinPriceDraft,isPriceFastLane,qualityCheck,canonicalizePatientText,renderWhatsAppText,composePatientReply,hasApprovedIntro,isGreetingOnly,APPROVED_FIRST_CONTACT_COPY,APPROVED_FIRST_CONTACT_PREFIX,SALES_SCHEMA,SAFETY_SCHEMA};
+module.exports={createCopilot,buildGovernedContext,buildFastPriceContext,gatePublicCatalogMoney,adapterSummary,deterministicBookingDraft,deterministicNoPromotionDraft,deterministicOwnerApprovedIntroDraft,deterministicToxinPriceDraft,isPriceFastLane,isGenericHifuContext,preferHifuFrozenRows,qualityCheck,canonicalizePatientText,renderWhatsAppText,composePatientReply,hasApprovedIntro,isGreetingOnly,APPROVED_FIRST_CONTACT_COPY,APPROVED_FIRST_CONTACT_PREFIX,SALES_SCHEMA,SAFETY_SCHEMA};
