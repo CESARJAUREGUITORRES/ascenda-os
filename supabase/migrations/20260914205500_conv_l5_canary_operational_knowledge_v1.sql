@@ -6,6 +6,29 @@
 
 begin;
 
+insert into public.aos_knowledge_sources_v1(
+  source_code,title,source_kind,file_name,authority_state,version,source_scope,notes,updated_at
+) values (
+  'CONV_L5_CANARY_OWNER_FEEDBACK_20260914',
+  'CONV-L5 owner-approved human canary feedback · 2026-09-14',
+  'GOVERNED_DOCUMENT',
+  'conv-l5-human-canary-feedback-20260914',
+  'AUTHORITATIVE_INTERNAL',
+  '2026-09-14.1',
+  'Routine WhatsApp professional-assignment and realtime-availability continuity rules validated during the controlled owner human canary.',
+  'Owner-approved operational hardening. Exact professional and slot facts remain governed by Agenda/Booking Core; this source does not authorize invention or clinical advice.',
+  now()
+)
+on conflict (source_code) do update set
+  title=excluded.title,
+  source_kind=excluded.source_kind,
+  file_name=excluded.file_name,
+  authority_state=excluded.authority_state,
+  version=excluded.version,
+  source_scope=excluded.source_scope,
+  notes=excluded.notes,
+  updated_at=now();
+
 insert into public.aos_knowledge_nodes_v1(
   code,node_type,parent_code,title,aliases,public_client,advisor_internal,owner_admin,
   clinical_restricted,system_reference,keywords,risk_level,source_code,source_locator,
