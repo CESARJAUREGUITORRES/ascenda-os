@@ -268,6 +268,7 @@ function injectAppShell(html){
   if(html.indexOf('/wa-native-panel.js')<0)tags+='<script src="/wa-native-panel.js?v=20260817-wa-native-s11-p01"></script>';
   if(html.indexOf('/wa-shell-integration.js')<0)tags+='<script src="/wa-shell-integration.js?v=20260817-wa-shell-s11-p01"></script>';
   if(html.indexOf('/auth-session-cookie-bridge.js')<0)tags+='<script src="/auth-session-cookie-bridge.js?v=20260817-s7-p01"></script>';
+  if(html.indexOf('/app-pwa-device-center-rollout.js')<0)tags+='<script src="/app-pwa-device-center-rollout.js?v=20260914-rollout-p01"></script>';
   if(!tags)return html;
   if(html.indexOf('</body>')>=0)return html.replace('</body>',tags+'\n</body>');
   return html+'\n'+tags;
