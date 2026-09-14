@@ -201,9 +201,7 @@ function genericHifuKnowledgeRowAllowed(row){
   const facts=row.facts&&typeof row.facts==='object'?row.facts:{};
   const name=normalizeText(facts.nombre||row.title||'');
   const category=normalizeText(facts.categoria||'');
-  if(category==='corporal')return false;
-  if(/^hifu\s+(7d|corp|corporal)/.test(name))return false;
-  return true;
+  return category==='hifu'&&/^zi\s+frozen\b/.test(name);
 }
 function mergeKnowledgeRows(){
   const out=[],seen=new Set();
