@@ -2,10 +2,10 @@
 
 **Captured:** 2026-09-12 America/Lima  
 **Program:** `INT-GOOGLE-001 — GOOGLE CALENDAR + CONTACTS`  
-**Active gate:** `GC-0/GC-1 — OAuth + secure connection foundation`  
+**Status:** `CLOSED / COMPLETED — GC-0→GC-8`  
 **Owner authorization:** `PROCEDE · implementar todo en el sistema · run until blocked hasta canary humano`  
 **Risk:** CRITICAL (OAuth, secrets, external side-effects, Agenda)  
-**Production sync flags:** SAFE-OFF
+**Production sync:** `Google master ON · Calendar ON · Contacts ON`
 
 ## Objective
 
@@ -33,9 +33,9 @@ ASCENDA remains the source of truth. Google Calendar and Google Contacts are syn
   - `GOOGLE_CLIENT_ID`
   - `GOOGLE_CLIENT_SECRET`
   - `GOOGLE_REDIRECT_URI`
-  - `GOOGLE_INTEGRATION_ENABLED=false`
-  - `GOOGLE_CALENDAR_SYNC_ENABLED=false`
-  - `GOOGLE_CONTACT_SYNC_ENABLED=false`
+  - `GOOGLE_INTEGRATION_ENABLED=true`
+  - `GOOGLE_CALENDAR_SYNC_ENABLED=true`
+  - `GOOGLE_CONTACT_SYNC_ENABLED=true`
 
 Secrets remain environment-only and must never be committed or surfaced to the browser.
 
@@ -79,5 +79,18 @@ Contacts:
 - No plaintext Google refresh token in browser, logs, GitHub, docs or generic integration tables.
 - No synchronous Google HTTP call inside PostgreSQL triggers or the canonical booking transaction.
 - No mass backfill before canary.
-- Production feature flags remain false until the exact SHA is validated and the owner authorizes the live canary.
-- CONV-001 is paused for HIGH/CRITICAL mutations during this lock transfer; its production AI autonomy remains SAFE-OFF.
+- Canary and bounded 14-day reconciliation are complete on production lineage `afb4929ef415421ed0040c904d705c4e64a053ce`.
+- Final reconciliation: 34 future appointments targeted; Calendar projections settled with zero failed/pending rows; Contacts settled with 32 synced and 2 fail-closed `PATIENT_NOT_RESOLVED` skips; no retry backlog remains.
+- INT-GOOGLE-001 released the sole mutable lock to CONV-L4 #508. WhatsApp autonomous provider send remains governed by CONV safety gates.
+
+
+## Closeout evidence — 2026-09-13
+
+- Issue #542: CLOSED / COMPLETED.
+- PR #553: post-canary Agenda/Google polish merged.
+- PR #555: reconciliation hardening merged.
+- Production Railway: exact #555 lineage SUCCESS.
+- Supabase Google outbox: 0 FAILED, 0 READY, 0 CLAIMED after bounded reconciliation.
+- Calendar links: 34 SYNCED for the bounded future set.
+- Contacts: 32 SYNCED; 2 unresolved identities SKIPPED fail-closed.
+- Google remains a projection; ASCENDA Agenda/Patient Identity remain canonical.
