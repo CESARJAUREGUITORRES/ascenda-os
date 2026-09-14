@@ -111,6 +111,17 @@ do $$ declare r jsonb; begin
   if coalesce((r->>'queued')::boolean,true) is not false or r->>'reason'<>'WA_L10_HUMAN_BOUNDARY_ACTIVE' then raise exception 'L10_HUMAN_BOUNDARY %',r; end if;
 end $$;
 
+-- A completed older autonomous turn must never hand off after a newer inbound exists.
+do $$ declare cur jsonb; ho jsonb; begin
+  cur:=public.aos_wa_l10_message_current_v1('wamid.ci.l10.in.0001');
+  if coalesce((cur->>'current')::boolean,true) is not false then raise exception 'L10_STALE_CURRENT_GUARD %',cur; end if;
+  ho:=public.aos_wa_l10_handoff_if_current_v1('wamid.ci.l10.in.0001','CI_LATE_MODEL_FAILURE');
+  if coalesce((ho->>'handed_off')::boolean,true) is not false
+     or coalesce((ho->>'stale')::boolean,false) is not true
+     or ho->>'reason'<>'WA_L10_STALE_HANDOFF_SKIPPED'
+  then raise exception 'L10_STALE_HANDOFF_GUARD %',ho; end if;
+end $$;
+
 -- Return global authority to SAFE-OFF at test exit.
 do $$ declare r jsonb; begin
   r:=public.aos_wa_l4_set_control_v1('11111111-1111-4111-8111-111111111111','AUTO_OFF',true,null,null,null,null,null,null,null);

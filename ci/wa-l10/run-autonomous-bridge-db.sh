@@ -21,6 +21,7 @@ test "$(psql "$DB" -X -qAt -c "select to_regclass('public.aos_wa_l10_bridge_jobs
 
 # Reapply and exercise exact CANARY return/queue/idempotency/human-boundary behavior.
 psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260904204500_wa_l10_autonomous_bridge_v1.sql
+psql "$DB" -X -v ON_ERROR_STOP=1 -f supabase/migrations/20260914224500_wa_l10_stale_turn_guard_v1.sql
 psql "$DB" -X -v ON_ERROR_STOP=1 -f ci/wa-l10/tests/002_autonomous_bridge.sql 2>&1 | tee /tmp/l10-bridge-db.txt
 grep -q 'WA_L10_AUTONOMOUS_BRIDGE_DB_CONTRACT_PASS' /tmp/l10-bridge-db.txt
 

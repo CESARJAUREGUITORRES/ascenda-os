@@ -82,7 +82,14 @@ function internalPost(pathname,body,timeoutMs){
     q.on('timeout',()=>q.destroy(new Error('WA_L10_INTERNAL_SEND_TIMEOUT')));q.on('error',reject);q.write(data);q.end();
   });
 }
-async function requestHandoff(conversationId,reason){
+async function requestHandoff(conversationId,reason,providerMessageId){
+  if(providerMessageId){
+    const guarded=await serviceRpc('aos_wa_l10_handoff_if_current_v1',{
+      p_provider_message_id:String(providerMessageId),
+      p_reason:l4.sanitizeReason(reason)
+    });
+    return guarded.data||{};
+  }
   const o=await serviceRpc('aos_wa3_handoff_request_v1',{p_conversation_id:conversationId,p_box_id:null,p_actor_id:null,p_reason:l4.sanitizeReason(reason)});
   return o.data||{};
 }

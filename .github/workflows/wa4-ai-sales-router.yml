@@ -65,6 +65,7 @@ jobs:
           node --check app/legacy-groq-model-hook.js
           node --check app/server-wa3.js
           node --test ci/wa4-ai-sales-router/ai-router.test.js
+          node --test app/wa4-hifu-resolution.test.js
           python3 ci/wa4-ai-sales-router/ui_contract.py
           python3 ci/wa3-boxes-routing-handoff/ui_contract.py
           python3 ci/wa2-conversation-live-inbox/ui_contract.py

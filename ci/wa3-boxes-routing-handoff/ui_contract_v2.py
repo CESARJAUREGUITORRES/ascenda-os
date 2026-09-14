@@ -13,7 +13,7 @@ assert 'function ensureMulti()' in shell
 assert 'return ensureMulti();' in shell
 assert "PUSH_SRC='/notification-push-s14.js?v=20260914-admin-push-p01'" in shell
 assert 'ensurePush().catch' in shell
-for token in ['/api/wa3/queue-summary','/api/wa3/claim-next','/api/wa3/team-summary','WA3_NOT_OWNER','ownershipLostRemount','Meta aceptó el mensaje','nextPollDelay','scheduleRefresh','30000','8000']:
+for token in ['/api/wa3/queue-summary','/api/wa3/claim-next','/api/wa3/team-summary','WA3_NOT_OWNER','ownershipLostRemount','Meta aceptó el mensaje','nextPollDelay','scheduleRefresh','45000','60000']:
     assert token in panel, token
 assert "setInterval(function(){refresh();},5000)" not in panel
 for forbidden in ['contact_number','message_body','conversation_id']:
