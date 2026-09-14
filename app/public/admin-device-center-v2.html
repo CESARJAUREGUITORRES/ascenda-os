@@ -201,7 +201,11 @@ function savePrefs(){
 }
 function localTest(){
  if(!('Notification'in window)){msg('Este dispositivo no soporta Notification API.','err');return}
- function show(){try{new Notification('ASCENDA · Prueba local',{body:'Las notificaciones del dispositivo están disponibles.',icon:'/icons/icon-192x192.png'})}catch(_){msg('No se pudo abrir la prueba local.','err')}}
+ function show(){
+  var opts={body:'Las notificaciones del dispositivo están disponibles.',icon:'/icons/icon-192x192.png',badge:'/icons/icon-192x192.png',tag:'aos-local-device-test',renotify:true,silent:false};
+  if('serviceWorker'in navigator)return navigator.serviceWorker.ready.then(function(reg){return reg.showNotification('ASCENDA · Prueba local',opts)}).catch(function(){try{return new Notification('ASCENDA · Prueba local',opts)}catch(_){msg('No se pudo abrir la prueba local.','err')}});
+  try{return new Notification('ASCENDA · Prueba local',opts)}catch(_){msg('No se pudo abrir la prueba local.','err')}
+ }
  function activateAndShow(){
   var p=(window.AOS_PUSH&&typeof window.AOS_PUSH.enable==='function')?window.AOS_PUSH.enable():Promise.resolve();
   return Promise.resolve(p).then(function(){show();return load();}).catch(function(x){show();msg('Permiso concedido; reintentaremos el enlace Push automáticamente: '+(x&&x.message||'pendiente'),'')})
