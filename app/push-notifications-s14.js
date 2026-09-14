@@ -165,7 +165,10 @@ function createPushService(opts) {
       entity_id: input.entityId,
       dedupe_key: payload.dedupe_key
     })
-    if (claim.claimed !== true || !claim.dispatch_id) return { skipped: true }
+    if (claim.claimed !== true || !claim.dispatch_id) {
+      if (String(claim && claim.status || '').toUpperCase() === 'DELIVERED') return { delivered: true, deduped: true }
+      return { skipped: true, deduped: claim && claim.deduped === true }
+    }
     const webSubscription = {
       endpoint: subscription.endpoint,
       keys: { p256dh: subscription.p256dh, auth: subscription.auth }
