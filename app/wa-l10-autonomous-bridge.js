@@ -35,6 +35,13 @@ function definiteTypingFailure(out){
   return definiteProviderCode(b.provider_error_code||'');
 }
 
+function transientSuggestionFailure(out){
+  const status=statusOf(out),b=bodyOf(out);
+  const code=cleanReason(b.error||'');
+  if(status<500)return '';
+  return /^(WA4_COPILOT_UNAVAILABLE|WA4B_GOVERNED_KNOWLEDGE_UNAVAILABLE|WA4_FAST_PRICE_UNAVAILABLE)$/.test(code)?code:'';
+}
+
 function createAutonomousBridge(deps){
   const {serviceRpc,suggestInternal,autoSend,requestHandoff,sendTyping}=deps;
   const log=deps.log||console;
@@ -103,6 +110,12 @@ function createAutonomousBridge(deps){
     try{
       const suggestionResult=await suggestInternal(claim.conversation_id);
       const suggestionBody=bodyOf(suggestionResult),suggestion=suggestionBody.suggestion;
+      const transientSuggestionError=transientSuggestionFailure(suggestionResult);
+      if(transientSuggestionError){
+        await record(claim,'ERROR',transientSuggestionError,{latency_ms:Date.now()-started});
+        log.error&&log.error('[WA-L10-BRIDGE] transient copilot failure; conversation remains AI_ACTIVE',transientSuggestionError);
+        return {ok:false,processed:true,outcome:'ERROR',reason:transientSuggestionError,transient:true};
+      }
       const nextAction=String((suggestion&&suggestion.next_action)||suggestionBody.next_action||'').toUpperCase();
       const needsHuman=suggestionBody.needs_human===true||(suggestion&&suggestion.needs_human===true)||nextAction.startsWith('HUMAN_');
       if(statusOf(suggestionResult)<200||statusOf(suggestionResult)>=300||!suggestion||!String(suggestion.reply||'').trim()||needsHuman){
@@ -172,4 +185,4 @@ function createAutonomousBridge(deps){
   return {enqueueWebhook,processProviderMessage,processProviderIds,recoverPending};
 }
 
-module.exports={createAutonomousBridge,extractInboundProviderIds,deterministicIdempotency,cleanReason};
+module.exports={createAutonomousBridge,extractInboundProviderIds,deterministicIdempotency,cleanReason,transientSuggestionFailure};

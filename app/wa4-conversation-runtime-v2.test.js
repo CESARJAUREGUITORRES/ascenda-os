@@ -1,6 +1,7 @@
 'use strict';
 const assert=require('assert');
 const rt=require('./wa4-conversation-runtime-v2');
+const copilot=require('./wa4-copilot');
 
 function m(direction,text,sec){
   return {direction,message_body:text,created_at:new Date(Date.UTC(2026,7,29,20,0,sec||0)).toISOString()};
@@ -128,6 +129,42 @@ function has(r,intent){assert(r.intents.includes(intent),'missing intent '+inten
   const r=rt.buildRuntimeContext({messages:[m('INBOUND','¿Me puedes confirmar si mañana hay horario?',0)],conversation:{}});
   assert.strictEqual(r.intents.includes('CONFIRM_BOOKING'),false);
   has(r,'SCHEDULE');
+}
+
+// Follow-up benefits must be explicit and inherit the prior HIFU family context.
+{
+  const messages=[m('INBOUND','Hola quiero más información sobre el Hifu',0),m('OUTBOUND','Claro, te cuento sobre HIFU.',5),m('INBOUND','¿Cuáles son los beneficios?',10)];
+  const r=rt.buildRuntimeContext({messages,conversation:{}});
+  has(r,'BENEFITS');
+  assert.strictEqual(r.state.treatment,'HIFU');
+  assert.strictEqual(r.next_best_action,'ANSWER_EXPLICIT_QUESTIONS');
+}
+
+// Generic HIFU must never elevate body/7D SKUs over the governed Frozen facial family.
+{
+  const runtime={state:{treatment:'HIFU'}};
+  assert.strictEqual(copilot.genericHifuIntent('hola quiero más información sobre el Hifu',runtime),true);
+  assert.strictEqual(copilot.genericHifuIntent('quiero HIFU 7D para brazos',runtime),false);
+  const rows=[
+    {knowledge_id:'service:body',domain:'CATALOG',title:'HIFU 7D BRAZOS',facts:{nombre:'HIFU 7D BRAZOS',categoria:'CORPORAL'}},
+    {knowledge_id:'service:hifutox',domain:'CATALOG',title:'HIFUTOX',facts:{nombre:'HIFUTOX',categoria:'HIFU'}},
+    {knowledge_id:'service:frozen',domain:'CATALOG',title:'ZI FROZEN BEAUTY',facts:{nombre:'ZI FROZEN BEAUTY',categoria:'HIFU'}},
+    {knowledge_id:'category:hifu',domain:'CATEGORY',title:'HIFU',facts:{nombre:'HIFU'}}
+  ];
+  const curated=copilot.curateGenericHifuRows(rows,'hola quiero más información sobre el Hifu',runtime);
+  assert.deepEqual(curated.map(x=>x.knowledge_id),['service:frozen','category:hifu']);
+}
+
+// Generic HIFU info/benefits use deterministic Frozen-family copy, never a body SKU.
+{
+  const bundle={items:[
+    {knowledge_id:'category:hifu',domain:'CATEGORY',title:'HIFU',facts:{nombre:'HIFU'}},
+    {knowledge_id:'service:frozen',domain:'CATALOG',title:'ZI FROZEN BEAUTY',facts:{nombre:'ZI FROZEN BEAUTY',categoria:'HIFU'}}
+  ]};
+  const info=copilot.deterministicGenericHifuDraft(bundle,{state:{treatment:'HIFU'},intents:['INFO']},'quiero información del HIFU');
+  assert.ok(info);assert.match(info.reply,/HIFU Frozen/);assert.doesNotMatch(info.reply,/7D BRAZOS/);
+  const benefits=copilot.deterministicGenericHifuDraft(bundle,{state:{treatment:'HIFU'},intents:['BENEFITS']},'cuáles son los beneficios');
+  assert.ok(benefits);assert.match(benefits.reply,/beneficios de HIFU Frozen/);assert.match(benefits.reply,/colágeno/);
 }
 
 console.log('WA4C Conversation Runtime V2 deterministic tests: PASS');

@@ -66,6 +66,25 @@ test('human-required suggestion hands off and never sends',async()=>{
   assert.equal(r.outcome,'HANDOFF');assert.equal(sends,0);assert.equal(handoffs,1);assert.deepEqual(events,['HANDOFF']);
 });
 
+test('transient Copilot 503 is terminal for the message but does not poison conversation continuity',async()=>{
+  let sends=0,handoffs=0;const events=[];
+  const bridge=createAutonomousBridge({
+    serviceRpc:async(name,p)=>{
+      if(name==='aos_wa_l10_bridge_claim_v1')return {data:claim(p.p_provider_message_id)};
+      if(name==='aos_wa_l10_bridge_event_v1'){events.push({type:p.p_event_type,reason:p.p_reason_code});return {data:{ok:true}};}
+      return {data:{ok:true}};
+    },
+    suggestInternal:async()=>({status:503,body:{ok:false,error:'WA4_COPILOT_UNAVAILABLE'}}),
+    autoSend:async()=>{sends++;return {status:200,body:{ok:true}};},
+    requestHandoff:async()=>{handoffs++;},
+    log:{error:()=>{}}
+  });
+  const r=await bridge.processProviderMessage('wamid.copilot.transient');
+  assert.equal(r.outcome,'ERROR');assert.equal(r.reason,'WA4_COPILOT_UNAVAILABLE');assert.equal(r.transient,true);
+  assert.equal(sends,0);assert.equal(handoffs,0);
+  assert.deepEqual(events,[{type:'ERROR',reason:'WA4_COPILOT_UNAVAILABLE'}]);
+});
+
 test('L4 BLOCK is terminal for this event and is not retried or handed off',async()=>{
   let sends=0,handoffs=0;const events=[];
   const bridge=createAutonomousBridge({
