@@ -3,6 +3,18 @@
 
 begin;
 
+update public.aos_paneles_disponibles
+set categoria='admin',
+    descripcion='Centro administrativo de dispositivos, salud Push y pruebas controladas del equipo.'
+where id='devices-notifications';
+
+update public.aos_usuarios
+set paneles_acceso=array_remove(coalesce(paneles_acceso,'{}'::text[]),'devices-notifications'),
+    updated_at=now()
+where activo=true
+  and not (upper(coalesce(rol,''))='ADMIN' or coalesce(nivel_jerarquia,999)=1)
+  and 'devices-notifications'=any(coalesce(paneles_acceso,'{}'::text[]));
+
 create or replace function public.aos_push_admin_overview_v1(p_payload jsonb default '{}'::jsonb)
 returns jsonb
 language plpgsql
