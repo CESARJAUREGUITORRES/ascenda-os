@@ -198,8 +198,8 @@
             <span class="ah-cu" id="ah-mu"></span>
           </div>
         </div>
-        <table class="ah-t"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th><th>Estado</th></tr></thead>
-        <tbody id="ah-mtb"><tr><td colspan="6"><div class="ah-ld"><div class="ah-sp"></div>Cargando...</div></td></tr></tbody></table>
+        <table class="ah-t"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center" title="Citas recuperadas o reactivadas">Reactiv.</th><th style="text-align:center" title="Citas creadas sin llamada origen">Agenda dir.</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th><th>Estado</th></tr></thead>
+        <tbody id="ah-mtb"><tr><td colspan="8"><div class="ah-ld"><div class="ah-sp"></div>Cargando...</div></td></tr></tbody></table>
       </div>
       <div class="ah-c" id="ah-acent" style="border-left:3px solid #16A34A;border-radius:0 12px 12px 0">
         <div class="ah-ct">Actividad
@@ -245,7 +245,7 @@
 // ═══════════════════════════════════════════════════════════════
 var _S='https://ituyqwstonmhnfshnaqz.supabase.co';
 var _K='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-var _D={rkTab:'ranking',rkD:null,pg:null,timer:null,prev:{ventas:-1,citas:-1},loadCount:0,chartRaw:null,chartAsesor:null,chartMode:'llamadas',loading:false,lastLoad:0,onVis:null,panelInflight:{}};
+var _D={rkTab:'ranking',rkD:null,pg:null,timer:null,prev:{ventas:-1,citas:-1,agendaScore:-1},loadCount:0,chartRaw:null,chartAsesor:null,chartMode:'llamadas',loading:false,lastLoad:0,onVis:null,panelInflight:{}};
 function _panelAdminShared(p,cb){var key=JSON.stringify(p||{}),wait=_D.panelInflight[key];if(wait){wait.push(cb);return;}_D.panelInflight[key]=[cb];var done=false,t=setTimeout(function(){if(done)return;done=true;var q=_D.panelInflight[key]||[];delete _D.panelInflight[key];q.forEach(function(fn){try{fn(null);}catch(e){console.error(e);}});},15000);_r('aos_panel_admin',p,function(d){if(done)return;done=true;clearTimeout(t);var q=_D.panelInflight[key]||[];delete _D.panelInflight[key];q.forEach(function(fn){try{fn(d);}catch(e){console.error(e);}});});}
 
 function _r(fn,p,cb){function go(a){fetch(_S+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){if(!r.ok&&a<2&&(r.status>=500||r.status===429)){setTimeout(function(){go(a+1);},5000);return null;}return r.json();}).then(function(d){if(d===null)return;cb(Array.isArray(d)?d[0]:d);}).catch(function(e){if(a<2)setTimeout(function(){go(a+1);},5000);else console.error(fn,e);});}go(1);}
@@ -299,9 +299,12 @@ function ahLoad(){
       });
     }
     _D.prev.ventas=nv;_D.prev.fact=fh;
-    ahSem(res.semaforo||[], _hoy());
     ahVDet(res.ventasHoy||[]);
-    ahAlertas(res.semaforo||[]);
+    _r('aos_monitoreo_equipo',{p_hoy:_hoy()},function(mon){
+      mon=Array.isArray(mon)?mon:(mon&&mon.filas?mon.filas:[]);
+      ahSem(mon||[],_hoy());
+      ahAlertas(mon||[]);
+    });
   });
   // PERFORMANCE GUARD: core cada ciclo; lecturas pesadas escalonadas.
   ahTicker();
@@ -468,13 +471,11 @@ function ahMonFecha(tipo){
 
 function ahMonLoad(){
   var fecha=_MON_FECHA||_hoy();
-  _panelAdminShared({p_hoy:fecha,p_ayer:_ayer(),p_mes_inicio:_mi()},function(res){
-    if(!res)return;
+  _r('aos_monitoreo_equipo',{p_hoy:fecha},function(mon){
+    mon=Array.isArray(mon)?mon:(mon&&mon.filas?mon.filas:[]);
     _s('ah-mu','Act. '+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
-    ahSem(res.semaforo||[],fecha);
-    // También actualizar chart si se filtró por fecha
+    ahSem(mon||[],fecha);
     if(_MON_FECHA&&_MON_FECHA!==_hoy()){
-      // Para fechas pasadas, cargar llamadas de ese día
       fetch(_S+'/rest/v1/rpc/aos_actividad_minutos',{method:'POST',headers:{'apikey':_K,'Authorization':'Bearer '+_K,'Content-Type':'application/json'},body:JSON.stringify({p_fecha:fecha,p_intervalo:5})})
       .then(function(r){return r.json();})
       .then(function(raw){
@@ -501,11 +502,11 @@ var muEl=document.getElementById('ah-mu');
 if(muEl&&fecha!==_hoy()){muEl.textContent='Fecha: '+fecha;}
 var map={};
       /* Dynamic operational roster: render only advisors with real activity in the selected period. */
-      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&parseInt(s.llamadas||0)>0;}).map(function(s){return s.asesor;});
+      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&(parseInt(s.llamadas||0)+parseInt(s.citas||0)+parseInt(s.reactivadas||0)+parseInt(s.agenda_directa||0)>0);}).map(function(s){return s.asesor;});
       todos=todos.filter(function(n,i,a){return a.indexOf(n)===i;});
       (sem||[]).forEach(function(s){map[s.asesor]=s;});
       var tb=document.getElementById('ah-mtb');if(!tb)return;
-      var totalCitas=0;
+      var totalScore=0;
       tb.innerHTML=todos.map(function(n){
         var s=map[n];
         // Sede real del turno de hoy
@@ -544,27 +545,32 @@ var map={};
             }
           }
           var cv=s.llamadas>0?Math.round((s.citas||0)/s.llamadas*100):0;
-          totalCitas+=parseInt(s.citas||0);
+          var react=parseInt(s.reactivadas||0),direct=parseInt(s.agenda_directa||0),citas=parseInt(s.citas||0);
+          totalScore+=citas+react+direct;
           var trBg=(cls==='bg-r'||cls==='bg-i')?'#FAFAFA':'';
           return '<tr data-asesor="'+_e(s.asesor)+'" onclick="ahChartFilter(\''+_e(s.asesor)+'\')" style="background:'+trBg+'" class="'+((_D.chartAsesor===s.asesor)?'sel':'')+'">"<td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
             '<td style="text-align:center;font-family:Exo 2,sans-serif;font-weight:800;color:#0A4FBF">'+_e(s.llamadas||0)+'</td>'+
             '<td style="text-align:center;font-weight:700;color:#16A34A">+'+_e(s.citas||0)+'</td>'+
+            '<td style="text-align:center;font-weight:700;color:#D97706">+'+_e(s.reactivadas||0)+'</td>'+
+            '<td style="text-align:center;font-weight:700;color:#7C3AED">+'+_e(s.agenda_directa||0)+'</td>'+
             '<td style="text-align:center;color:#00C9A7;font-weight:600">'+cv+'%</td>'+
             '<td style="font-size:9px;color:#6B7BA8">'+_e(s.ult_hora||'—')+'<br>'+_e(s.ult_numero||'')+'</td>'+
             '<td><span class="ah-bg '+cls+'">'+est+'</span></td></tr>';
         }
-        return '<tr><td><b>'+n+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td><td>0</td><td>+0</td><td>0%</td><td style="font-size:9px;color:#6B7BA8">—</td><td><span class="ah-bg bg-i">SIN ACTIV.</span></td></tr>';
+        return '<tr><td><b>'+n+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td><td>0</td><td>+0</td><td>+0</td><td>+0</td><td>0%</td><td style="font-size:9px;color:#6B7BA8">—</td><td><span class="ah-bg bg-i">SIN ACTIV.</span></td></tr>';
       }).join('');
-      // Notif citas — con detalle del asesor
-      if(_D.loadCount>=2&&_D.prev.citas>=0&&totalCitas>_D.prev.citas){
-        // Fetch latest cita-generating call
-        _q('aos_llamadas','select=asesor,tratamiento,numero_limpio&fecha=eq.'+_hoy()+'&estado=like.*CITA*&order=hora_llamada.desc&limit=1',function(lr){
-          var l=(lr&&lr[0])||{};
-          var dc=totalCitas-_D.prev.citas;
-          ahN('cita','📅 Nueva cita agendada','<b>'+_e(l.asesor||'—')+'</b> · '+_e(l.tratamiento||'—')+'<br>+'+dc+' cita'+(dc>1?'s':'')+' hoy');
+      // Competitive appointment score toast — mirrors canonical Push semantics.
+      if(fecha===_hoy()&&_D.loadCount>=2&&_D.prev.agendaScore>=0&&totalScore>_D.prev.agendaScore){
+        var delta=totalScore-_D.prev.agendaScore;
+        _r('aos_callcenter_score_latest_v1',{p_fecha:fecha},function(r){
+          var x=r&&r.row?r.row:null;if(!x)return;
+          var cls=x.class==='REACTIVADA'?'REACTIVADA':x.class==='AGENDA_DIRECTA'?'AGENDA DIRECTA':'CITA NUEVA';
+          var sub=x.subtype==='CALLBACK'?'Callback/entrante':x.subtype==='SEGUIMIENTO'?'Seguimiento':x.subtype==='LLAMADA_COMERCIAL'?'Llamada comercial':x.subtype==='REACTIVACION'?'Recuperación/reactivación':x.subtype==='AGENDA_DIRECTA'?'Agenda directa':'Cita nueva';
+          var plural=x.class==='REACTIVADA'?'reactivadas':x.class==='AGENDA_DIRECTA'?'agendas directas':'citas';
+          ahN('cita',_e(x.asesor||'—')+' · '+cls+' +'+delta,'<b>Hoy: '+_e(x.daily_total||1)+' '+plural+'</b> · '+_e(sub)+(x.treatment?'<br>'+_e(x.treatment):''));
         });
       }
-      _D.prev.citas=totalCitas;
+      _D.prev.agendaScore=totalScore;
     });
     }); /* close _q aos_estado_equipo */
   });
