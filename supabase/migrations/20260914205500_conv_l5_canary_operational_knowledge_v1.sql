@@ -12,7 +12,7 @@ insert into public.aos_knowledge_nodes_v1(
   status,version,approved_at,updated_at
 ) values (
   'OP_PROFESSIONAL_ASSIGNMENT_DYNAMIC',
-  'OPERATIONAL_POLICY',
+  'POLICY',
   null,
   'Profesional que atiende según agenda',
   '["quien es la doctora que atiende","quién es la doctora que atiende","y quien es la doctora que atiende","y quién es la doctora que atiende","que doctora atiende","qué doctora atiende","quien atiende","quién atiende","que profesional atiende","qué profesional atiende"]'::jsonb,
@@ -53,7 +53,7 @@ insert into public.aos_knowledge_nodes_v1(
   status,version,approved_at,updated_at
 ) values (
   'OP_REALTIME_AVAILABILITY_DYNAMIC',
-  'OPERATIONAL_POLICY',
+  'POLICY',
   null,
   'Turnos y disponibilidad en tiempo real',
   '["que dias tienes turnos","qué días tienes turnos","o que dias tienes turnos","o qué días tienes turnos","que dias hay turnos","qué días hay turnos","hay turnos","que disponibilidad tienes","qué disponibilidad tienes"]'::jsonb,
