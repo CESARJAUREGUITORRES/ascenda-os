@@ -55,7 +55,7 @@ ok(!center.includes('supabase.co'),'unified center must not directly call Supaba
 ok(!center.includes('eyJhbGciOi'),'unified center must not embed anon JWT')
 ok(!center.includes('aos_admin_notificaciones_v1'),'new admin center must not trust direct legacy reader')
 ok(pushClient.includes('/notification-center-s15.js?v=20260817-s15-auth-p02'),'auth-hardened notification center cache version missing')
-ok(sw.includes('/notification-push-s14.js?v=20260817-push-s15-auth-p02'),'service-worker client cache version missing')
+ok(sw.includes('/notification-push-s14.js?v=20260914-admin-push-p01'),'service-worker client cache version missing')
 
 ok(rollback.includes('drop function if exists public.aos_notification_inbox_actor_v1(jsonb)'),'actor inbox rollback missing')
 ok(rollback.includes('grant execute on function public.aos_list_notificaciones(text,date) to anon,authenticated,service_role'),'compatibility rollback grant missing')

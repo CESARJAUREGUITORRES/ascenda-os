@@ -44,11 +44,35 @@ function subscribeFresh(reg,cfg){return reg.pushManager.subscribe({userVisibleOn
 function ensureSubscription(){if(S.busy||!S.enabled)return Promise.resolve(status());if(!supported())return Promise.resolve(status());if(Notification.permission!=='granted')return Promise.resolve(status());S.busy=true;return Promise.all([navigator.serviceWorker.ready,api('/api/push/config')]).then(function(parts){var reg=parts[0],cfg=parts[1];if(!cfg.public_key)throw new Error('PUSH_PUBLIC_KEY_MISSING');return reg.pushManager.getSubscription().then(function(existing){if(!existing)return subscribeFresh(reg,cfg).then(saveSubscription);return saveSubscription(existing).then(function(d){if(!d||d.reset_required!==true)return d;return Promise.resolve(existing.unsubscribe()).catch(function(){return false;}).then(function(){return subscribeFresh(reg,cfg).then(saveSubscription).then(function(out){if(out&&out.reset_required===true)throw new Error('PUSH_SUBSCRIPTION_RECOVERY_FAILED');if(S.last)S.last.recovered=true;return out;});});});});}).catch(function(e){S.last={registered:false,error:String(e&&e.message||e),at:new Date().toISOString()};return status();}).finally(function(){S.busy=false;});}
 function enable(){S.enabled=true;try{localStorage.setItem('aos_push_enabled','1');}catch(_){}if(!supported())return Promise.resolve(status());if(Notification.permission==='granted')return ensureSubscription();if(Notification.permission==='default')return Notification.requestPermission().then(function(p){return p==='granted'?ensureSubscription():status();});return Promise.resolve(status());}
 function disable(){S.enabled=false;try{localStorage.setItem('aos_push_enabled','0');}catch(_){}if(!supported())return Promise.resolve(status());return navigator.serviceWorker.ready.then(function(reg){return reg.pushManager.getSubscription();}).then(function(sub){if(!sub)return status();var endpoint=sub.endpoint;return api('/api/push/unsubscribe',{method:'POST',body:{endpoint:endpoint}}).catch(function(){}).then(function(){return sub.unsubscribe();}).then(function(){return status();});}).catch(function(){return status();});}
+function localTest(){
+  if(!supported()||Notification.permission!=='granted')return Promise.reject(new Error('NOTIFICATION_PERMISSION_REQUIRED'));
+  var opts={body:'Las notificaciones del dispositivo están disponibles.',icon:'/icons/icon-192x192.png',badge:'/icons/icon-192x192.png',tag:'aos-local-device-test',renotify:true,silent:false};
+  return navigator.serviceWorker.ready.then(function(reg){return reg.showNotification('ASCENDA · Prueba local',opts);});
+}
 function status(){return {version:S.version,supported:supported(),enabled:S.enabled,permission:typeof Notification==='undefined'?'unsupported':Notification.permission,busy:S.busy,last:S.last};}
 function loadCenter(){if(window.__AOS_NOTIFICATION_CENTER_S15||document.querySelector('script[data-aos-notification-center]'))return;var s=document.createElement('script');s.src='/notification-center-s15.js?v=20260817-s15-auth-p02';s.async=true;s.dataset.aosNotificationCenter='1';document.head.appendChild(s);}
 function bindPermissionGesture(){document.addEventListener('click',function(e){if(!S.enabled||!supported()||Notification.permission!=='default')return;var node=e.target&&e.target.closest?e.target.closest('#nav-admin-whatsapp,#nav-whatsapp-agent,#nav-advisor-coord,#nav-admin-coord,#nav-admin-chats,#nav-advisor-sales,#nav-admin-sales,#nav-advisor-commissions,#nav-admin-commissions,#nav-advisor-agenda,#nav-advisor-citas,#nav-admin-agenda'):null;if(node)enable().catch(function(){});},{capture:true});}
-function boot(){loadCenter();bindPermissionGesture();if(S.enabled&&supported()&&Notification.permission==='granted')setTimeout(function(){ensureSubscription();},1200);}
+function advisorOnboarding(tryNo){
+  tryNo=Number(tryNo||0);
+  if(!window.AOS||!AOS.ctx||!AOS.role){if(tryNo<20)setTimeout(function(){advisorOnboarding(tryNo+1);},300);return;}
+  if(AOS.role==='ADMIN'||!S.enabled||!supported())return;
+  if(Notification.permission==='granted'){ensureSubscription().catch(function(){});return;}
+  if(document.getElementById('_aosPushAdvisorSetup'))return;
+  var d=document.createElement('div');d.id='_aosPushAdvisorSetup';
+  d.style.cssText='position:fixed;right:16px;bottom:18px;z-index:12000;width:min(360px,calc(100vw - 32px));background:#fff;border:1px solid #DDE4F5;border-radius:16px;box-shadow:0 14px 38px rgba(7,29,74,.20);padding:12px 13px;font-family:Inter,system-ui,sans-serif';
+  var blocked=Notification.permission==='denied';
+  d.innerHTML='<div style="font-size:12px;font-weight:850;color:#071D4A">🔔 '+(blocked?'Notificaciones bloqueadas':'Activa las notificaciones')+'</div>'+
+    '<div style="font-size:10px;line-height:1.45;color:#6B7BA8;margin-top:4px">'+(blocked?'ASCENDA no puede mostrar avisos del sistema hasta que habilites el permiso del sitio en el navegador.':'Recibe ventas, citas, comisiones, tareas y avisos aunque estés trabajando en otra ventana.')+'</div>'+
+    '<div style="display:flex;gap:7px;margin-top:9px"><button id="_aosPushAdvisorEnable" style="border:0;border-radius:9px;padding:8px 11px;background:#071D4A;color:white;font-size:10px;font-weight:800;cursor:pointer">'+(blocked?'Revisar permiso':'Activar ahora')+'</button><button id="_aosPushAdvisorClose" style="border:0;border-radius:9px;padding:8px 11px;background:#EEF3FC;color:#071D4A;font-size:10px;font-weight:800;cursor:pointer">Después</button></div>';
+  document.body.appendChild(d);
+  var close=document.getElementById('_aosPushAdvisorClose');if(close)close.onclick=function(){try{d.remove();}catch(_){}};
+  var btn=document.getElementById('_aosPushAdvisorEnable');if(btn)btn.onclick=function(){
+    if(Notification.permission==='denied'){alert('Abre la configuración de notificaciones del sitio de ASCENDA en Chrome/Edge y selecciona Permitir.');return;}
+    btn.disabled=true;enable().then(function(){if(Notification.permission==='granted'){try{d.remove();}catch(_){}}else btn.disabled=false;}).catch(function(){btn.disabled=false;});
+  };
+}
+function boot(){loadCenter();bindPermissionGesture();if(S.enabled&&supported()&&Notification.permission==='granted')setTimeout(function(){ensureSubscription();},1200);setTimeout(function(){advisorOnboarding(0);},1600);}
 
-window.AOS_PUSH={enable:enable,disable:disable,status:status,ensure:ensureSubscription,version:S.version};
+window.AOS_PUSH={enable:enable,disable:disable,status:status,ensure:ensureSubscription,localTest:localTest,version:S.version};
 boot();
 })();

@@ -83,7 +83,8 @@ const deviceApi = createDeviceApi({
   serviceRpc: serviceRpc,
   writeJson: writeJson,
   readRaw: readRaw,
-  parseJson: parseJson
+  parseJson: parseJson,
+  push: push
 })
 
 async function runNotificationPump() {

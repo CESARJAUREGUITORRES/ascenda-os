@@ -11,7 +11,7 @@ const wa4=read('app/server-wa4.js');
 assert(finalMode||shell.includes("MULTI_SRC='/wa-multiagent-v2-panel.js?v=20260822-wa3-multiagent-v2-p03'"));
 assert(shell.includes('function ensureMulti()'));
 assert(shell.includes('return ensureMulti();'));
-assert(shell.includes("PUSH_SRC='/notification-push-s14.js?v=20260818-s15-5-shell-mount-p01'"));
+assert(shell.includes("PUSH_SRC='/notification-push-s14.js?v=20260914-admin-push-p01'"));
 assert(shell.includes('ensurePush().catch'));
 for(const token of ['/api/wa3/queue-summary','/api/wa3/claim-next','/api/wa3/team-summary','WA3_NOT_OWNER','ownershipLostRemount','Meta aceptó el mensaje','nextPollDelay','scheduleRefresh','45000','60000',"'aos:wa3-core-event'"])assert(panel.includes(token),token);
 assert(!panel.includes("setInterval(function(){refresh();},5000)"),'fixed 5s queue/team polling returned');

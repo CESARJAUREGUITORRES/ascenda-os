@@ -16,7 +16,7 @@ h1{font-size:24px;margin:0;color:var(--navy)}.sub{font-size:12px;color:var(--mut
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-bottom:1px solid #EEF1F7}.row:last-child{border-bottom:0}.rtitle{font-size:11px;font-weight:800}.rsub{font-size:9px;color:var(--muted);margin-top:3px}.toggle{width:38px;height:22px;border-radius:20px;background:#CDD5E6;position:relative;cursor:pointer;flex:none}.toggle:after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:white;left:3px;top:3px;transition:.15s}.toggle.on{background:var(--green)}.toggle.on:after{left:19px}
 .device{border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:8px}.device:last-child{margin-bottom:0}.dhead{display:flex;align-items:center;gap:10px}.dicon{font-size:22px}.dname{font-size:11px;font-weight:850}.dmeta{font-size:9px;color:var(--muted);margin-top:2px}.tag{margin-left:auto;font-size:8px;font-weight:850;padding:4px 7px;border-radius:99px;background:#F1F5F9;color:#475569}.tag.me{background:#E8FFF9;color:#087A68}
 .notice{font-size:10px;line-height:1.5;padding:10px 12px;border-radius:12px;background:#FFF8E8;color:#8A5B00;margin-bottom:12px}.err{background:#FEECEC;color:#991B1B}.ok{background:#E8FFF9;color:#087A68}
-.empty{font-size:10px;color:var(--muted);text-align:center;padding:20px}.foot{font-size:9px;color:#8A98B6;text-align:center;margin-top:20px}
+.empty{font-size:10px;color:var(--muted);text-align:center;padding:20px}.fleet-user{border:1px solid var(--line);border-radius:13px;padding:12px;margin-bottom:9px}.fleet-head{display:flex;align-items:center;gap:9px}.fleet-name{font-size:11px;font-weight:850}.fleet-dev{display:flex;align-items:center;gap:8px;padding:8px 0 0 18px;font-size:9px;color:var(--muted)}.fleet-actions{margin-left:auto;display:flex;gap:6px}.mini{border:0;border-radius:8px;padding:6px 8px;font-size:8px;font-weight:800;cursor:pointer;background:#EEF3FC;color:var(--navy)}.mini.primary{background:var(--navy);color:white}.dot{width:8px;height:8px;border-radius:50%;background:#94A3B8;display:inline-block}.dot.ok{background:#00C9A7}.dot.warn{background:#F59E0B}.dot.bad{background:#DC2626}.foot{font-size:9px;color:#8A98B6;text-align:center;margin-top:20px}
 @media(max-width:760px){.grid{grid-template-columns:1fr}.top{flex-direction:column}.kpis{grid-template-columns:1fr 1fr 1fr}}
 </style>
 </head>
@@ -52,6 +52,13 @@ h1{font-size:24px;margin:0;color:var(--navy)}.sub{font-size:12px;color:var(--mut
         <h2>Mis dispositivos</h2>
         <div id="devices"><div class="empty">Aún no se cargaron dispositivos.</div></div>
       </div>
+      <div class="card" id="adminFleetCard" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px">
+          <div><h2 style="margin:0">Salud Push del equipo</h2><div class="sub">Vista administrativa por usuario y dispositivo.</div></div>
+          <button class="btn" id="testAllBtn">Probar a todos</button>
+        </div>
+        <div id="fleet"><div class="empty">Cargando equipo…</div></div>
+      </div>
     </div>
 
     <div>
@@ -84,7 +91,7 @@ var CHANNELS=[
  ['SENTINEL','Sentinel','Alertas operativas y de seguridad'],
  ['SYSTEM','Sistema','Actualizaciones y avisos de ASCENDA']
 ];
-var state={snap:null,devices:[],current:null,prefs:{}};
+var state={snap:null,devices:[],current:null,prefs:{},admin:null};
 function e(id){return document.getElementById(id)}
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function msg(text,kind){var n=e('notice');n.className='notice '+(kind||'');n.textContent=text;n.style.display='block';if(n._anim)try{n._anim.cancel()}catch(_){};if(typeof n.animate==='function'){n._anim=n.animate([{opacity:1},{opacity:1,offset:.82},{opacity:0}],{duration:5000,easing:'linear'});n._anim.finished.then(function(){n.style.display='none';n.style.opacity=''}).catch(function(){})}}
@@ -136,11 +143,57 @@ function renderChannels(){
  var p=state.prefs||{};e('channels').innerHTML=CHANNELS.map(function(x){var on=p[x[0]]!==false;return '<div class="row"><div><div class="rtitle">'+esc(x[1])+'</div><div class="rsub">'+esc(x[2])+'</div></div><div class="toggle '+(on?'on':'')+'" data-channel="'+x[0]+'"></div></div>'}).join('');
  e('channels').querySelectorAll('.toggle').forEach(function(t){t.onclick=function(){this.classList.toggle('on');state.prefs[this.getAttribute('data-channel')]=this.classList.contains('on')}})
 }
+function isAdmin(){try{return !!(window.AOS&&AOS.role==='ADMIN')}catch(_){return false}}
+function fleetHealth(u){
+ var ds=Array.isArray(u.devices)?u.devices:[];
+ var ready=ds.some(function(d){return d.notification_permission==='granted'&&d.push_supported===true&&Number(d.active_subscriptions||0)>0});
+ if(ready)return 'ok';
+ if(Number(u.legacy_active_subscriptions||0)>0)return 'warn';
+ return 'bad';
+}
+function fmtDate(v){if(!v)return '—';try{return new Date(v).toLocaleString('es-PE')}catch(_){return '—'}}
+function renderFleet(){
+ var card=e('adminFleetCard'),root=e('fleet');if(!card||!root)return;
+ if(!isAdmin()){card.style.display='none';return}
+ card.style.display='block';
+ var users=state.admin&&Array.isArray(state.admin.users)?state.admin.users:[];
+ if(!users.length){root.innerHTML='<div class="empty">Sin usuarios activos.</div>';return}
+ root.innerHTML=users.map(function(u){
+  var h=fleetHealth(u),ds=Array.isArray(u.devices)?u.devices:[];
+  var devices=ds.length?ds.map(function(d){
+   var ready=d.notification_permission==='granted'&&d.push_supported===true&&Number(d.active_subscriptions||0)>0;
+   return '<div class="fleet-dev"><span class="dot '+(ready?'ok':'warn')+'"></span><span style="flex:1">'+esc(d.device_name||d.os_family||'Dispositivo')+' · '+esc(d.runtime_surface||'')+' · '+esc(fmtDate(d.last_seen_at))+'</span><button class="mini" data-test-device="'+esc(d.id)+'">Probar</button></div>'
+  }).join(''):'<div class="fleet-dev"><span class="dot bad"></span><span>Sin dispositivo moderno registrado</span></div>';
+  var legacy=Number(u.legacy_active_subscriptions||0)>0?'<div class="rsub" style="margin-top:5px">'+u.legacy_active_subscriptions+' suscripción legacy activa(s)</div>':'';
+  return '<div class="fleet-user"><div class="fleet-head"><span class="dot '+h+'"></span><div><div class="fleet-name">'+esc(u.nombre||u.codigo_asesor||'Usuario')+'</div><div class="rsub">'+esc(u.rol||'')+'</div>'+legacy+'</div><div class="fleet-actions"><button class="mini primary" data-test-user="'+esc(u.user_id)+'">Probar usuario</button></div></div>'+devices+'</div>'
+ }).join('');
+ root.querySelectorAll('[data-test-device]').forEach(function(b){b.onclick=function(){adminTest({device_id:this.getAttribute('data-test-device')},this)}});
+ root.querySelectorAll('[data-test-user]').forEach(function(b){b.onclick=function(){adminTest({user_id:this.getAttribute('data-test-user')},this)}});
+}
+function loadAdminOverview(){
+ if(!isAdmin())return Promise.resolve(null);
+ return api('/api/devices/admin/overview').then(function(d){
+  state.admin=d;
+  if(!state.devices.length&&d.actor_id&&Array.isArray(d.users)){
+    var me=d.users.find(function(u){return String(u.user_id)===String(d.actor_id)});
+    if(me&&Array.isArray(me.devices)){state.devices=me.devices;state.current=state.devices.find(function(x){return x.installation_id===state.snap.installation_id})||null;renderDevices()}
+  }
+  renderFleet();return d;
+ }).catch(function(x){msg('No se pudo cargar la salud Push del equipo: '+x.message,'')})
+}
+function adminTest(payload,btn){
+ if(btn)btn.disabled=true;
+ return api('/api/devices/admin/test',{method:'POST',body:payload}).then(function(d){
+  msg('Prueba Push: '+Number(d.delivered||0)+' entregado(s), '+Number(d.failed||0)+' fallido(s), '+Number(d.skipped||0)+' omitido(s).',d.failed?'':'ok');
+  return loadAdminOverview();
+ }).catch(function(x){msg('No se pudo ejecutar la prueba Push: '+x.message,'err')}).finally(function(){if(btn)btn.disabled=false})
+}
 function load(){
  renderSnapshot();return api('/api/devices').then(function(d){
   state.devices=d.rows||[];state.current=state.devices.find(function(x){return x.installation_id===state.snap.installation_id})||null;
   state.prefs=Object.assign({},state.current&&state.current.channel_preferences||{});renderDevices();renderChannels();
- }).catch(function(x){renderDevices();renderChannels();msg('El centro todavía no está activado en este entorno: '+x.message,'')})
+  return loadAdminOverview();
+ }).catch(function(x){renderDevices();renderChannels();if(isAdmin())return loadAdminOverview();msg('El centro todavía no está activado en este entorno: '+x.message,'')})
 }
 function savePrefs(){
  if(!state.current){msg('Primero registra este dispositivo.','');return}
@@ -148,7 +201,10 @@ function savePrefs(){
 }
 function localTest(){
  if(!('Notification'in window)){msg('Este dispositivo no soporta Notification API.','err');return}
- function show(){try{new Notification('ASCENDA · Prueba local',{body:'Las notificaciones del dispositivo están disponibles.',icon:'/icons/icon-192x192.png'})}catch(_){msg('No se pudo abrir la prueba local.','err')}}
+ function show(){
+  if(window.AOS_PUSH&&typeof window.AOS_PUSH.localTest==='function')return window.AOS_PUSH.localTest().catch(function(){try{return new Notification('ASCENDA · Prueba local',{body:'Las notificaciones del dispositivo están disponibles.',icon:'/icons/icon-192x192.png'})}catch(_){msg('No se pudo abrir la prueba local.','err')}});
+  try{return new Notification('ASCENDA · Prueba local',{body:'Las notificaciones del dispositivo están disponibles.',icon:'/icons/icon-192x192.png'})}catch(_){msg('No se pudo abrir la prueba local.','err')}
+ }
  function activateAndShow(){
   var p=(window.AOS_PUSH&&typeof window.AOS_PUSH.enable==='function')?window.AOS_PUSH.enable():Promise.resolve();
   return Promise.resolve(p).then(function(){show();return load();}).catch(function(x){show();msg('Permiso concedido; reintentaremos el enlace Push automáticamente: '+(x&&x.message||'pendiente'),'')})
@@ -157,7 +213,7 @@ function localTest(){
  if(Notification.permission==='default')Notification.requestPermission().then(function(p){renderSnapshot();if(p==='granted')activateAndShow();else msg('Permiso de notificaciones no concedido.','')});
  else msg('Las notificaciones están bloqueadas en el navegador/sistema.','err')
 }
-e('registerBtn').onclick=register;e('reloadBtn').onclick=load;e('savePrefsBtn').onclick=savePrefs;e('localTestBtn').onclick=localTest;
+e('registerBtn').onclick=register;e('reloadBtn').onclick=load;e('savePrefsBtn').onclick=savePrefs;e('localTestBtn').onclick=localTest;if(e('testAllBtn'))e('testAllBtn').onclick=function(){adminTest({all:true},this)};
 renderSnapshot();renderChannels();load();
 })();
 </script>

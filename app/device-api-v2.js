@@ -10,8 +10,9 @@ function createDeviceApi(deps) {
   const writeJson = deps.writeJson
   const readRaw = deps.readRaw
   const parseJson = deps.parseJson
+  const push = deps.push
 
-  if (![verifyApp, serviceRpc, writeJson, readRaw, parseJson].every(function(x){ return typeof x === 'function' })) {
+  if (![verifyApp, serviceRpc, writeJson, readRaw, parseJson].every(function(x){ return typeof x === 'function' }) || !push || typeof push.adminTestTargets !== 'function') {
     throw new Error('DEVICE_API_DEPENDENCIES_REQUIRED')
   }
 
@@ -85,9 +86,38 @@ function createDeviceApi(deps) {
     }
   }
 
+  async function adminOverview(req, res) {
+    const a = await actor(req, res); if (!a) return
+    try {
+      const out = await serviceRpc('aos_push_admin_overview_v1', { p_payload:{ actor_id:a.actor_id } })
+      if (!out || out.ok !== true) return writeJson(res, 403, out || { ok:false, error:'ADMIN_DEVICE_OVERVIEW_REJECTED' })
+      return writeJson(res, 200, out)
+    } catch (e) {
+      return writeJson(res, 503, { ok:false, error:'ADMIN_DEVICE_OVERVIEW_UNAVAILABLE' })
+    }
+  }
+
+  async function adminTest(req, res) {
+    const a = await actor(req, res); if (!a) return
+    const b = await body(req, res, 32 * 1024); if (!b) return
+    try {
+      const out = await push.adminTestTargets(a.actor_id, {
+        device_id: b.device_id || null,
+        user_id: b.user_id || null,
+        all: b.all === true
+      })
+      return writeJson(res, 200, out)
+    } catch (e) {
+      const status = String(e && e.message || '').indexOf('ADMIN_REQUIRED') >= 0 ? 403 : 503
+      return writeJson(res, status, { ok:false, error: status === 403 ? 'ADMIN_REQUIRED' : 'ADMIN_PUSH_TEST_UNAVAILABLE' })
+    }
+  }
+
   async function handle(req, res, url) {
     const p = url.pathname
     if (p === '/api/devices/health' && req.method === 'GET') return writeJson(res, 200, {ok:true,version:'APP-PWA-V2-517',auth:'actor-bound'})
+    if (p === '/api/devices/admin/overview' && req.method === 'GET') return adminOverview(req,res)
+    if (p === '/api/devices/admin/test' && req.method === 'POST') return adminTest(req,res)
     if (p === '/api/devices' && req.method === 'GET') return list(req,res)
     if (p === '/api/devices/register' && req.method === 'POST') return register(req,res)
     if (p === '/api/devices/presence' && req.method === 'POST') return presence(req,res)

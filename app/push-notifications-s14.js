@@ -126,6 +126,7 @@ function createPushService(opts) {
       version: 'AOS_PUSH_V1',
       channel: channel,
       event_type: text(n && n.event_type, 80) || 'notification',
+      priority: text(n && n.priority, 24).toUpperCase() || 'NORMAL',
       title: text(n && n.title, 120) || 'ASCENDA',
       body: text(n && n.body, 320),
       icon: text(n && n.icon, 256) || '/icons/icon-192x192.png',
@@ -164,7 +165,10 @@ function createPushService(opts) {
       entity_id: input.entityId,
       dedupe_key: payload.dedupe_key
     })
-    if (claim.claimed !== true || !claim.dispatch_id) return { skipped: true }
+    if (claim.claimed !== true || !claim.dispatch_id) {
+      if (String(claim && claim.status || '').toUpperCase() === 'DELIVERED') return { delivered: true, deduped: true }
+      return { skipped: true, deduped: claim && claim.deduped === true }
+    }
     const webSubscription = {
       endpoint: subscription.endpoint,
       keys: { p256dh: subscription.p256dh, auth: subscription.auth }
@@ -304,13 +308,63 @@ function createPushService(opts) {
     return totals
   }
 
+  async function adminTestTargets(actorId, input) {
+    await ensureVapid()
+    const q = Object.assign({}, input || {}, { actor_id: actorId })
+    const target = await rpc('aos_push_admin_targets_v1', q)
+    const rows = Array.isArray(target.rows) ? target.rows : []
+    const out = { ok: true, targets: rows.length, delivered: 0, failed: 0, skipped: 0, rows: [] }
+    const stamp = Date.now().toString(36)
+    for (let i = 0; i < rows.length; i++) {
+      const sub = rows[i]
+      const payload = {
+        version: 'AOS_PUSH_V1',
+        channel: 'SYSTEM',
+        event_type: 'ADMIN_PUSH_TEST',
+        priority: 'ALTA',
+        force_system: true,
+        title: 'ASCENDA · Prueba Push',
+        body: 'Prueba administrada de notificaciones para este dispositivo.',
+        icon: '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        tag: 'aos-admin-push-test-' + stamp + '-' + i,
+        route: '/app.html',
+        entity_id: String(sub.device_id || sub.id || ''),
+        dedupe_key: 'admin-push-test:' + stamp + ':' + String(sub.id || i),
+        created_at: new Date().toISOString(),
+        data: { kind: 'AOS_PUSH', channel: 'SYSTEM', force_system: true, priority: 'ALTA' }
+      }
+      try {
+        const r = await sendToSubscription({
+          subscription: sub,
+          payload: payload,
+          recipientUserId: sub.user_id,
+          channel: 'SYSTEM',
+          eventType: 'ADMIN_PUSH_TEST',
+          entityId: String(sub.device_id || sub.id || ''),
+          ttl: 300,
+          urgency: 'high',
+          topic: 'admin-push-test-' + String(sub.device_id || sub.id || i)
+        })
+        if (r.delivered) out.delivered++
+        else if (r.failed) out.failed++
+        else out.skipped++
+        out.rows.push({ user_id: sub.user_id, device_id: sub.device_id || null, device_name: sub.device_name || '', os_family: sub.os_family || '', runtime_surface: sub.runtime_surface || '', status: r.delivered ? 'DELIVERED' : r.failed ? 'FAILED' : 'SKIPPED' })
+      } catch (e) {
+        out.failed++
+        out.rows.push({ user_id: sub.user_id, device_id: sub.device_id || null, device_name: sub.device_name || '', os_family: sub.os_family || '', runtime_surface: sub.runtime_surface || '', status: 'FAILED' })
+      }
+    }
+    return out
+  }
+
   function status() {
     return { version: 'AOS_PUSH_V1', configured: !!vapid, subject: vapidSubject }
   }
 
   return {
     publicConfig, subscribe, unsubscribe, dispatchWhatsAppEnvelope, dispatchPendingNotifications,
-    ensureVapid, status, messagePreview, senderLabel, genericEnvelope
+    adminTestTargets, ensureVapid, status, messagePreview, senderLabel, genericEnvelope
   }
 }
 
