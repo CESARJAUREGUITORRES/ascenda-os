@@ -301,7 +301,7 @@ function ahLoad(){
     _D.prev.ventas=nv;_D.prev.fact=fh;
     ahVDet(res.ventasHoy||[]);
     _r('aos_monitoreo_equipo',{p_hoy:_hoy()},function(mon){
-      mon=Array.isArray(mon)?mon:(mon&&mon.filas?mon.filas:[]);
+      mon=Array.isArray(mon)?mon:(mon&&mon.filas?mon.filas:[]);mon=mon.map(function(x){x.asesor=x.asesor||x.nombre;x.ult_numero=x.ult_numero||x.ult_num;return x;});
       ahSem(mon||[],_hoy());
       ahAlertas(mon||[]);
     });
@@ -472,7 +472,7 @@ function ahMonFecha(tipo){
 function ahMonLoad(){
   var fecha=_MON_FECHA||_hoy();
   _r('aos_monitoreo_equipo',{p_hoy:fecha},function(mon){
-    mon=Array.isArray(mon)?mon:(mon&&mon.filas?mon.filas:[]);
+    mon=Array.isArray(mon)?mon:(mon&&mon.filas?mon.filas:[]);mon=mon.map(function(x){x.asesor=x.asesor||x.nombre;x.ult_numero=x.ult_numero||x.ult_num;return x;});
     _s('ah-mu','Act. '+new Date().toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}));
     ahSem(mon||[],fecha);
     if(_MON_FECHA&&_MON_FECHA!==_hoy()){
