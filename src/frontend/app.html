@@ -497,7 +497,6 @@ var SIDEBAR_ASESOR = [
   {type:'item',id:'advisor-attendance', ico:'star',     lbl:'Mis atenciones'},
   {type:'sep',bot:true},
   {type:'item',id:'__profile',          ico:'profile',  lbl:'Mi perfil'},
-  {type:'item',id:'devices-notifications',ico:'settings',lbl:'Dispositivos y avisos',requiresPanel:true},
   {type:'item',id:'__cierre_turno',     ico:'clockend', lbl:'Cerrar turno', special:'cierre'},
   {type:'item',id:'__logout',           ico:'logout',   lbl:'Salir',        danger:true}
 ];
@@ -601,7 +600,7 @@ var VIEW_MAP = {
 };
 
 function navigateTo(viewId) {
-  if (viewId === 'devices-notifications' && (AOS.ctx.paneles_acceso || []).indexOf('devices-notifications') < 0) {
+  if (viewId === 'devices-notifications' && AOS.role !== 'ADMIN') {
     viewId = AOS.role === 'ADMIN' ? 'admin-home' : 'advisor-home';
   }
   if (AOS.activeView === viewId) return;
