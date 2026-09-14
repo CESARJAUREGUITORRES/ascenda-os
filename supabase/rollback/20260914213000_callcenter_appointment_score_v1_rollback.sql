@@ -5,6 +5,9 @@ delete from public.aos_notification_policies_v1 where event_type='TEAM_APPOINTME
 update public.aos_notification_policies_v1
 set aggregate_seconds=60,description='Admin grouped new appointments',updated_at=now()
 where event_type='ADMIN_APPOINTMENT_DIGEST';
+update public.aos_notification_policies_v1
+set aggregate_seconds=15,description='Advisor new appointment',updated_at=now()
+where event_type='APPOINTMENT_CREATED';
 
 drop function if exists public.aos_callcenter_score_latest_v1(date);
 drop function if exists public.aos_monitoreo_equipo(date);
