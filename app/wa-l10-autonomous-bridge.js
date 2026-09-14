@@ -58,8 +58,24 @@ function createAutonomousBridge(deps){
   }
 
   async function handoff(claim,reason){
-    try{await requestHandoff(claim.conversation_id,cleanReason(reason));}
-    catch(e){log.error&&log.error('[WA-L10-BRIDGE] handoff failed',cleanReason(e&&e.message));}
+    try{return await requestHandoff(claim.conversation_id,cleanReason(reason),claim.provider_message_id);}
+    catch(e){log.error&&log.error('[WA-L10-BRIDGE] handoff failed',cleanReason(e&&e.message));return {ok:false,handed_off:false,stale:false,error:cleanReason(e&&e.message)};}
+  }
+  async function currentTurn(claim){
+    try{
+      const out=dataOf(await serviceRpc('aos_wa_l10_message_current_v1',{p_provider_message_id:claim.provider_message_id}))||{};
+      return out.current===false?out:{ok:true,current:true,reason:out.reason||'WA_L10_CURRENT_OR_COMPAT'};
+    }catch(e){
+      log.error&&log.error('[WA-L10-BRIDGE] current-turn check failed',cleanReason(e&&e.message));
+      return {ok:false,current:false,reason:'WA_L10_CURRENT_CHECK_UNAVAILABLE'};
+    }
+  }
+  async function skipIfStale(claim,started){
+    const cur=await currentTurn(claim);
+    if(cur.current!==false)return null;
+    const reason=cleanReason(cur.reason||'WA_L10_STALE_MESSAGE');
+    await record(claim,'SKIPPED',reason,{latency_ms:Date.now()-started});
+    return {ok:true,processed:true,outcome:'SKIPPED',reason};
   }
 
   async function enqueueWebhook(raw){
@@ -78,6 +94,9 @@ function createAutonomousBridge(deps){
     if(claim.claimed!==true)return {ok:true,processed:false,reason:claim.reason||'WA_L10_NOT_CLAIMED'};
     claim=Object.assign({provider_message_id:String(providerMessageId)},claim);
     const started=Date.now();
+
+    const staleBefore=await skipIfStale(claim,started);
+    if(staleBefore)return staleBefore;
 
     if(typeof sendTyping==='function'){
       try{
@@ -107,10 +126,18 @@ function createAutonomousBridge(deps){
       const needsHuman=suggestionBody.needs_human===true||(suggestion&&suggestion.needs_human===true)||nextAction.startsWith('HUMAN_');
       if(statusOf(suggestionResult)<200||statusOf(suggestionResult)>=300||!suggestion||!String(suggestion.reply||'').trim()||needsHuman){
         const reason=cleanReason(suggestionBody.blocked_by&&suggestionBody.blocked_by.guard||suggestionBody.error||nextAction||'WA_L10_AI_HANDOFF');
-        await handoff(claim,reason);
+        const ho=await handoff(claim,reason);
+        if(ho&&ho.stale===true){
+          const staleReason=cleanReason(ho.reason||'WA_L10_STALE_HANDOFF_SKIPPED');
+          await record(claim,'SKIPPED',staleReason,{latency_ms:Date.now()-started});
+          return {ok:true,processed:true,outcome:'SKIPPED',reason:staleReason};
+        }
         await record(claim,'HANDOFF',reason,{latency_ms:Date.now()-started});
         return {ok:true,processed:true,outcome:'HANDOFF',reason};
       }
+
+      const staleAfter=await skipIfStale(claim,started);
+      if(staleAfter)return staleAfter;
 
       await record(claim,'SUGGESTED','WA_L10_GOVERNED_SUGGESTION',{latency_ms:Date.now()-started});
       const identity=((suggestionBody.contexts||{}).identity||{}).identity_state||'NOT_REQUIRED';
@@ -142,7 +169,12 @@ function createAutonomousBridge(deps){
         return {ok:true,processed:true,outcome:'HANDOFF',reason:sendBody.reason||sendBody.error||null};
       }
       if(sendStatus>=500){
-        await handoff(claim,sendBody.error||'WA_L10_PROVIDER_ERROR');
+        const ho=await handoff(claim,sendBody.error||'WA_L10_PROVIDER_ERROR');
+        if(ho&&ho.stale===true){
+          const staleReason=cleanReason(ho.reason||'WA_L10_STALE_HANDOFF_SKIPPED');
+          await record(claim,'SKIPPED',staleReason,audit);
+          return {ok:true,processed:true,outcome:'SKIPPED',reason:staleReason};
+        }
         await record(claim,'ERROR',sendBody.error||'WA_L10_PROVIDER_ERROR',audit);
         return {ok:false,processed:true,outcome:'ERROR',reason:sendBody.error||null};
       }
@@ -150,7 +182,12 @@ function createAutonomousBridge(deps){
       return {ok:true,processed:true,outcome:'BLOCKED',reason:sendBody.reason||sendBody.error||null};
     }catch(e){
       const reason=cleanReason(e&&e.message||'WA_L10_BRIDGE_ERROR');
-      await handoff(claim,reason);
+      const ho=await handoff(claim,reason);
+      if(ho&&ho.stale===true){
+        const staleReason=cleanReason(ho.reason||'WA_L10_STALE_HANDOFF_SKIPPED');
+        await record(claim,'SKIPPED',staleReason,{latency_ms:Date.now()-started});
+        return {ok:true,processed:true,outcome:'SKIPPED',reason:staleReason};
+      }
       await record(claim,'ERROR',reason,{latency_ms:Date.now()-started});
       log.error&&log.error('[WA-L10-BRIDGE] processing failed',reason);
       return {ok:false,processed:true,outcome:'ERROR',reason};
