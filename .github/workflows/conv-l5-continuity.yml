@@ -17,7 +17,7 @@ permissions:
   contents: read
 jobs:
   conv-l5-continuity:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, ascenda-zero-cost-v2]
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
