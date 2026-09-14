@@ -111,8 +111,8 @@
           <span style="font-size:9px;color:#9AAAC8;" id="ac-mon-tag"></span>
         </div>
       </div>
-      <table class="vt"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th></tr></thead>
-      <tbody id="ac-mon"><tr><td colspan="5" class="ld">Cargando...</td></tr></tbody></table>
+      <table class="vt"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center">Reactiv.</th><th style="text-align:center">Agenda dir.</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th></tr></thead>
+      <tbody id="ac-mon"><tr><td colspan="7" class="ld">Cargando...</td></tr></tbody></table>
       <div class="ct" style="margin-top:12px;">Actividad
         <div style="display:flex;gap:6px;align-items:center">
           <span class="chip act" id="ch-eq" onclick="acChartFilter(null)">Equipo</span>
@@ -185,7 +185,7 @@ function monFecha(tipo){if(tipo==='hoy'){var h=hoyLima();el('ac-mon-date').value
 function loadMonDate(fecha){MON_DATE=fecha;el('ac-mon-tag').textContent=fecha;rpc('aos_monitoreo_equipo',{p_hoy:fecha},function(rows){rMon(rows||[]);});loadActiv(fecha);}
 function loadActiv(fecha){rpc('aos_actividad_minutos',{p_fecha:fecha,p_intervalo:5},function(data){rActiv(data,fecha);});}
 function rMon(mon){
-  if(!mon||!mon.length){el('ac-mon').innerHTML='<tr><td colspan="5" class="ld">Sin actividad</td></tr>';return;}
+  if(!mon||!mon.length){el('ac-mon').innerHTML='<tr><td colspan="7" class="ld">Sin actividad</td></tr>';return;}
   /* Cargar metas para colorear */
   var metas={};(D.productividad||[]).forEach(function(p){metas[p.asesor]={ml:p.meta_llamadas||0,mc:p.meta_citas||0};});
   el('ac-mon').innerHTML=mon.map(function(m){
@@ -194,7 +194,7 @@ function rMon(mon){
     var colL='#0A4FBF';var colC='#16A34A';
     if(mt.ml>0){var pL=m.llamadas/mt.ml*100;colL=pL>=100?'#059669':pL>=50?'#D97706':'#DC2626';}
     if(mt.mc>0){var pC=(m.citas||0)/mt.mc*100;colC=pC>=100?'#059669':pC>=50?'#D97706':'#DC2626';}
-    return '<tr data-asesor="'+h(m.nombre)+'" onclick="acChartFilter(\''+h(m.nombre)+'\')" style="cursor:pointer;'+(AC_CHART_ASESOR===m.nombre?'background:#F0FDFA;':'')+'"><td><b>'+h(m.nombre)+'</b></td><td style="text-align:center;font-family:\'Exo 2\';font-weight:800;color:'+colL+';">'+m.llamadas+'</td><td style="text-align:center;font-weight:700;color:'+colC+';">+'+m.citas+'</td><td style="text-align:center;color:#00C9A7;font-weight:600;">'+cv+'%</td><td style="font-size:9px;color:#6B7BA8;">'+h(m.ult_hora||'—')+'<br>'+h(m.ult_num||'')+'</td></tr>';
+    return '<tr data-asesor="'+h(m.nombre)+'" onclick="acChartFilter(\''+h(m.nombre)+'\')" style="cursor:pointer;'+(AC_CHART_ASESOR===m.nombre?'background:#F0FDFA;':'')+'"><td><b>'+h(m.nombre)+'</b></td><td style="text-align:center;font-family:\'Exo 2\';font-weight:800;color:'+colL+';">'+m.llamadas+'</td><td style="text-align:center;font-weight:700;color:'+colC+';">+'+m.citas+'</td><td style="text-align:center;font-weight:700;color:#D97706;">+'+(m.reactivadas||0)+'</td><td style="text-align:center;font-weight:700;color:#7C3AED;">+'+(m.agenda_directa||0)+'</td><td style="text-align:center;color:#00C9A7;font-weight:600;">'+cv+'%</td><td style="font-size:9px;color:#6B7BA8;">'+h(m.ult_hora||'—')+'<br>'+h(m.ult_num||'')+'</td></tr>';
   }).join('');
 }
 var AC_CHART_ASESOR=null;var AC_SHOW_PICOS=false;var AC_CHART_RAW=[];
