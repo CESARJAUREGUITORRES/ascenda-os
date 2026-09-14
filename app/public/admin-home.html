@@ -549,7 +549,7 @@ var map={};
           var react=parseInt(s.reactivadas||0),direct=parseInt(s.agenda_directa||0),citas=parseInt(s.citas||0);
           totalScore+=citas+react+direct;
           var trBg=(cls==='bg-r'||cls==='bg-i')?'#FAFAFA':'';
-          return '<tr data-asesor="'+_e(s.asesor)+'" onclick="ahChartFilter(\''+_e(s.asesor)+'\')" style="background:'+trBg+'" class="'+((_D.chartAsesor===s.asesor)?'sel':'')+'">"<td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
+          return '<tr data-asesor="'+_e(s.asesor)+'" onclick="ahChartFilter(\''+_e(s.asesor)+'\')" style="background:'+trBg+'" class="'+((_D.chartAsesor===s.asesor)?'sel':'')+'"><td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
             '<td style="text-align:center;font-family:Exo 2,sans-serif;font-weight:800;color:#0A4FBF">'+_e(s.llamadas||0)+'</td>'+
             '<td style="text-align:center;font-weight:700;color:#16A34A">+'+_e(s.citas||0)+'</td>'+
             '<td style="text-align:center;font-weight:700;color:#D97706">+'+_e(s.reactivadas||0)+'</td>'+
