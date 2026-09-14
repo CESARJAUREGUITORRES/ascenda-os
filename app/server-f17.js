@@ -308,6 +308,13 @@ function start() {
         })
       })
     }
+    if (String(process.env.AOS_CONV_L4_REAL_TOOL_BENCHMARK_ON_BOOT || '') === '1') {
+      setImmediate(function() {
+        require('./conv-l4-real-tool-benchmark').runBootBenchmark().catch(function(e) {
+          console.error('[CONV-L4-REAL-TOOL-BENCH] unexpected', { error: String(e && e.message || 'BENCH_ERROR').slice(0, 100) })
+        })
+      })
+    }
   })
 }
 if (require.main === module) start()

@@ -79,7 +79,7 @@ function sourceContracts() {
   ]) assert(perf.includes(token), 'browser stability token missing: ' + token)
 
   assert(lock.includes('P0 #485:** `CLOSED / COMPLETED'), 'P0 closeout marker missing')
-  assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`'), 'CONV-L2 active lock missing')
+  assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`') || lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG`'), 'active CONV lock missing')
   assert(lock.includes('RUN UNTIL BLOCKED'), 'current owner authorization missing')
   assert(lock.includes('**LAST CLOSED:** `CONV-L1 #505'), 'CONV-L1 closeout marker missing')
   assert(lock.includes('WA-L10 #456:** `FROZEN · SAFE-OFF EVIDENCE ONLY'), 'legacy WA-L10 freeze marker missing')
