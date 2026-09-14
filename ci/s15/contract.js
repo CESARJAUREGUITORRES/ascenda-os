@@ -8,6 +8,7 @@ const push=fs.readFileSync(path.join(root,'app/push-notifications-s14.js'),'utf8
 const server=fs.readFileSync(path.join(root,'app/server-f17.js'),'utf8')
 const client=fs.readFileSync(path.join(root,'app/public/notification-push-s14.js'),'utf8')
 const center=fs.readFileSync(path.join(root,'app/public/notification-center-s15.js'),'utf8')
+const coordination=fs.readFileSync(path.join(root,'app/public/coordinacion.html'),'utf8')
 function ok(v,m){if(!v){console.error('S15 CONTRACT FAIL:',m);process.exit(1)}}
 
 for(const col of ['para_user_id','channel','event_type','route','entity_id','dedupe_key','in_app_enabled','push_enabled','push_after','push_status'])ok(migration.includes('add column if not exists '+col),'notification column missing: '+col)
@@ -45,6 +46,8 @@ ok(server.includes('stopNotificationPump(); server.close'),'pump shutdown cleanu
 ok(client.includes("'/notification-center-s15.js?v=20260817-s15-p01'")||client.includes("'/notification-center-s15.js?v=20260817-s15-auth-p02'"),'global notification center loader missing')
 ok(client.includes('#nav-advisor-sales')&&client.includes('#nav-admin-agenda'),'notification opt-in gesture must cover non-WhatsApp modules')
 ok(center.includes("d.type==='AOS_PUSH_EVENT'"),'open-app generic push listener missing')
+ok(coordination.includes("p_prioridad:pri"),'manual notification sender must project UI type into canonical priority')
+ok(coordination.includes("typ==='URGENTE'?'URGENTE':typ==='ALERTA'?'ALTA':'NORMAL'"),'manual INFO/ALERTA/URGENTE priority mapping changed')
 ok(center.includes("sbRpc('aos_admin_notificaciones_v1'")||center.includes("api('/api/notifications/inbox?limit=50')"),'admin notification filter patch missing')
 ok(center.includes('AOS_NOTIFICATION_CENTER.readAndOpen'),'notification read+route UX missing')
 for(const ch of ['WHATSAPP','SALES','COMMISSION','AGENDA','CHAT','TASKS','SENTINEL','SYSTEM'])ok(center.includes(ch+':{')||center.includes(ch+"':{"),'channel visual distinction missing: '+ch)
