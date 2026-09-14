@@ -19,7 +19,13 @@ function makeDeps(opts={}){
       if(opts.readError){const e=new Error('BODY_TOO_LARGE');e.status=413;throw e}
       return Buffer.from(req.raw||'{}')
     },
-    parseJson:(s)=>{try{return JSON.parse(s)}catch(_){return null}}
+    parseJson:(s)=>{try{return JSON.parse(s)}catch(_){return null}},
+    push:{
+      adminTestTargets:async(actorId,input)=>{
+        calls.push({name:'adminTestTargets',args:{actorId,input}})
+        return {ok:true,targets:1,delivered:1,failed:0,skipped:0,rows:[]}
+      }
+    }
   }
   return {deps,calls,writes}
 }
@@ -57,6 +63,20 @@ async function hit(api,method,path,token,body){
     await hit(api,'POST','/api/devices/preferences','good',{actor_id:'attacker',device_id:'d1'})
     assert.equal(x.calls[0].name,'aos_device_preferences_actor_v1')
     assert.equal(x.calls[0].args.p_payload.actor_id,'11111111-1111-1111-1111-111111111111')
+  }
+  {
+    const x=makeDeps(); const api=createDeviceApi(x.deps)
+    const r=await hit(api,'GET','/api/devices/admin/overview','good')
+    assert.equal(r.status,200)
+    assert.equal(x.calls[0].name,'aos_push_admin_overview_v1')
+    assert.equal(x.calls[0].args.p_payload.actor_id,'11111111-1111-1111-1111-111111111111')
+  }
+  {
+    const x=makeDeps(); const api=createDeviceApi(x.deps)
+    const r=await hit(api,'POST','/api/devices/admin/test','good',{device_id:'d1'})
+    assert.equal(r.status,200); assert.equal(r.body.delivered,1)
+    assert.equal(x.calls[0].name,'adminTestTargets')
+    assert.equal(x.calls[0].args.actorId,'11111111-1111-1111-1111-111111111111')
   }
   {
     const x=makeDeps({throwRpc:true}); const api=createDeviceApi(x.deps)
