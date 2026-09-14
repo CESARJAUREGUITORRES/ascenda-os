@@ -1,6 +1,10 @@
 -- Restrict competitive appointment Push to users who actually operate Call Center.
 begin;
 
+update public.aos_notification_policies_v1
+set priority='ALTA', updated_at=now()
+where event_type in ('APPOINTMENT_CREATED','ADMIN_APPOINTMENT_DIGEST','TEAM_APPOINTMENT_SCORE');
+
 create or replace function public.aos_notification_agenda_trigger_v1()
 returns trigger
 language plpgsql
