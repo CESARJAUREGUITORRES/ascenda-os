@@ -155,4 +155,16 @@ function has(r,intent){assert(r.intents.includes(intent),'missing intent '+inten
   assert.deepEqual(curated.map(x=>x.knowledge_id),['service:frozen','category:hifu']);
 }
 
+// Generic HIFU info/benefits use deterministic Frozen-family copy, never a body SKU.
+{
+  const bundle={items:[
+    {knowledge_id:'category:hifu',domain:'CATEGORY',title:'HIFU',facts:{nombre:'HIFU'}},
+    {knowledge_id:'service:frozen',domain:'CATALOG',title:'ZI FROZEN BEAUTY',facts:{nombre:'ZI FROZEN BEAUTY',categoria:'HIFU'}}
+  ]};
+  const info=copilot.deterministicGenericHifuDraft(bundle,{state:{treatment:'HIFU'},intents:['INFO']},'quiero información del HIFU');
+  assert.ok(info);assert.match(info.reply,/HIFU Frozen/);assert.doesNotMatch(info.reply,/7D BRAZOS/);
+  const benefits=copilot.deterministicGenericHifuDraft(bundle,{state:{treatment:'HIFU'},intents:['BENEFITS']},'cuáles son los beneficios');
+  assert.ok(benefits);assert.match(benefits.reply,/beneficios de HIFU Frozen/);assert.match(benefits.reply,/colágeno/);
+}
+
 console.log('WA4C Conversation Runtime V2 deterministic tests: PASS');
