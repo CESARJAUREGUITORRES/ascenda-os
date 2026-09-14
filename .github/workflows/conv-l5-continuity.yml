@@ -1,0 +1,47 @@
+name: ASCENDA CONV-L5 Continuity
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/conversation-l5-continuity.js'
+      - 'app/wa-l5-booking.js'
+      - 'app/meta-cloud-adapter.js'
+      - 'app/server-wa4.js'
+      - 'app/server-f4.js'
+      - 'supabase/migrations/*conv_l5*'
+      - 'supabase/migrations/*wa_l5*'
+      - 'ci/conv-l5/**'
+      - '.github/workflows/conv-l5-continuity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  conv-l5-continuity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check app/conversation-l5-continuity.js
+          node --check app/wa-l5-booking.js
+          node --check app/meta-cloud-adapter.js
+      - name: CONV-L5 contracts
+        run: |
+          node --test ci/conv-l5/continuity_contract.test.js
+          node --test app/wa-l5-booking.test.js
+          node --test app/meta-cloud-adapter.test.js
+      - name: Safety boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "approved_for_whatsapp=eq.true" app/conversation-l5-continuity.js
+          grep -q "status).toUpperCase()==='APPROVED'" app/conversation-l5-continuity.js
+          grep -q "commit_deferred:true" app/conversation-l5-continuity.js
+          grep -q "aos_wa_l5_mark_explicit_confirmation_v1" app/conversation-l5-continuity.js
+          ! grep -q "rpc('aos_wa_l5_commit_confirmed_v1" app/conversation-l5-continuity.js
+          grep -q "revoke all on table public.aos_conv_l5_media_catalog_v1 from public,anon,authenticated" supabase/migrations/20260914203000_conv_l5_media_catalog_v1.sql
+          grep -q "grant select,insert,update,delete on table public.aos_conv_l5_media_catalog_v1 to service_role" supabase/migrations/20260914203000_conv_l5_media_catalog_v1.sql
