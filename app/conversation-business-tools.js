@@ -65,13 +65,25 @@ function createBusinessToolHandlers(options){
     async get_customer_context(input){
       const phone=digits(input.phone)
       if(phone.length<8)return fail('PHONE_REQUIRED')
-      const r=object(await rpc('aos_rev_resolve_patient_identity_v2',{p_lookup_type:'PHONE',p_lookup_value:phone}))
+      let r
+      try{
+        r=object(await rpc('aos_rev_resolve_patient_identity_v2',{p_lookup_type:'PHONE',p_lookup_value:phone}))
+      }catch(_){
+        return {
+          identity_status:'IDENTITY_AUTHORITY_UNAVAILABLE',
+          known_customer:false,
+          candidate_count:0,
+          requires_human:true,
+          authority_available:false
+        }
+      }
       const status=upper(r.status||r.resolution_status||'UNRESOLVED')
       return {
         identity_status:status,
         known_customer:status==='MATCH'||status.includes('RESOLVED'),
         candidate_count:Number(r.candidate_count||0)||0,
-        requires_human:/CONFLICT|REVIEW|AMBIG/.test(status)
+        requires_human:/CONFLICT|REVIEW|AMBIG/.test(status),
+        authority_available:true
       }
     },
 
