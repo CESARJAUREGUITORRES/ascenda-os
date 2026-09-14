@@ -149,8 +149,12 @@ function savePrefs(){
 function localTest(){
  if(!('Notification'in window)){msg('Este dispositivo no soporta Notification API.','err');return}
  function show(){try{new Notification('ASCENDA · Prueba local',{body:'Las notificaciones del dispositivo están disponibles.',icon:'/icons/icon-192x192.png'})}catch(_){msg('No se pudo abrir la prueba local.','err')}}
- if(Notification.permission==='granted')return show();
- if(Notification.permission==='default')Notification.requestPermission().then(function(p){renderSnapshot();if(p==='granted')show();else msg('Permiso de notificaciones no concedido.','')});
+ function activateAndShow(){
+  var p=(window.AOS_PUSH&&typeof window.AOS_PUSH.enable==='function')?window.AOS_PUSH.enable():Promise.resolve();
+  return Promise.resolve(p).then(function(){show();return load();}).catch(function(x){show();msg('Permiso concedido; reintentaremos el enlace Push automáticamente: '+(x&&x.message||'pendiente'),'')})
+ }
+ if(Notification.permission==='granted')return activateAndShow();
+ if(Notification.permission==='default')Notification.requestPermission().then(function(p){renderSnapshot();if(p==='granted')activateAndShow();else msg('Permiso de notificaciones no concedido.','')});
  else msg('Las notificaciones están bloqueadas en el navegador/sistema.','err')
 }
 e('registerBtn').onclick=register;e('reloadBtn').onclick=load;e('savePrefsBtn').onclick=savePrefs;e('localTestBtn').onclick=localTest;
