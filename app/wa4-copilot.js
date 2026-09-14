@@ -114,6 +114,33 @@ function moneyLabel(currency,value){
   const amount=Number.isInteger(n)?String(n):n.toFixed(2);
   return String(currency||'').toUpperCase()==='USD'?'USD '+amount:'S/ '+amount;
 }
+function deterministicGenericHifuDraft(publicBundle,runtime,inbound){
+  if(!genericHifuIntent(inbound,runtime))return null;
+  const intents=new Set(runtime&&Array.isArray(runtime.intents)?runtime.intents:[]);
+  if(!intents.has('INFO')&&!intents.has('BENEFITS'))return null;
+  if(['TREATMENT_PRICE','CONSULTATION_PRICE','PRICE_PER_SESSION','PROMOTION_REQUEST','BOOKING','SCHEDULE','RESCHEDULE_INTENT','CONFIRM_BOOKING'].some(x=>intents.has(x)))return null;
+  const items=publicBundle&&Array.isArray(publicBundle.items)?publicBundle.items:[];
+  const category=items.find(x=>String(x.domain||'').toUpperCase()==='CATEGORY'&&normalizeText(x.title)==='hifu');
+  const frozen=items.filter(x=>{
+    if(String(x.domain||'').toUpperCase()!=='CATALOG')return false;
+    const facts=x.facts&&typeof x.facts==='object'?x.facts:{};
+    return normalizeText(facts.categoria)==='hifu'&&/^zi\s+frozen\b/.test(normalizeText(facts.nombre||x.title||''));
+  });
+  if(!category||!frozen.length)return null;
+  const reply=intents.has('BENEFITS')
+    ?'✨ Entre los beneficios de HIFU Frozen están:\n• mayor firmeza de la piel\n• estimulación de colágeno\n• mejor definición del contorno facial\n• apoyo para papada y flacidez\n• sin tiempo de recuperación\n\nSi quieres, también puedo ayudarte a revisar la disponibilidad.'
+    :'Claro 😊 En Zi Vital trabajamos HIFU Frozen, un tratamiento con ultrasonido focalizado pensado para reafirmar y definir el contorno facial sin cirugía. Trabaja en capas profundas para estimular colágeno y el resultado es progresivo. ¿Qué zona te gustaría mejorar?';
+  return {
+    reply,
+    intent:'INFO',
+    next_action:'REPLY',
+    confidence:1,
+    cited_knowledge_ids:[String(category.knowledge_id),String(frozen[0].knowledge_id)],
+    needs_human:false,
+    reason:'Generic HIFU resolved to governed Zi Frozen family.'
+  };
+}
+
 function deterministicNoPromotionDraft(playbook,publicBundle,processContexts,inbound){
   const reason=String(playbook&&playbook.policy_escalation&&playbook.policy_escalation.reason||'');
   if(reason!=='NO_READY_PROMOTION_EVIDENCE')return null;
@@ -402,6 +429,19 @@ function createCopilot(deps){
       }
     }
 
+    const hifuDraft=deterministicGenericHifuDraft(governed.publicBundle,runtime,inbound);
+    if(hifuDraft){
+      const grounded=knowledge.validateGroundedSuggestion(hifuDraft,governed.publicBundle);
+      if(grounded.ok){
+        const patientReply=composePatientReply(grounded.reply,messages,inbound);
+        const quality=qualityCheck(patientReply,runtime,contexts,inbound,governed.publicBundle);
+        if(quality.ok){
+          await log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_HIFU_FROZEN',safety_model:null,outcome:'SUGGESTED',input_messages:messages.length,input_chars:inbound.length,output_chars:patientReply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'REPLY',safety_category:'GOVERNED_HIFU_FROZEN'});
+          return writeJson(res,200,{ok:true,playbook:pb,runtime:runtimeSummary(runtime),contexts,quality,suggestion:Object.assign({},hifuDraft,{reply:patientReply,cited_knowledge_ids:grounded.citations}),needs_human:false,next_action:'REPLY',model:'DETERMINISTIC_HIFU_FROZEN',estimated_cost_usd:0,auto_send:false});
+        }
+      }
+    }
+
     const noPromoPriceBundle=gatePublicCatalogMoney(governed.publicBundle,governed.processContexts,'PRICE_QUOTE',runtime);
     const noPromoDraft=deterministicNoPromotionDraft(pb,noPromoPriceBundle,governed.processContexts,inbound);
     if(noPromoDraft){
@@ -479,4 +519,4 @@ function createCopilot(deps){
     }
   };
 }
-module.exports={createCopilot,buildGovernedContext,buildFastPriceContext,gatePublicCatalogMoney,adapterSummary,deterministicBookingDraft,deterministicNoPromotionDraft,deterministicOwnerApprovedIntroDraft,deterministicToxinPriceDraft,isPriceFastLane,genericHifuIntent,genericHifuKnowledgeRowAllowed,curateGenericHifuRows,mergeKnowledgeRows,qualityCheck,canonicalizePatientText,renderWhatsAppText,composePatientReply,hasApprovedIntro,isGreetingOnly,APPROVED_FIRST_CONTACT_COPY,APPROVED_FIRST_CONTACT_PREFIX,SALES_SCHEMA,SAFETY_SCHEMA};
+module.exports={createCopilot,buildGovernedContext,buildFastPriceContext,gatePublicCatalogMoney,adapterSummary,deterministicBookingDraft,deterministicNoPromotionDraft,deterministicOwnerApprovedIntroDraft,deterministicToxinPriceDraft,deterministicGenericHifuDraft,isPriceFastLane,genericHifuIntent,genericHifuKnowledgeRowAllowed,curateGenericHifuRows,mergeKnowledgeRows,qualityCheck,canonicalizePatientText,renderWhatsAppText,composePatientReply,hasApprovedIntro,isGreetingOnly,APPROVED_FIRST_CONTACT_COPY,APPROVED_FIRST_CONTACT_PREFIX,SALES_SCHEMA,SAFETY_SCHEMA};
