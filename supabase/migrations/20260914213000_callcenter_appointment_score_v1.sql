@@ -231,6 +231,12 @@ set aggregate_seconds=0,
     updated_at=now()
 where event_type='ADMIN_APPOINTMENT_DIGEST';
 
+update public.aos_notification_policies_v1
+set aggregate_seconds=0,
+    description='Advisor immediate appointment score update',
+    updated_at=now()
+where event_type='APPOINTMENT_CREATED';
+
 create or replace function public.aos_notification_format_v1(p_event_type text, p_metadata jsonb)
 returns jsonb
 language plpgsql
@@ -294,7 +300,7 @@ begin
     body:=coalesce(nullif(reason,''),'Se actualizó tu comisión');
   elsif e in ('APPOINTMENT_CREATED','ADMIN_APPOINTMENT_DIGEST','TEAM_APPOINTMENT_SCORE')
         and advisor<>'' and ap_class<>'' then
-    title:=advisor||' · '||class_label||' +1 · Hoy '||daily_total;
+    title:=(case ap_class when 'REACTIVADA' then '♻️ ' when 'AGENDA_DIRECTA' then '🗓️ ' else '📅 ' end)||advisor||' · '||class_label||' +1 · Hoy '||daily_total;
     body:=trim(concat_ws(' · ',subtype_label,nullif(treatment,''),nullif(dt,'')));
   elsif e='APPOINTMENT_CREATED' then
     if c=1 then
