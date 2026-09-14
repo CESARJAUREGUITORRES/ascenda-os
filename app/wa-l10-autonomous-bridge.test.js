@@ -143,3 +143,47 @@ test('typing indicator failure is best-effort and never blocks governed reply',a
   const r=await bridge.processProviderMessage('wamid.typing.fail');
   assert.equal(r.outcome,'SENT');assert.equal(sends,1);assert.equal(handoffs,0);
 });
+
+test('stale inbound is skipped before AI and can never auto-send',async()=>{
+  let suggests=0,sends=0,handoffs=0;const events=[];
+  const bridge=createAutonomousBridge({
+    serviceRpc:async(name,p)=>{
+      if(name==='aos_wa_l10_bridge_claim_v1')return {data:claim(p.p_provider_message_id)};
+      if(name==='aos_wa_l10_message_current_v1')return {data:{ok:true,current:false,reason:'WA_L10_STALE_MESSAGE'}};
+      if(name==='aos_wa_l10_bridge_event_v1'){events.push({type:p.p_event_type,reason:p.p_reason_code});return {data:{ok:true}};}
+      return {data:{ok:true}};
+    },
+    suggestInternal:async()=>{suggests++;return safeSuggestion();},
+    autoSend:async()=>{sends++;return {status:200,body:{ok:true}};},
+    requestHandoff:async()=>{handoffs++;}
+  });
+  const r=await bridge.processProviderMessage('wamid.stale');
+  assert.equal(r.outcome,'SKIPPED');
+  assert.equal(r.reason,'WA_L10_STALE_MESSAGE');
+  assert.equal(suggests,0);assert.equal(sends,0);assert.equal(handoffs,0);
+  assert.deepEqual(events,[{type:'SKIPPED',reason:'WA_L10_STALE_MESSAGE'}]);
+});
+
+test('late AI failure cannot hand off a conversation that advanced while model was running',async()=>{
+  let sends=0;const events=[];
+  const bridge=createAutonomousBridge({
+    serviceRpc:async(name,p)=>{
+      if(name==='aos_wa_l10_bridge_claim_v1')return {data:claim(p.p_provider_message_id)};
+      if(name==='aos_wa_l10_message_current_v1')return {data:{ok:true,current:true,reason:'WA_L10_CURRENT_MESSAGE'}};
+      if(name==='aos_wa_l10_bridge_event_v1'){events.push({type:p.p_event_type,reason:p.p_reason_code});return {data:{ok:true}};}
+      return {data:{ok:true}};
+    },
+    suggestInternal:async()=>({status:503,body:{ok:false,error:'WA4_COPILOT_UNAVAILABLE'}}),
+    autoSend:async()=>{sends++;return {status:200,body:{ok:true}};},
+    requestHandoff:async(_conversation,_reason,providerMessageId)=>{
+      assert.equal(providerMessageId,'wamid.late');
+      return {ok:true,handed_off:false,stale:true,reason:'WA_L10_STALE_HANDOFF_SKIPPED'};
+    }
+  });
+  const r=await bridge.processProviderMessage('wamid.late');
+  assert.equal(r.outcome,'SKIPPED');
+  assert.equal(r.reason,'WA_L10_STALE_HANDOFF_SKIPPED');
+  assert.equal(sends,0);
+  assert.deepEqual(events,[{type:'SKIPPED',reason:'WA_L10_STALE_HANDOFF_SKIPPED'}]);
+});
+
