@@ -48,6 +48,7 @@ ok(panel.includes("'X-AOS-App-Token'"),'panel must use actor-bound same-origin A
 ok(panel.includes('/api/devices/register'),'device registration UI missing')
 ok(panel.includes('/api/devices/preferences'),'device preference UI missing')
 ok(panel.includes("window.AOS_PUSH.enable"),'local notification consent must enroll Web Push immediately')
+ok(panel.includes("reg.showNotification('ASCENDA · Prueba local'"),'local device test must use Service Worker notification for Android/PWA')
 ok(!panel.includes('supabase.co'),'device center must not call Supabase directly')
 ok(!panel.includes('graph.facebook.com'),'device center must not call Meta')
 ok(panel.includes('/api/devices/admin/overview'),'admin fleet overview UI missing')
