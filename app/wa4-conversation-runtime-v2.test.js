@@ -147,6 +147,7 @@ function has(r,intent){assert(r.intents.includes(intent),'missing intent '+inten
   assert.strictEqual(copilot.genericHifuIntent('quiero HIFU 7D para brazos',runtime),false);
   const rows=[
     {knowledge_id:'service:body',domain:'CATALOG',title:'HIFU 7D BRAZOS',facts:{nombre:'HIFU 7D BRAZOS',categoria:'CORPORAL'}},
+    {knowledge_id:'service:hifutox',domain:'CATALOG',title:'HIFUTOX',facts:{nombre:'HIFUTOX',categoria:'HIFU'}},
     {knowledge_id:'service:frozen',domain:'CATALOG',title:'ZI FROZEN BEAUTY',facts:{nombre:'ZI FROZEN BEAUTY',categoria:'HIFU'}},
     {knowledge_id:'category:hifu',domain:'CATEGORY',title:'HIFU',facts:{nombre:'HIFU'}}
   ];
