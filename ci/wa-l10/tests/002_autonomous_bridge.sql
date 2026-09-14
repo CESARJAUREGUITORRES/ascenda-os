@@ -106,10 +106,21 @@ insert into public.aos_wa_messages_v1(
 ) values (
   'wamid.ci.l10.in.0002','66666666-6666-4666-8666-666666666661','INBOUND','51911111111','15550000000','L10TEST','CI Contact','text','human now','received',now(),now()
 );
-do $$ declare r jsonb; begin
+do $ declare r jsonb; begin
   r:=public.aos_wa_l10_bridge_enqueue_v1('wamid.ci.l10.in.0002');
   if coalesce((r->>'queued')::boolean,true) is not false or r->>'reason'<>'WA_L10_HUMAN_BOUNDARY_ACTIVE' then raise exception 'L10_HUMAN_BOUNDARY %',r; end if;
-end $$;
+end $;
+
+-- A completed older autonomous turn must never hand off after a newer inbound exists.
+do $ declare cur jsonb; ho jsonb; begin
+  cur:=public.aos_wa_l10_message_current_v1('wamid.ci.l10.in.0001');
+  if coalesce((cur->>'current')::boolean,true) is not false then raise exception 'L10_STALE_CURRENT_GUARD %',cur; end if;
+  ho:=public.aos_wa_l10_handoff_if_current_v1('wamid.ci.l10.in.0001','CI_LATE_MODEL_FAILURE');
+  if coalesce((ho->>'handed_off')::boolean,true) is not false
+     or coalesce((ho->>'stale')::boolean,false) is not true
+     or ho->>'reason'<>'WA_L10_STALE_HANDOFF_SKIPPED'
+  then raise exception 'L10_STALE_HANDOFF_GUARD %',ho; end if;
+end $;
 
 -- Return global authority to SAFE-OFF at test exit.
 do $$ declare r jsonb; begin
