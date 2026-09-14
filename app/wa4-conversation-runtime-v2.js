@@ -73,6 +73,7 @@ function detectIntents(text){
   if(/solo puedo|unicamente puedo|únicamente puedo|solo tengo disponibilidad|esa hora nada mas/.test(t))add('HARD_TIME_CONSTRAINT');
   if(/llamare.*proxima semana|llamaré.*próxima semana|despues coordino|después coordino|mas adelante|más adelante/.test(t))add('DEFER_OR_FOLLOW_UP_LATER');
   if(/foto|imagen|antes y despues|antes y después|video|resultados reales/.test(t))add('MEDIA_REQUEST');
+  if(/beneficio|beneficios|para que sirve|para qué sirve|que mejora|qué mejora/.test(t))add('BENEFITS');
   if(/informacion|información|quiero saber|como funciona|cómo funciona|que es|qué es/.test(t))add('INFO');
   return intents;
 }
@@ -132,7 +133,7 @@ function nextBestAction(intents,state){
   if(intents.includes('DEFER_OR_FOLLOW_UP_LATER'))return 'ACKNOWLEDGE_DEFER';
   if(intents.includes('CONFIRM_BOOKING'))return 'CONFIRM_SELECTED_BOOKING';
   if(intents.includes('RESCHEDULE_INTENT'))return 'START_REBOOK_VERIFICATION';
-  const explicitPriority=['CONSULTATION_PRICE','PRICE_PER_SESSION','TREATMENT_PRICE','PROMOTION_REQUEST','LOCATION','WHO_PERFORMS','PRODUCT_OR_BRAND_OPTIONS','SESSION_COUNT','EXPECTED_RESULT','EFFECT_DURATION','PROCEDURE_DURATION','RESULT_ONSET','MAINTENANCE_INTERVAL','PAYMENT','MEDIA_REQUEST'];
+  const explicitPriority=['CONSULTATION_PRICE','PRICE_PER_SESSION','TREATMENT_PRICE','PROMOTION_REQUEST','LOCATION','WHO_PERFORMS','PRODUCT_OR_BRAND_OPTIONS','SESSION_COUNT','EXPECTED_RESULT','EFFECT_DURATION','PROCEDURE_DURATION','RESULT_ONSET','MAINTENANCE_INTERVAL','BENEFITS','PAYMENT','MEDIA_REQUEST'];
   const explicit=explicitPriority.filter(x=>intents.includes(x));
   if(explicit.length)return 'ANSWER_EXPLICIT_QUESTIONS';
   if(intents.includes('BOOKING')||intents.includes('SCHEDULE')){
