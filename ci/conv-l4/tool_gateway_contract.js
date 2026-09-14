@@ -44,5 +44,17 @@ const g=gateway.createToolGateway({handlers})
   assert.strictEqual(price.data.authority,'TEST')
   assert.strictEqual(price.data.name,'get_prices')
 
+  const failClosedHandlers=business.createBusinessToolHandlers({
+    rpc:async()=>{const e=new Error('SUPABASE_REQUEST_TIMEOUT');e.code='SUPABASE_REQUEST_TIMEOUT';throw e},
+    rest:async()=>[]
+  })
+  const failClosedGateway=gateway.createToolGateway({handlers:failClosedHandlers})
+  const identity=await failClosedGateway.execute('get_customer_context',{phone:'999999999'})
+  assert.strictEqual(identity.ok,true,'identity authority outage must be a governed result, not a tool crash')
+  assert.strictEqual(identity.data.identity_status,'IDENTITY_AUTHORITY_UNAVAILABLE')
+  assert.strictEqual(identity.data.known_customer,false)
+  assert.strictEqual(identity.data.requires_human,true)
+  assert.strictEqual(identity.data.authority_available,false)
+
   console.log('CONV_L4_TOOL_GATEWAY_CONTRACT_PASS')
 })().catch(e=>{console.error(e);process.exit(1)})
