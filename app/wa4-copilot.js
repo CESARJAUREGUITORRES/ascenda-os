@@ -322,7 +322,7 @@ function deterministicBookingPreflightDraft(runtime,messages,inbound){
   }
   return null;
 }
-function deterministicAvailabilityDraft(booking){
+function deterministicAvailabilityDraft(booking,runtime){
   const status=String(booking&&booking.status||'');
   if(status==='REAL_SLOTS_READY'){
     const rows=(Array.isArray(booking.candidate_slots)?booking.candidate_slots:[]).slice(0,5);
@@ -336,7 +336,7 @@ function deterministicAvailabilityDraft(booking){
   if(status==='NO_REAL_SLOTS'){
     return {reply:'Por ahora no veo horarios disponibles para esa fecha y sede. ¿Quieres que revise otro día o la otra sede? 📅',intent:'BOOKING',next_action:'OFFER_BOOKING',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'No real slots in governed Agenda authority.'};
   }
-  return deterministicBookingDraft(booking,{});
+  return deterministicBookingDraft(booking,runtime);
 }
 
 function deterministicToxinPriceDraft(publicBundle,processContexts){
@@ -506,7 +506,7 @@ function createCopilot(deps){
             const selected=fast.processContexts.find(p=>String(p&&p.entity_name||'').toUpperCase()===variant);
             if(!selected)throw new Error('WA4_HIFU_BOOKING_VARIANT_UNAVAILABLE');
             const bookingCtx=await bookingResolver.resolve({runtime,processContexts:[selected],preferred_site:runtime.state.site});
-            const draft=deterministicAvailabilityDraft(bookingCtx);
+            const draft=deterministicAvailabilityDraft(bookingCtx,runtime);
             if(draft){
               const patientReply=composePatientReply(draft.reply,messages,inbound);
               Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_HIFU_BOOKING_FASTLANE',safety_model:null,outcome:draft.needs_human===true?'HUMAN_REQUIRED':'SUGGESTED',input_messages:messages.length,input_chars:inbound.length,output_chars:patientReply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:draft.next_action,safety_category:'HIFU_BOOKING_FASTLANE'})).catch(()=>{});
