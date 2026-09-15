@@ -28,7 +28,7 @@ async function actorContracts() {
   assert.strictEqual(denyCalls, 1, 'definitive stale/invalid session must be negative-cached')
 
   let failCalls = 0
-  const fail = createActorResolver({ verify: async function() { failCalls++; throw new Error('upstream unavailable') } })
+  const fail = createActorResolver({ errorTtlMs: 30000, verify: async function() { failCalls++; throw new Error('upstream unavailable') } })
   const firstWave = await Promise.allSettled(Array.from({ length: 50 }, function() { return fail.resolve(TOKEN_C) }))
   assert.strictEqual(failCalls, 1, 'concurrent upstream failure must still coalesce')
   firstWave.forEach(function(r) {
@@ -36,8 +36,14 @@ async function actorContracts() {
     assert.strictEqual(r.reason.message, 'WA3_AUTH_UPSTREAM_UNAVAILABLE')
     assert.strictEqual(r.reason.status, 503)
   })
-  await assert.rejects(fail.resolve(TOKEN_C), /WA3_AUTH_UPSTREAM_UNAVAILABLE/)
-  assert.strictEqual(failCalls, 2, 'upstream failure must never be cached as an auth denial')
+  const cached = await Promise.allSettled(Array.from({ length: 50 }, function() { return fail.resolve(TOKEN_C) }))
+  assert.strictEqual(failCalls, 1, 'retryable upstream failure must be briefly cached to shed DB pressure')
+  cached.forEach(function(r) {
+    assert.strictEqual(r.status, 'rejected')
+    assert.strictEqual(r.reason.message, 'WA3_AUTH_UPSTREAM_UNAVAILABLE')
+    assert.strictEqual(r.reason.status, 503)
+    assert.strictEqual(r.reason.cached, true)
+  })
 }
 
 async function summaryCacheContracts() {
@@ -60,6 +66,7 @@ function sourceContracts() {
   for (const token of [
     "error:'WA3_AUTH_UPSTREAM_UNAVAILABLE'",
     'createActorResolver',
+    'errorTtlMs:30000',
     "queueCache=createSuccessCache({ttlMs:10000",
     "teamCache=createSuccessCache({ttlMs:20000",
     'shouldRemapInnerAuth',
