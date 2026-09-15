@@ -296,31 +296,32 @@ async function buildHifuPriceContext(serviceRpc,runtime,serviceGet){
       }
     }catch(_){}
   }
-  const items=contexts.map(p=>({
-    ...(()=>{const d=details.get(String(p.entity_id))||{};return {
-    knowledge_id:'service:'+String(p.entity_id),
-    domain:'CATALOG',
-    title:String(p.entity_name||'').slice(0,240),
-    facts:{
-      tipo:String(p.entity_type||'SERVICIO'),
-      nombre:String(p.entity_name||'').slice(0,240),
-      categoria:String(p.category||'').slice(0,120),
-      precio_base:p.precio_base==null?null:Number(p.precio_base),
-      precio_oferta:p.precio_oferta==null?null:Number(p.precio_oferta),
-      moneda:String(p.moneda||'').toUpperCase(),
-      descripcion_comercial:String(d.descripcion_comercial||'').slice(0,1200),
-      beneficios:String(d.beneficios||'').slice(0,1200)
-    },
-    authority_tier:1,
-    freshness_state:'FRESH',
-    retrieval_state:'READY',
-    evidence_ref:{
-      relation:'aos_catalogo_servicios',
-      pk:String(p.entity_id),
-      version:String(p.price_evidence_ref||'WA4A1C')
-    }
-  };}})()
-  }));
+  const items=contexts.map(p=>{
+    const d=details.get(String(p.entity_id))||{};
+    return {
+      knowledge_id:'service:'+String(p.entity_id),
+      domain:'CATALOG',
+      title:String(p.entity_name||'').slice(0,240),
+      facts:{
+        tipo:String(p.entity_type||'SERVICIO'),
+        nombre:String(p.entity_name||'').slice(0,240),
+        categoria:String(p.category||'').slice(0,120),
+        precio_base:p.precio_base==null?null:Number(p.precio_base),
+        precio_oferta:p.precio_oferta==null?null:Number(p.precio_oferta),
+        moneda:String(p.moneda||'').toUpperCase(),
+        descripcion_comercial:String(d.descripcion_comercial||'').slice(0,1200),
+        beneficios:String(d.beneficios||'').slice(0,1200)
+      },
+      authority_tier:1,
+      freshness_state:'FRESH',
+      retrieval_state:'READY',
+      evidence_ref:{
+        relation:'aos_catalogo_servicios',
+        pk:String(p.entity_id),
+        version:String(p.price_evidence_ref||'WA4A1C')
+      }
+    };
+  });
   const raw={version:'WA4A1C-HIFU-FAST-V1',audience:'PUBLIC_CLIENT',items,authority:'GOVERNED_SOURCE_ONLY',generic_llm_authority:false};
   return {publicBundle:gatePublicCatalogMoney(raw,contexts,'PRICE_QUOTE',runtime),processContexts:contexts};
 }
