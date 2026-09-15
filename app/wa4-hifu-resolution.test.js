@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {isGenericHifuContext,preferHifuFrozenRows,isGenericHifuPriceFastLane,deterministicHifuPriceDraft,gatePublicCatalogMoney,bookingHotLaneRequested,selectedHifuVariant,deterministicBookingPreflightDraft,deterministicAvailabilityDraft}=require('./wa4-copilot');
+const {isGenericHifuContext,preferHifuFrozenRows,isGenericHifuPriceFastLane,deterministicHifuPriceDraft,gatePublicCatalogMoney,bookingHotLaneRequested,selectedHifuVariant,deterministicBookingPreflightDraft,deterministicAvailabilityDraft,composePatientReply,hasApprovedIntro}=require('./wa4-copilot');
 const runtime=require('./wa4-conversation-runtime-v2');
 
 function row(title,category){
@@ -59,7 +59,7 @@ test('generic HIFU price uses deterministic Zi Frozen hot path and excludes corp
   ];
   const items=contexts.map(p=>({
     knowledge_id:'service:'+p.entity_id,domain:'CATALOG',title:p.entity_name,
-    facts:{tipo:'SERVICIO',nombre:p.entity_name,categoria:'HIFU',precio_base:p.precio_base,precio_oferta:p.precio_oferta,moneda:'PEN'},
+    facts:{tipo:'SERVICIO',nombre:p.entity_name,categoria:'HIFU',precio_base:p.precio_base,precio_oferta:p.precio_oferta,moneda:'PEN',descripcion_comercial:'HIFU usa ultrasonido focalizado para trabajar firmeza y contorno facial.',beneficios:'Estimulación de colágeno profundo. Reducción de flacidez. Definición de contorno facial.'},
     authority_tier:1,freshness_state:'FRESH',retrieval_state:'READY',
     evidence_ref:{relation:'aos_catalogo_servicios',pk:p.entity_id,version:p.price_evidence_ref}
   }));
@@ -71,6 +71,9 @@ test('generic HIFU price uses deterministic Zi Frozen hot path and excludes corp
   assert.match(draft.reply,/S\/ 599/);
   assert.match(draft.reply,/S\/ 699/);
   assert.match(draft.reply,/S\/ 899/);
+  assert.match(draft.reply,/estimular colágeno/i);
+  assert.match(draft.reply,/flacidez/i);
+  assert.match(draft.reply,/pérdida de firmeza/i);
   assert.equal(draft.reply.includes('HIFU 7D BRAZOS'),false);
   assert.equal(draft.needs_human,false);
 });
@@ -123,4 +126,27 @@ test('fresh governed booking slots render deterministically without broad RAG',(
   assert.match(draft.reply,/10:00/);
   assert.match(draft.reply,/11:30/);
   assert.match(draft.reply,/¿Cuál te acomoda mejor\?/);
+});
+
+
+test('conversation session re-introduces Sofía after a long inactivity gap',()=>{
+  const messages=[
+    {direction:'OUTBOUND',message_body:'¡Hola! 👋 Soy Sofía de Zi Vital. Claro, te ayudo 😊',created_at:'2026-09-14T20:00:00Z'},
+    {direction:'INBOUND',message_body:'Gracias',created_at:'2026-09-14T20:01:00Z'},
+    {direction:'INBOUND',message_body:'Hola quisiera información sobre HIFU y cuánto cuesta',created_at:'2026-09-15T14:24:58Z'}
+  ];
+  assert.equal(hasApprovedIntro(messages),false);
+  const out=composePatientReply('✨ Qué genial que te interese HIFU.\n\nEstas son las opciones vigentes.',messages,'Hola quisiera información sobre HIFU y cuánto cuesta');
+  assert.match(out,/Soy Sofía de Zi Vital/);
+});
+
+test('conversation session does not repeat Sofía inside an active session',()=>{
+  const messages=[
+    {direction:'INBOUND',message_body:'Hola quisiera información sobre HIFU',created_at:'2026-09-15T14:24:58Z'},
+    {direction:'OUTBOUND',message_body:'¡Hola! 👋 Soy Sofía de Zi Vital. Claro, te ayudo 😊',created_at:'2026-09-15T14:25:02Z'},
+    {direction:'INBOUND',message_body:'Quisiera agendar una cita',created_at:'2026-09-15T14:25:18Z'}
+  ];
+  assert.equal(hasApprovedIntro(messages),true);
+  const out=composePatientReply('Claro 😊 Para revisar disponibilidad necesito día y sede.',messages,'Quisiera agendar una cita');
+  assert.equal((out.match(/Soy Sofía de Zi Vital/g)||[]).length,0);
 });
