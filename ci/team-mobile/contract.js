@@ -1,0 +1,21 @@
+'use strict'
+const fs=require('fs')
+const path=require('path')
+const root=path.resolve(__dirname,'../..')
+const team=fs.readFileSync(path.join(root,'app/public/admin-team.html'),'utf8')
+function ok(v,m){if(!v){console.error('TEAM MOBILE CONTRACT FAIL:',m);process.exit(1)}}
+ok(team.includes("cache:'no-store'"),'team reads/writes must bypass stale browser/PWA cache')
+ok(team.includes("Prefer':'return=representation'"),'profile save must require representation readback')
+ok(team.includes("/rest/v1/rpc/aos_team_set_access_v1"),'protected role/panel changes must use governed Team access RPC')
+ok(team.includes("p_target_user_id:id,p_paneles:ps,p_nivel:nextLevel"),'governed Team access payload missing')
+ok(team.includes("EMAIL_PERSISTENCE_MISMATCH"),'email persistence guard missing')
+ok(team.includes("EMAIL_VERIFY_FAILED"),'post-save email verification missing')
+ok(team.includes("aos_team_full?id=eq.'+id+'&select=id,email,paneles_acceso,nivel_jerarquia,updated_at"),'post-save Team readback missing')
+const save=team.split('function saveU(id){')[1].split('function loadEst(uid)')[0]
+ok(!/var d=\{[^}]*paneles_acceso/.test(save),'profile PATCH must not include protected paneles_acceso')
+ok(!/var d=\{[^}]*nivel_jerarquia/.test(save),'profile PATCH must not include protected nivel_jerarquia')
+ok(!/d\.rol=/.test(save),'profile PATCH must not directly mutate protected rol')
+ok(team.includes('min-height:100dvh'),'mobile modal must fill app viewport')
+ok(team.includes('#tab-datos>div,#tab-roles>div,#tab-servicios>div,#tab-horarios>div:first-child'),'mobile Team tab stacking rules missing')
+ok(team.includes('.g4{grid-template-columns:1fr}'),'mobile Team cards must be single-column')
+console.log('TEAM email persistence + mobile layout contract: PASS')
