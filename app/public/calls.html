@@ -562,12 +562,90 @@ function _ctx(){var c=(window.AOS_getCtx&&window.AOS_getCtx())||{};var n=new Dat
 // ══════════════════════════════════════════════════════════════
 // ESTADO GLOBAL
 // ══════════════════════════════════════════════════════════════
-var CC = { lead:null, token:'', guardando:false, subTipif:'NO CONTESTA', ficha360:null, fichaTab:'compras', leadStartTs:null, panelInflight:{} };
+var CC = { lead:null, token:'', guardando:false, subTipif:'NO CONTESTA', ficha360:null, fichaTab:'compras', leadStartTs:null, panelInflight:{}, callSession:null };
 function _panelAsesorShared(x,mesInicio,cb){var mi=mesInicio||x.mes,key=[x.a,x.id,x.hoy,mi].join('|'),wait=CC.panelInflight[key];if(wait){wait.push(cb);return;}CC.panelInflight[key]=[cb];var done=false,t=setTimeout(function(){if(done)return;done=true;var q=CC.panelInflight[key]||[];delete CC.panelInflight[key];q.forEach(function(fn){try{fn(null);}catch(e){console.error(e);}});},15000);_rpc('aos_panel_asesor',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy,p_mes_inicio:mi},function(d){if(done)return;done=true;clearTimeout(t);var q=CC.panelInflight[key]||[];delete CC.panelInflight[key];q.forEach(function(fn){try{fn(d);}catch(e){console.error(e);}});});}
 var CAL_MES = new Date().getMonth(), CAL_ANIO = new Date().getFullYear(), CAL_DATA_MES = {};
 var _segsData = [], _segFiltro = 'todos';
 var MES_NOM = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
 var MES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+/* ═══ CALL MOBILE V1 — sesión Llamar → marcador → retorno → tipificación ═══ */
+var CC_CALL_KEY='aos_cc_active_call_v1';
+function ccCallDigits(v){return String(v||'').replace(/\D/g,'');}
+function ccCallDevice(){
+  var ua=String(navigator.userAgent||''),standalone=false;
+  try{standalone=!!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches);}catch(_){}
+  if(/Android/i.test(ua)&&standalone)return 'PWA_ANDROID';
+  if(/SamsungBrowser/i.test(ua))return 'SAMSUNG_BROWSER_ANDROID';
+  if(/Android/i.test(ua))return 'ANDROID_BROWSER';
+  if(/iPhone|iPad|iPod/i.test(ua))return standalone?'PWA_IOS':'IOS_BROWSER';
+  return 'WEB';
+}
+function ccCallRead(){
+  try{
+    var raw=localStorage.getItem(CC_CALL_KEY);if(!raw)return null;
+    var s=JSON.parse(raw),age=Date.now()-Number(s&&s.startedAt||0);
+    if(!s||!s.id||!s.num||!s.startedAt||age<0||age>4*60*60*1000){localStorage.removeItem(CC_CALL_KEY);return null;}
+    return s;
+  }catch(_){return null;}
+}
+function ccCallWrite(s){try{localStorage.setItem(CC_CALL_KEY,JSON.stringify(s));}catch(_){}CC.callSession=s||null;}
+function ccCallStart(num){
+  var s={id:aosClientUuid(),num:ccCallDigits(num),startedAt:Date.now(),hiddenAt:null,returnedAt:null,device:ccCallDevice()};
+  ccCallWrite(s);return s;
+}
+function ccCallMeta(num){
+  var s=CC.callSession||ccCallRead(),same=s&&s.num===ccCallDigits(num);
+  if(same){
+    return {duracion_seg:Math.max(1,Math.round((Date.now()-Number(s.startedAt))/1000)),session_id:String(s.id),desde_dispositivo:s.device||ccCallDevice(),tipo_gestion:'PWA_LLAMADA_HASTA_TIPIFICACION'};
+  }
+  return {duracion_seg:CC.leadStartTs?Math.max(0,Math.round((Date.now()-CC.leadStartTs)/1000)):0,session_id:null,desde_dispositivo:ccCallDevice(),tipo_gestion:'CALL_CENTER_MANUAL'};
+}
+function ccCallClear(num){
+  var s=CC.callSession||ccCallRead();
+  if(!num||!s||s.num===ccCallDigits(num)){try{localStorage.removeItem(CC_CALL_KEY);}catch(_){}CC.callSession=null;}
+  var lbl=document.getElementById('cc-call-dur');if(lbl)lbl.remove();
+}
+function ccCallRender(s){
+  if(!s)return;
+  if(CC.lead&&ccCallDigits(CC.lead.num)!==s.num)return;
+  var panel=document.getElementById('cc-lead-panel');if(!panel)return;
+  var lbl=document.getElementById('cc-call-dur');
+  if(!lbl){lbl=document.createElement('div');lbl.id='cc-call-dur';lbl.style.cssText='padding:8px 10px;background:#EBF5FF;border:1px solid #BFDBFE;border-radius:9px;margin:6px 0;font-size:10px;font-weight:700;color:#0A4FBF;text-align:center;';panel.insertBefore(lbl,panel.firstChild);}
+  var total=Math.max(0,Math.round((Date.now()-Number(s.startedAt))/1000));
+  var fuera=s.hiddenAt&&s.returnedAt?Math.max(0,Math.round((Number(s.returnedAt)-Number(s.hiddenAt))/1000)):0;
+  lbl.textContent='📞 Gestión activa · fuera de ASCENDA '+formatDur(fuera)+' · total '+formatDur(total)+' · tipifica y guarda';
+}
+function ccCallRestoreForLead(){
+  var s=ccCallRead();CC.callSession=s;
+  if(s&&CC.lead&&s.num===ccCallDigits(CC.lead.num)){
+    ccCallRender(s);
+    if(s.returnedAt&&window.AOS_setEstado)AOS_setEstado('TIPIFICAR','#D97706');
+  }
+}
+function ccCallVisibilityChanged(){
+  var s=ccCallRead();if(!s)return;
+  if(document.visibilityState==='hidden'){
+    if(!s.hiddenAt){s.hiddenAt=Date.now();ccCallWrite(s);}
+    return;
+  }
+  if(document.visibilityState==='visible'&&s.hiddenAt&&!s.returnedAt){
+    s.returnedAt=Date.now();ccCallWrite(s);
+    if(window.AOS_setEstado)AOS_setEstado('TIPIFICAR','#D97706');
+    ccCallRender(s);
+    var fuera=Math.max(0,Math.round((s.returnedAt-s.hiddenAt)/1000));
+    if(window.AOS_showToast)AOS_showToast('Regresaste de la llamada','Tiempo fuera: '+formatDur(fuera)+' · ahora tipifica y guarda','');
+    var sel=document.getElementById('cc-tipif');if(sel)setTimeout(function(){sel.focus();},250);
+  }
+}
+window.AOS_CC_CALL_VIS_V1=ccCallVisibilityChanged;
+if(!window.__AOS_CC_CALL_LIFECYCLE_V1__){
+  window.__AOS_CC_CALL_LIFECYCLE_V1__=true;
+  document.addEventListener('visibilitychange',function(){if(window.AOS_CC_CALL_VIS_V1)window.AOS_CC_CALL_VIS_V1();});
+  window.addEventListener('pageshow',function(){if(window.AOS_CC_CALL_VIS_V1)window.AOS_CC_CALL_VIS_V1();});
+}
+
 
 // ── INIT (global para re-inicialización desde app.html) ──────
 function ccInit(){
@@ -599,7 +677,7 @@ function ccInit(){
     document.getElementById('cc-tipif').value = '';
     document.getElementById('cc-m-cita-num').textContent = 'Número: '+pl.num;
     document.getElementById('cc-m-seg-num').textContent = 'Número: '+pl.num;
-    cargarNombrePaciente(pl.num);
+    cargarNombrePaciente(pl.num);setTimeout(ccCallRestoreForLead,0);
   } else {
     loadLead();
   }
@@ -637,7 +715,7 @@ function loadLead(_retried){
     }
     document.getElementById('cc-no-lead').style.display='none';
     document.getElementById('cc-lead-panel').style.display='block';
-    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.contexto||null};CC.leadStartTs=Date.now();
+    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.contexto||null};CC.leadStartTs=Date.now();setTimeout(ccCallRestoreForLead,0);
     document.getElementById('cc-tier').textContent=res.tier||'TIER 1';
     document.getElementById('cc-num').textContent=CC.lead.num;
     document.getElementById('cc-trat').textContent=CC.lead.trat;
@@ -708,18 +786,15 @@ function ccGuardar(){
   CC.guardando=true;var btn=document.getElementById('cc-btn-guardar');btn.disabled=true;btn.innerHTML='<span class="sp-sm"></span> Guardando...';
   var payload={numero:CC.lead?CC.lead.num:'',estado:tipif,subEstado:tipif==='SIN CONTACTO'?CC.subTipif:'',obs:document.getElementById('cc-obs').value.trim(),tratamiento:CC.lead?CC.lead.trat:'',rowNum:CC.lead?(CC.lead.rowNum||0):0};
   var x=_ctx();var now=new Date();
-  var durSeg=(CC._lastDur && CC._callNum===payload.numero)?CC._lastDur:(CC.leadStartTs?Math.round((Date.now()-CC.leadStartTs)/1000):0);
-  var dispositivo=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)?'movil':'web';
-  var row={fecha:x.hoy,numero:payload.numero,numero_limpio:(payload.numero||'').replace(/\D/g,''),tratamiento:payload.tratamiento,estado:payload.estado,sub_estado:payload.subEstado||'',observacion:payload.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,anuncio:CC.lead?CC.lead.anuncio||'':'',duracion_seg:durSeg,desde_dispositivo:dispositivo,created_at:now.toISOString()};
+  var callMeta=ccCallMeta(payload.numero);
+  var row={fecha:x.hoy,numero:payload.numero,numero_limpio:(payload.numero||'').replace(/\D/g,''),tratamiento:payload.tratamiento,estado:payload.estado,sub_estado:payload.subEstado||'',observacion:payload.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,anuncio:CC.lead?CC.lead.anuncio||'':'',duracion_seg:callMeta.duracion_seg,desde_dispositivo:callMeta.desde_dispositivo,tipo_gestion:callMeta.tipo_gestion,session_id:callMeta.session_id,created_at:now.toISOString()};
   fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(row)}).then(function(r){
     CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';
     if(!r.ok){r.text().then(function(t){console.error('[AOS] Save error:',r.status,t);});throw new Error('HTTP '+r.status);}
     document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');
     if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('\u2713 Guardado','Llamada registrada.','');
     loadLead();loadHistorial();loadMetrics();
-    /* Limpiar tracking de llamada móvil */
-    CC._lastDur=null;CC._callNum=null;
-    var lblDur=document.getElementById('cc-call-dur');if(lblDur)lblDur.remove();
+    ccCallClear(payload.numero);
   }).catch(function(e){CC.guardando=false;btn.disabled=false;btn.innerHTML='\x3csvg width="13" height="13" viewBox="0 0 20 20" fill="none">\x3cpath d="M4 10l5 5 7-9" stroke="white" stroke-width="2" stroke-linecap="round"/>\x3c/svg>Guardar resultado';console.error('[AOS] Error guardando llamada:',e);if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
@@ -729,8 +804,8 @@ function ccConfirmarCita(){
   var tipoCita='';document.querySelectorAll('#cc-tipo-cita-grp .tb').forEach(function(t){if(t.classList.contains('act'))tipoCita=t.getAttribute('data-val');});
   if(!document.getElementById('cc-c-fecha').value){if(window.AOS_showToast)AOS_showToast('⚠️ Falta fecha','Seleccioná la fecha.','');else alert('Falta la fecha');return;}
   var p={numero:CC.lead?CC.lead.num:'',estado:'CITA CONFIRMADA',nombre:document.getElementById('cc-c-nombre').value.trim(),apellido:document.getElementById('cc-c-apellido').value.trim(),dni:document.getElementById('cc-c-dni').value.trim(),correo:document.getElementById('cc-c-correo').value.trim(),tipoAtencion:document.getElementById('cc-c-tipo-at').value,sede:document.getElementById('cc-c-sede').value,fechaCita:document.getElementById('cc-c-fecha').value,horaCita:document.getElementById('cc-c-hora').value,tratamiento:document.getElementById('cc-c-trat').value,tipoCita:tipoCita||'CONSULTA NUEVA',obs:document.getElementById('cc-c-obs').value.trim(),rowNum:CC.lead?(CC.lead.rowNum||0):0};
-  var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');var durSeg=CC.leadStartTs?Math.round((Date.now()-CC.leadStartTs)/1000):0;
-  var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:CC.lead?CC.lead.trat:'',estado:'CITA CONFIRMADA',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,duracion_seg:durSeg,created_at:now.toISOString()};
+  var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');var callMeta=ccCallMeta(p.numero);
+  var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:CC.lead?CC.lead.trat:'',estado:'CITA CONFIRMADA',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,intento:CC.lead?(CC.lead.intento||0)+1:1,duracion_seg:callMeta.duracion_seg,desde_dispositivo:callMeta.desde_dispositivo,tipo_gestion:callMeta.tipo_gestion,session_id:callMeta.session_id,created_at:now.toISOString()};
   var rowC={id:aosClientUuid(),numero_limpio:numL,numero:p.numero,nombre:p.nombre||'',apellido:p.apellido||'',dni:p.dni||'',correo:p.correo||'',tipo_atencion:p.tipoAtencion||'',sede:p.sede||'',fecha_cita:p.fechaCita,hora_cita:p.horaCita||'',tratamiento:p.tratamiento||'',tipo_cita:p.tipoCita||'CONSULTA NUEVA',asesor:x.a,id_asesor:x.id,estado_cita:'PENDIENTE',origen_cita:'CALL_CENTER',ts_creado:now.toISOString()};
   console.log('[AOS-DEBUG] ccConfirmarCita rowC:',JSON.stringify(rowC));console.log('[AOS-DEBUG] ccConfirmarCita rowL:',JSON.stringify(rowL));
   Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),fetch(_SB+'/rest/v1/aos_agenda_citas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowC)})]).then(function(results){
@@ -742,7 +817,7 @@ function ccConfirmarCita(){
     aosQueueGoogleAppointment(rowC.id);
     // Enviar email de confirmación automáticamente
     enviarEmailConfirmacionCita(rowC);
-    CC.guardando=false;loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){CC.guardando=false;if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+    ccCallClear(p.numero);CC.guardando=false;loadLead();loadHistorial();loadMetrics();if(window.AOS_pollNow)AOS_pollNow();}).catch(function(e){CC.guardando=false;if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 function ccConfirmarSeguimiento(){
@@ -751,8 +826,8 @@ function ccConfirmarSeguimiento(){
   if(!fecha){if(window.AOS_showToast)AOS_showToast('⚠️ Falta fecha','','');else alert('Falta la fecha');return;}
   var proxTs=new Date(fecha+'T'+hora+':00').toISOString();
   var p={numero:CC.lead?CC.lead.num:'',estado:'SEGUIMIENTO',obs:document.getElementById('cc-s-obs').value.trim(),tratamiento:CC.lead?CC.lead.trat:'',proxReintentoTs:proxTs,rowNum:CC.lead?(CC.lead.rowNum||0):0};
-  var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');
-  var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:p.tratamiento||'',estado:'SEGUIMIENTO',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,prox_rein:p.proxReintentoTs,created_at:now.toISOString()};
+  var x=_ctx();var now=new Date();var numL=(p.numero||'').replace(/\D/g,'');var callMeta=ccCallMeta(p.numero);
+  var rowL={fecha:x.hoy,numero:p.numero,numero_limpio:numL,tratamiento:p.tratamiento||'',estado:'SEGUIMIENTO',observacion:p.obs||'',hora_llamada:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0'),asesor:x.a,id_asesor:x.id,prox_rein:p.proxReintentoTs,duracion_seg:callMeta.duracion_seg,desde_dispositivo:callMeta.desde_dispositivo,tipo_gestion:callMeta.tipo_gestion,session_id:callMeta.session_id,created_at:now.toISOString()};
   var segPromise;
   if(CC.lead&&CC.lead.segId&&CC.lead.fromSeg){
     segPromise=fetch(_SB+'/rest/v1/aos_seguimientos?'+encodeURIComponent('"ID"')+'=eq.'+CC.lead.segId,{method:'PATCH',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({"FECHA_PROGRAMADA":fecha,"HORA_PROGRAMADA":hora,"OBS_RECONTACTO":p.obs||'',"ESTADO":"PENDIENTE","TS_ACTUALIZADO":now.toISOString()})});
@@ -760,7 +835,7 @@ function ccConfirmarSeguimiento(){
     var rowS={"ID":"SEG-"+Date.now()+'-'+Math.random().toString(36).slice(2,6),"NUMERO":numL,"TRATAMIENTO":p.tratamiento||'',"ASESOR":x.a,"ID_ASESOR":x.id,"FECHA_PROGRAMADA":fecha,"HORA_PROGRAMADA":hora,"OBS_RECONTACTO":p.obs||'',"ESTADO":"PENDIENTE","TS_CREADO":now.toISOString(),"TS_ACTUALIZADO":now.toISOString()};
     segPromise=fetch(_SB+'/rest/v1/aos_seguimientos',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowS)});
   }
-  Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),segPromise]).then(function(){CC.guardando=false;closeCCModal('cc-m-seg');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('Seguimiento '+(CC.lead&&CC.lead.fromSeg?'reprogramado':'programado'),fecha+' a las '+hora,'');loadLead();loadHistorial();loadMetrics();}).catch(function(e){CC.guardando=false;if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
+  Promise.all([fetch(_SB+'/rest/v1/aos_llamadas',{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify(rowL)}),segPromise]).then(function(){ccCallClear(p.numero);CC.guardando=false;closeCCModal('cc-m-seg');document.getElementById('cc-tipif').value='';document.getElementById('cc-obs').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');if(window.AOS_playSound)AOS_playSound('notif');if(window.AOS_showToast)AOS_showToast('Seguimiento '+(CC.lead&&CC.lead.fromSeg?'reprogramado':'programado'),fecha+' a las '+hora,'');loadLead();loadHistorial();loadMetrics();}).catch(function(e){CC.guardando=false;if(window.AOS_showToast)AOS_showToast('Error',e&&e.message?e.message:'Error','toast-alerta');});
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1079,42 +1154,16 @@ function onCCTipif(val){var sub=document.getElementById('sub-tipif-wrap');sub.cl
   }else if(val==='SEGUIMIENTO'){document.getElementById('cc-m-seg').classList.add('open');}}
 function selectSubTipif(el){document.querySelectorAll('.sub-opt').forEach(function(o){o.classList.remove('act');});el.classList.add('act');CC.subTipif=el.getAttribute('data-val');}
 function doCallCC(){
-  if(window.AOS_setEstado)AOS_setEstado('EN LLAMADA','#0A4FBF');
   var num=(CC.lead&&CC.lead.num)||'';
-  if(!num)return;
-  // Detectar móvil para hacer click-to-call nativo
+  if(!num){if(window.AOS_showToast)AOS_showToast('Sin número','No hay un teléfono válido para llamar','toast-alerta');return;}
+  if(window.AOS_setEstado)AOS_setEstado('EN LLAMADA','#0A4FBF');
   var esMovil=/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  if(esMovil){
-    // Guardar timestamp de inicio
-    CC._callStart=Date.now();
-    CC._callNum=num;
-    // Limpiar número para tel: (solo dígitos, Perú: 51+9 dígitos)
-    var numLimpio=num.replace(/\D/g,'');
-    if(numLimpio.length===9)numLimpio='51'+numLimpio; // Agregar código país si falta
-    // Disparar marcador nativo
-    window.location.href='tel:+'+numLimpio;
-    // Cuando vuelva a la app, mostrar duración
-    if(!CC._visListener){
-      CC._visListener=true;
-      document.addEventListener('visibilitychange',function(){
-        if(document.visibilityState==='visible' && CC._callStart){
-          var dur=Math.round((Date.now()-CC._callStart)/1000);
-          CC._lastDur=dur;
-          if(window.AOS_showToast)AOS_showToast('Llamada finalizada','Duración: '+formatDur(dur)+' · Tipifica el resultado','');
-          // Mostrar duración en el panel
-          var lblDur=document.getElementById('cc-call-dur');
-          if(!lblDur){
-            var panel=document.getElementById('cc-lead-panel');
-            if(panel){lblDur=document.createElement('div');lblDur.id='cc-call-dur';lblDur.style.cssText='padding:6px 10px;background:#EBF5FF;border-radius:8px;margin:6px 0;font-size:10px;font-weight:700;color:#0A4FBF;text-align:center;';panel.insertBefore(lblDur,panel.firstChild);}
-          }
-          if(lblDur)lblDur.innerHTML='⏱ Última llamada: '+formatDur(dur);
-          // Auto-focus en tipificación
-          var sel=document.getElementById('cc-tipif');if(sel)setTimeout(function(){sel.focus()},300);
-          CC._callStart=null;
-        }
-      });
-    }
-  }
+  if(!esMovil){if(window.AOS_showToast)AOS_showToast('Llamada móvil','Abre ASCENDA desde el celular para usar el marcador nativo','');return;}
+  var s=ccCallStart(num);
+  ccCallRender(s);
+  var numLimpio=ccCallDigits(num);
+  if(numLimpio.length===9)numLimpio='51'+numLimpio;
+  window.location.href='tel:+'+numLimpio;
 }
 function formatDur(s){var m=Math.floor(s/60),r=s%60;return m+':'+String(r).padStart(2,'0');}
 function openWaCC(){
