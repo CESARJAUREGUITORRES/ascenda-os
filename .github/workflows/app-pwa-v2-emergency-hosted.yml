@@ -70,8 +70,9 @@ jobs:
             -e POSTGRES_PASSWORD=postgres \
             -p 127.0.0.1:59327:5432 \
             postgres:17-alpine
-          for i in $(seq 1 40); do
-            if docker exec "$DB_CONTAINER" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
+          for i in $(seq 1 60); do
+            if pg_isready -h 127.0.0.1 -p 59327 -U postgres -d postgres >/dev/null 2>&1 \
+              && psql "$DB_URL" -X -qAt -c 'select 1' >/dev/null 2>&1; then
               exit 0
             fi
             sleep 1
