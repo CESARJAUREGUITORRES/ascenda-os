@@ -1389,10 +1389,8 @@ document.getElementById('afp-clear').addEventListener('click', function() {
   _afpItems = []; _afpUnread = 0;
   _afpUpdateBadge(); _afpRender();
 });
-// Solicitar permisos de notificación
-if (window.Notification && Notification.permission === 'default') {
-  Notification.requestPermission();
-}
+// APP-PWA #517: el permiso Push se solicita únicamente desde un gesto explícito
+// del onboarding central notification-push-s14.js. Nunca pedirlo al cargar el shell.
 
 /* ---------------------------------------------------
    SONIDOS
