@@ -329,7 +329,7 @@ function deterministicAvailabilityDraft(booking,runtime){
     if(!rows.length)return null;
     const lines=rows.map(s=>{
       const who=String(s&&s.professional_name||'').trim();
-      return '• '+String(s&&s.time||'').slice(0,5)+(who?' — '+who:'');
+      return '• '+String(s&&(s.time||s.hora)||'').slice(0,5)+(who?' — '+who:'');
     });
     return {reply:'📅 Tengo estos horarios disponibles:\n\n'+lines.join('\n')+'\n\n¿Cuál te acomoda mejor?',intent:'BOOKING',next_action:'OFFER_BOOKING',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'Fresh governed Agenda slots.'};
   }
