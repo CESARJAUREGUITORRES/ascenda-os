@@ -1596,25 +1596,13 @@ setInterval(checkProactiveEvents, 15000);
 // PWA: registrar service worker + boton de instalacion
 // ═══════════════════════════════════════════════════════════════
 (function setupPWA(){
-  /* DESINSTALAR cualquier service worker previo.
-     SES-038: el SW estaba rompiendo la PWA de Cesar mostrando pantallas blancas.
-     Decision: quitar PWA por completo. AscendaOS se usa en Chrome normal.
-     El mini-modal del Brain (3 estados) sigue funcionando sin PWA. */
+  /* ASCENDA_APP_PWA_V2_517: el service worker raíz pertenece al shell de AscendaOS.
+     KronIA no registra, desregistra ni purga el SW/caches compartidos. El host controla
+     instalación, actualizaciones, Push y rollback desde /phase2-service-worker.js. */
   if('serviceWorker' in navigator){
-    navigator.serviceWorker.getRegistrations().then(function(regs){
-      regs.forEach(function(reg){
-        reg.unregister().then(function(){
-          console.log('[KronIA] Service Worker desinstalado:', reg.scope);
-        });
-      });
-    }).catch(function(e){ console.warn('[KronIA] unregister error:', e); });
-
-    /* Limpiar caches que el SW haya creado */
-    if(window.caches && caches.keys){
-      caches.keys().then(function(names){
-        names.forEach(function(n){ caches.delete(n); });
-      }).catch(function(){});
-    }
+    navigator.serviceWorker.getRegistration('/').then(function(reg){
+      if(reg)console.log('[KronIA] AscendaOS PWA host activo:',reg.scope);
+    }).catch(function(e){console.warn('[KronIA] PWA host lookup',e)});
   }
 })();
 /* Bloque viejo PWA desactivado */
