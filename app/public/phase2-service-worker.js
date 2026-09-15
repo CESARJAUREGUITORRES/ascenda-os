@@ -88,7 +88,7 @@ async function injectF4(req){
     tags+='<script src="/wa-human-alerts.js?v=20260817-wa-alerts-s14-p01"></script>';
   }
   if(html.indexOf('/notification-push-s14.js')<0){
-    tags+='<script src="/notification-push-s14.js?v=20260914-admin-push-p01"></script>';
+    tags+='<script src="/notification-push-s14.js?v=20260915-samsung-push-p02"></script>';
   }
   if(html.indexOf('/sentinel-inapp-notifications.js')<0){
     tags+='<script src="/sentinel-inapp-notifications.js?v=20260816-f9-inapp-v1"></script>';
