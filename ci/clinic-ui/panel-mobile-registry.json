@@ -10,7 +10,7 @@
       "route": "/advisor-home.html",
       "family": "advisor-dashboard",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -26,7 +26,7 @@
       "route": "/followups.html",
       "family": "workflow",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -34,7 +34,7 @@
       "route": "/agenda.html",
       "family": "calendar",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -42,7 +42,7 @@
       "route": "/citas.html",
       "family": "appointments",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -50,7 +50,7 @@
       "route": "/patients.html",
       "family": "master-detail",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -58,7 +58,7 @@
       "route": "/catalogo.html",
       "family": "catalog",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -66,7 +66,7 @@
       "route": "/inventario.html",
       "family": "inventory",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -74,7 +74,7 @@
       "route": "/caja.html",
       "family": "finance",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -82,7 +82,7 @@
       "route": "/sales.html",
       "family": "analytics",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -90,7 +90,7 @@
       "route": "/commissions.html",
       "family": "analytics",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -98,7 +98,7 @@
       "route": "/attendance.html",
       "family": "master-detail",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -106,7 +106,7 @@
       "route": "/asesor-coord.html",
       "family": "communications",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -114,7 +114,7 @@
       "route": "/admin-device-center-v2.html",
       "family": "settings",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -122,7 +122,7 @@
       "route": "/admin-home.html",
       "family": "admin-dashboard",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -130,7 +130,7 @@
       "route": "/admin-agenda.html",
       "family": "calendar",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -138,7 +138,7 @@
       "route": "/patients.html",
       "family": "master-detail",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -146,7 +146,7 @@
       "route": "/admin-sales.html",
       "family": "analytics",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -154,7 +154,7 @@
       "route": "/admin-sales-intelligence.html",
       "family": "analytics",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -162,7 +162,7 @@
       "route": "/admin-comisiones.html",
       "family": "analytics",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -170,7 +170,7 @@
       "route": "/admin-marketing.html",
       "family": "analytics",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -178,7 +178,7 @@
       "route": "/admin-email.html",
       "family": "communications",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -186,7 +186,7 @@
       "route": "/admin-calls.html",
       "family": "analytics",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -194,7 +194,7 @@
       "route": "/caja.html",
       "family": "finance",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -202,7 +202,7 @@
       "route": "/admin-cartera.html",
       "family": "finance",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -210,7 +210,7 @@
       "route": "/admin-billing.html",
       "family": "finance",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -218,7 +218,7 @@
       "route": "/admin-team.html",
       "family": "forms",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -226,7 +226,7 @@
       "route": "/admin-catalogo.html",
       "family": "catalog",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -234,7 +234,7 @@
       "route": "/studio.html",
       "family": "studio",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -242,7 +242,7 @@
       "route": "/inventario.html",
       "family": "inventory",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -250,7 +250,7 @@
       "route": "/admin-config.html",
       "family": "settings",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     },
     {
@@ -258,8 +258,8 @@
       "route": "/coordinacion.html",
       "family": "communications",
       "adapter": "/clinic-panels-mobile-v13.css",
-      "baseline_status": "TARGET_V13",
+      "baseline_status": "ADAPTED_BASELINE_V13",
       "human_canary": "PENDING"
     }
   ]
-}
+}\n
