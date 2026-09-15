@@ -43,7 +43,7 @@ function createGoogleIntegrationV1(opts) {
       var payload = body == null ? null : (Buffer.isBuffer(body) ? body : Buffer.from(String(body)))
       var h = Object.assign({}, headers || {})
       if (payload && h['Content-Length'] == null) h['Content-Length'] = payload.length
-      var req = https.request({hostname:hostname,path:path,method:method || 'GET',headers:h}, function(r) {
+      var req = https.request({hostname:hostname,path:path,method:method || 'GET',headers:h,timeout:12000}, function(r) {
         var chunks=[]
         r.on('data',function(c){chunks.push(c)})
         r.on('end',function(){
@@ -53,6 +53,7 @@ function createGoogleIntegrationV1(opts) {
           resolve({status:r.statusCode || 0,headers:r.headers || {},body:parsed,text:text})
         })
       })
+      req.on('timeout',function(){req.destroy(new Error('UPSTREAM_TIMEOUT'))})
       req.on('error',function(e){resolve({status:599,body:{error:e.message},text:e.message,headers:{}})})
       if(payload) req.write(payload)
       req.end()

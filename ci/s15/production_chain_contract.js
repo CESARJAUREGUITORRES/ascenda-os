@@ -21,6 +21,8 @@ ok(f5.includes("child=spawn(process.execPath,['server-wa4.js']"),'F5 must preser
 ok(f17.includes("url.pathname === '/api/notifications/health'"),'F17 notification health endpoint missing from production boundary')
 ok(f17.includes("url.pathname === '/api/notifications/inbox'"),'F17 actor-bound notification inbox missing from production boundary')
 ok(f17.includes("url.pathname === '/api/push/config'"),'S14 Push boundary missing from F17')
+ok(f17.includes('NOTIFICATION_PUMP_ERROR_MS = [30000, 120000, 600000]'),'notification pump DB outage backoff missing')
+ok(f17.includes('notificationPumpFailureLevel'),'notification pump failure-level state missing')
 ok(f17.includes('const headers = bufferedProxyHeaders(req, raw)'),'buffered routes must use canonical HTTP framing helper')
 
 const bootstrapMod=require(bootstrapPath)

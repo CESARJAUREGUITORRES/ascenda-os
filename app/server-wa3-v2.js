@@ -85,6 +85,7 @@ const serviceGet=(endpoint)=>sbRequest('GET',endpoint,null,true);
 const actorResolver=createActorResolver({
   okTtlMs:5000,
   denyTtlMs:30000,
+  errorTtlMs:30000,
   maxEntries:1500,
   verify:async function(token){
     const out=await sbRpc('aos_wa3_actor_v1',{p_token:token});
