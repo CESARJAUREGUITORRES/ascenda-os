@@ -11,7 +11,7 @@ wa4=(root/'app/server-wa4.js').read_text(encoding='utf-8')
 assert final_mode or "MULTI_SRC='/wa-multiagent-v2-panel.js?v=20260822-wa3-multiagent-v2-p03'" in shell
 assert 'function ensureMulti()' in shell
 assert 'return ensureMulti();' in shell
-assert "PUSH_SRC='/notification-push-s14.js?v=20260914-admin-push-p01'" in shell
+assert "PUSH_SRC='/notification-push-s14.js?v=20260915-samsung-push-p02'" in shell
 assert 'ensurePush().catch' in shell
 for token in ['/api/wa3/queue-summary','/api/wa3/claim-next','/api/wa3/team-summary','WA3_NOT_OWNER','ownershipLostRemount','Meta aceptó el mensaje','nextPollDelay','scheduleRefresh','45000','60000']:
     assert token in panel, token
