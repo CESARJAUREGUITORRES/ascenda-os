@@ -1,0 +1,81 @@
+name: PWA Login Crash P0 Hosted Gate
+on:
+  push:
+    branches:
+      - hotfix/pwa-login-crash-install-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  pwa-login-p0:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/pwa-login-crash-install-20260915
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Patch login to single install owner and bust V4.1 cache
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/public/login.html')
+          s=p.read_text()
+          a=s.find('function setupInstall(){')
+          b=s.find('function savePending(){',a)
+          if a<0 or b<0:
+            raise SystemExit('setupInstall bounds missing')
+          replacement="function setupInstall(){/* CLINIC V4.1: installation is owned by clinic-login-v4.js only. */}\n"
+          if 'installation is owned by clinic-login-v4.js only' not in s:
+            s=s[:a]+replacement+s[b:]
+          s=s.replace('/clinic-login-v4.js?v=20260915-1','/clinic-login-v4.js?v=20260915-2')
+          p.write_text(s)
+          PY
+      - name: JavaScript syntax
+        run: |
+          node --check app/public/clinic-login-v4.js
+          node --check ci/app-pwa-v2/contract.js
+      - name: PWA Login P0 static contract
+        run: |
+          node - <<'NODE'
+          const fs=require('fs')
+          const login=fs.readFileSync('app/public/login.html','utf8')
+          const ui=fs.readFileSync('app/public/clinic-login-v4.js','utf8')
+          const start=fs.readFileSync('app/public/pwa-start.html','utf8')
+          const manifest=JSON.parse(fs.readFileSync('app/public/manifest.json','utf8'))
+          function ok(v,m){if(!v)throw new Error(m)}
+          ok(login.includes('installation is owned by clinic-login-v4.js only'),'legacy inline install owner still active')
+          ok(login.includes('/clinic-login-v4.js?v=20260915-2'),'V4.1 cache bust missing')
+          ok(!ui.includes('MutationObserver(function(){reconcile()})'),'self-mutating global observer regression')
+          ok(ui.includes("obs.observe(card,{childList:true,subtree:true})"),'OTP observer must be scoped to card')
+          ok(ui.includes("input.dataset.clinicOtp==='1'"),'OTP observer idempotency guard missing')
+          ok(!ui.includes("chip.textContent='Acceso protegido · 2FA'"),'2FA visual badge must stay removed')
+          ok(!ui.includes("n.innerHTML='<span class=\"clinic-security-dot\""),'duplicated 2FA security note must stay removed')
+          ok(ui.includes('beforeinstallprompt'),'native install prompt owner missing')
+          ok(ui.includes('deferredInstall.prompt()'),'native install action missing')
+          ok(manifest.start_url==='/pwa-start.html','installed PWA must launch through safe gate')
+          ok(manifest.id==='/app'&&manifest.scope==='/'&&manifest.display==='standalone','technical PWA identity changed')
+          ok(start.includes("localStorage.getItem('aos_session')"),'launch session check missing')
+          ok(start.includes("c.match('/__aos_app_token')"),'launch token bridge check missing')
+          ok(login.includes('autocomplete="one-time-code"'),'OTP autocomplete regression')
+          ok(login.includes("PENDING_KEY='aos_auth_pending_v1'"),'OTP resume regression')
+          console.log('PWA Login Crash P0 contract: PASS')
+          NODE
+      - name: Existing APP-PWA V2 contract
+        run: node ci/app-pwa-v2/contract.js
+      - name: Commit safe login patch
+        run: |
+          if git diff --quiet; then
+            echo "No patch changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/public/login.html
+          git commit -m "PWA P0: single install owner and Login V4.1 cache bust"
+          git push origin HEAD:hotfix/pwa-login-crash-install-20260915
