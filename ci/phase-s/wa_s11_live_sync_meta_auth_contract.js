@@ -13,7 +13,7 @@ ok(p.includes("e&&e.message==='META_190'"),'META_190 reprobe hook missing');
 ok(p.includes('function heartbeat(force)'),'heartbeat missing');
 ok(p.includes('visibilitychange'),'visibility refresh missing');
 ok(p.includes("window.addEventListener('focus'"),'focus refresh missing');
-ok(p.includes("fetch('/api/wa3/events'")&&p.includes('scheduleFallback(30000)'),'native panel must use L2 event stream with bounded 30s fallback');
+ok(p.includes("fetch('/api/wa3/events'")&&p.includes('scheduleFallback(45000)')&&p.includes('document.hidden?60000:45000'),'native panel must use L2 event stream with bounded 45s visible / 60s hidden fallback');
 ok(p.includes('Math.min(60000,Number(S.eventBackoffMs||1000))'),'event reconnect outage backoff must reach 60s');
 ok(sh.includes('PRESENCE_UPSTREAM_BACKOFF_MS=120000'),'presence upstream outage backoff missing');
 ok(sh.includes('r.status===429||r.status>=500'),'presence 5xx/429 backoff trigger missing');
