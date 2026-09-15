@@ -1,0 +1,45 @@
+name: CLINIC All Panels Responsive V1.3 Gate
+on:
+  push:
+    branches:
+      - feat/clinic-responsive-agent-all-panels-v13-20260915
+jobs:
+  responsive-all-panels:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Syntax
+        run: |
+          node --check app/public/clinic-shell-ui-v1.js
+          node --check ci/clinic-ui/panel-mobile-registry-contract.js
+      - name: Responsive registry and agent contract
+        run: node ci/clinic-ui/panel-mobile-registry-contract.js
+      - name: Existing CLINIC UI contract
+        run: node ci/clinic-ui/contract.js
+      - name: Existing Call Center mobile contract
+        run: node ci/clinic-ui/callcenter-mobile-v12-contract.js
+      - name: Existing APP-PWA V2
+        run: node ci/app-pwa-v2/contract.js
+      - name: Call Center performance regression
+        run: node ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js
+      - name: Sales Intelligence acceptance
+        run: node ci/rev-f6-7/static_acceptance.js
+      - name: Protect functional panel HTML
+        run: |
+          git fetch origin main
+          changed="$(git diff --name-only origin/main...HEAD -- 'app/public/*.html' | grep -v '^app/public/app.html$' || true)"
+          if [ -n "$changed" ]; then
+            echo "Functional panel HTML changed unexpectedly:"
+            echo "$changed"
+            exit 1
+          fi
+          echo "Functional panel HTML diff: ZERO"
+      - name: Diff hygiene
+        run: |
+          git diff --check origin/main...HEAD
