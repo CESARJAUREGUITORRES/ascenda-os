@@ -6,7 +6,7 @@ const shell=fs.readFileSync('app/public/clinic-shell-ui-v1.js','utf8')
 const login=fs.readFileSync('app/public/login.html','utf8')
 const loginCss=fs.readFileSync('app/public/clinic-login-v4.css','utf8')
 const home=fs.readFileSync('app/public/admin-home.html','utf8')
-function ok(v,m){if(!v){console.error('CLINIC UI V1.1 CONTRACT FAIL:',m);process.exit(1)}}
+function ok(v,m){if(!v){console.error('CLINIC UI V1.3 CONTRACT FAIL:',m);process.exit(1)}}
 
 // Existing navigation/functionality authority must remain unchanged.
 ok(app.includes("document.getElementById('tb-brand').addEventListener('click'"),'drawer logo click authority missing')
@@ -49,6 +49,7 @@ ok(loginCss.includes("strong{")&&loginCss.includes("color:var(--clinic-mint)!imp
 ok(loginCss.includes("repeating-linear-gradient"),'tech hero layer missing')
 ok(login.includes('/clinic-login-v4.css?v=20260915-4'),'login visual cache-bust missing')
 ok(app.includes('/clinic-ui-v1.css?v=20260915-2'),'shell visual cache-bust missing')
-ok(app.includes('/clinic-shell-ui-v1.js?v=20260915-2'),'shell adapter cache-bust missing')
+ok(app.includes('/clinic-shell-ui-v1.js?v=20260915-3'),'shell adapter cache-bust missing')
+ok(shell.includes("data-active-view"),'active-view responsive scoping missing')
 
-console.log('CLINIC UI V1.1 responsive canary contract: PASS')
+console.log('CLINIC UI V1.3 responsive canary contract: PASS')
