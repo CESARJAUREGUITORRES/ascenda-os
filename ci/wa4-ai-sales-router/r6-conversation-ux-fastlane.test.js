@@ -55,9 +55,10 @@ test('R6 owner-copy and price fast lanes execute before expensive adapters and g
   const intro=src.indexOf('const introDraft=!clinicalRisk?deterministicOwnerApprovedIntroDraft');
   const price=src.indexOf('if(!clinicalRisk&&isPriceFastLane(runtime))');
   const hifu=src.indexOf('if(!clinicalRisk&&isGenericHifuPriceFastLane(runtime,inbound))');
+  const booking=src.indexOf('const bookingPreflight=deterministicBookingPreflightDraft(runtime,messages,inbound)');
   const adapters=src.indexOf('const [campaignCtx,identityCtx]=await Promise.all');
   const governed=src.indexOf('governed=await buildGovernedContext');
-  assert.ok(intro>0&&price>intro&&hifu>price&&adapters>hifu&&governed>adapters);
+  assert.ok(intro>0&&price>intro&&hifu>price&&booking>hifu&&adapters>booking&&governed>adapters);
 });
 
 test('R6 typing transport remains in canonical F4/WA-1 provider boundary',()=>{
