@@ -2,7 +2,7 @@
   "name": "ASCENDA CLINIC",
   "short_name": "CLINIC",
   "description": "Plataforma clínica, comercial y operativa de ASCENDA CLINIC",
-  "start_url": "/app",
+  "start_url": "/pwa-start.html",
   "display": "standalone",
   "background_color": "#071D4A",
   "theme_color": "#071D4A",
