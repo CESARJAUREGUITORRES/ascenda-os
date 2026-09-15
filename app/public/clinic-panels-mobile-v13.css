@@ -1,0 +1,538 @@
+/* ASCENDA CLINIC — ALL PANELS MOBILE BASELINE V1.3
+   Presentation-only responsive adapters.
+   Every layout override is compact-device scoped and view-scoped.
+   Functional panel HTML/JS remains authoritative. */
+
+/* ===== GLOBAL COMPACT SAFETY ===== */
+.clinic-compact-ui .workspace[data-active-view]{
+  min-width:0!important;
+  overflow-x:hidden!important;
+}
+.clinic-compact-ui .workspace[data-active-view] > *{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  box-sizing:border-box;
+}
+.clinic-compact-ui .workspace[data-active-view] input,
+.clinic-compact-ui .workspace[data-active-view] select,
+.clinic-compact-ui .workspace[data-active-view] textarea,
+.clinic-compact-ui .workspace[data-active-view] canvas,
+.clinic-compact-ui .workspace[data-active-view] svg{
+  max-width:100%;
+}
+.clinic-compact-ui .workspace[data-active-view] table{
+  max-width:100%!important;
+}
+.clinic-compact-ui .workspace[data-active-view] .clinic-mobile-scroll-table{
+  width:100%;
+  max-width:100%;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* Tables in registered panels: preserve every column by contained horizontal scroll. */
+.clinic-compact-ui .workspace[data-active-view="advisor-agenda"] table,
+.clinic-compact-ui .workspace[data-active-view="advisor-citas"] table,
+.clinic-compact-ui .workspace[data-active-view="advisor-sales"] table,
+.clinic-compact-ui .workspace[data-active-view="advisor-commissions"] table,
+.clinic-compact-ui .workspace[data-active-view="advisor-catalogo"] table,
+.clinic-compact-ui .workspace[data-active-view="advisor-inventario"] table,
+.clinic-compact-ui .workspace[data-active-view="advisor-caja"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-patients"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-sales"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-sales-intelligence"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-commissions"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-marketing"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-email"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-calls"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-caja"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-cartera"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-billing"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-team"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-catalogo"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-studio"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-inventario"] table,
+.clinic-compact-ui .workspace[data-active-view="admin-config"] table{
+  display:block;
+  width:100%!important;
+  overflow-x:auto!important;
+  -webkit-overflow-scrolling:touch;
+  white-space:nowrap;
+}
+
+/* ===== ADVISOR HOME ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-home"] .vh-root{
+  padding:8px!important;min-width:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-home"] .main-layout{
+  grid-template-columns:minmax(0,1fr)!important;
+  width:100%!important;min-width:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-home"] .embudo-bar{
+  max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-home"] .cal-grid{
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+}
+
+/* ===== FOLLOWUPS ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-followups"] .vf-root{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-followups"] .krow{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-followups"] .main2{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-followups"] .mg{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-followups"] .mov{
+  align-items:flex-end!important;padding:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-followups"] .modal{
+  width:100vw!important;max-width:100vw!important;max-height:90dvh!important;
+  border-radius:20px 20px 0 0!important;
+}
+
+/* ===== ADVISOR AGENDA ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-agenda"] .ag-root{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-agenda"] .krow{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-agenda"] .det-2col{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-agenda"] .ag-search-input{
+  width:100%!important;max-width:100%!important;
+}
+
+/* ===== ADVISOR CITAS ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-citas"] .vc-root{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-citas"] .krow{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-citas"] .main2{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-citas"] .vc-mov{
+  align-items:flex-end!important;padding:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-citas"] .vc-mbox{
+  width:100vw!important;max-width:100vw!important;max-height:90dvh!important;
+  border-radius:20px 20px 0 0!important;margin:0!important;
+}
+
+/* ===== PATIENTS — advisor/admin shared business file ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-patients"] .pt-root,
+.clinic-compact-ui .workspace[data-active-view="admin-patients"] .pt-root{
+  display:flex!important;flex-direction:column!important;
+  width:100%!important;min-width:0!important;height:auto!important;overflow:visible!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-patients"] .pt-left,
+.clinic-compact-ui .workspace[data-active-view="admin-patients"] .pt-left{
+  width:100%!important;max-width:100%!important;flex:0 0 auto!important;
+  max-height:42dvh!important;border-right:0!important;border-bottom:1px solid #DDE4F5;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-patients"] .pt-right,
+.clinic-compact-ui .workspace[data-active-view="admin-patients"] .pt-right{
+  width:100%!important;max-width:100%!important;min-width:0!important;min-height:58dvh!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-patients"] .fkr,
+.clinic-compact-ui .workspace[data-active-view="advisor-patients"] .fd,
+.clinic-compact-ui .workspace[data-active-view="admin-patients"] .fkr,
+.clinic-compact-ui .workspace[data-active-view="admin-patients"] .fd{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-patients"] .merge-modal,
+.clinic-compact-ui .workspace[data-active-view="admin-patients"] .merge-modal{
+  width:100vw!important;max-width:100vw!important;max-height:90dvh!important;
+  border-radius:20px 20px 0 0!important;
+}
+
+/* ===== CATALOGO advisor ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-catalogo"] .cat{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-catalogo"] .sp,
+.clinic-compact-ui .workspace[data-active-view="advisor-catalogo"] .rd-g{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-catalogo"] .ci{
+  grid-template-columns:minmax(0,1fr) auto!important;
+}
+
+/* ===== INVENTORY advisor/admin shared ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-inventario"] .P,
+.clinic-compact-ui .workspace[data-active-view="admin-inventario"] .P{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-inventario"] .lay,
+.clinic-compact-ui .workspace[data-active-view="admin-inventario"] .lay,
+.clinic-compact-ui .workspace[data-active-view="advisor-inventario"] .mrow,
+.clinic-compact-ui .workspace[data-active-view="admin-inventario"] .mrow{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-inventario"] .mg,
+.clinic-compact-ui .workspace[data-active-view="admin-inventario"] .mg{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-inventario"] .mbg,
+.clinic-compact-ui .workspace[data-active-view="admin-inventario"] .mbg{
+  align-items:flex-end!important;padding:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-inventario"] .mod,
+.clinic-compact-ui .workspace[data-active-view="advisor-inventario"] .imod,
+.clinic-compact-ui .workspace[data-active-view="admin-inventario"] .mod,
+.clinic-compact-ui .workspace[data-active-view="admin-inventario"] .imod{
+  width:100vw!important;max-width:100vw!important;max-height:90dvh!important;
+  border-radius:20px 20px 0 0!important;
+}
+
+/* ===== ADVISOR SALES / COMMISSIONS ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-sales"] .vs-root,
+.clinic-compact-ui .workspace[data-active-view="advisor-commissions"] .vcom-root{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-sales"] .krow{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-sales"] .main2,
+.clinic-compact-ui .workspace[data-active-view="advisor-commissions"] .main2,
+.clinic-compact-ui .workspace[data-active-view="advisor-commissions"] .kpi-hero{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+
+/* ===== ATTENDANCE ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .at{
+  display:flex!important;flex-direction:column!important;
+  width:100%!important;height:auto!important;min-width:0!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .at-l{
+  width:100%!important;max-width:100%!important;max-height:46dvh!important;
+  flex:0 0 auto!important;border-right:0!important;border-bottom:1px solid var(--bd);
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .at-r{
+  width:100%!important;min-width:0!important;min-height:64dvh!important;overflow:visible!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .at-kpis{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .at-gen,
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .ds-layout,
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .ec-d{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .at-tabs,
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .at-sub{
+  overflow-x:auto!important;max-width:100%!important;flex-wrap:nowrap!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .at-tab,
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .at-sp{flex:0 0 auto!important}
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .dw{
+  position:fixed!important;left:0!important;right:0!important;top:auto!important;bottom:-100dvh!important;
+  width:100vw!important;max-width:100vw!important;height:min(88dvh,760px)!important;
+  border-left:0!important;border-top:1px solid var(--bd)!important;border-radius:20px 20px 0 0!important;
+  transition:bottom .25s ease!important;z-index:1600!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-attendance"] .dw.open{bottom:0!important;right:0!important}
+
+/* ===== DEVICE CENTER ===== */
+.clinic-compact-ui .workspace[data-active-view="devices-notifications"] .wrap{
+  width:100%!important;max-width:100%!important;padding:10px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="devices-notifications"] .kpis{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+
+/* ===== ADMIN HOME already certified — constrain only by view ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-home"] .ah{
+  width:100%!important;min-width:0!important;
+}
+
+/* ===== ADMIN CALL ANALYTICS ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-calls"] .ac{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-calls"] .g2,
+.clinic-compact-ui .workspace[data-active-view="admin-calls"] .g3,
+.clinic-compact-ui .workspace[data-active-view="admin-calls"] .g-prod{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-calls"] .qt{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-calls"] .modal{
+  width:100vw!important;max-width:100vw!important;max-height:90dvh!important;
+  border-radius:20px 20px 0 0!important;
+}
+
+/* ===== ADMIN SALES ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-sales"] .vs{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-sales"] .vs-mid,
+.clinic-compact-ui .workspace[data-active-view="admin-sales"] .vs-rankings{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-sales"] .rkx-row{
+  grid-template-columns:minmax(100px,1fr) minmax(84px,1fr) 70px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-sales"] .modal{
+  width:100vw!important;max-width:100vw!important;max-height:90dvh!important;
+  border-radius:20px 20px 0 0!important;
+}
+
+/* ===== SALES INTELLIGENCE ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-sales-intelligence"] .siv2{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-sales-intelligence"] .si-three,
+.clinic-compact-ui .workspace[data-active-view="admin-sales-intelligence"] .si-two,
+.clinic-compact-ui .workspace[data-active-view="admin-sales-intelligence"] .si-grid{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-sales-intelligence"] .si-trust-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-sales-intelligence"] .si-filters{
+  overflow-x:auto!important;flex-wrap:nowrap!important;
+}
+
+/* ===== ADMIN COMMISSIONS ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-commissions"] .cm{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-commissions"] .cm-top,
+.clinic-compact-ui .workspace[data-active-view="admin-commissions"] .cm-bot{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-commissions"] .rg-row{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr) 28px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-commissions"] .modal{
+  width:100vw!important;max-width:100vw!important;max-height:90dvh!important;border-radius:20px 20px 0 0!important;
+}
+
+/* ===== TEAM ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-team"] .tm{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-team"] .tm-list{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-team"] .g4,
+.clinic-compact-ui .workspace[data-active-view="admin-team"] .fg{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-team"] .mov{
+  align-items:flex-end!important;padding:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-team"] .modal,
+.clinic-compact-ui .workspace[data-active-view="admin-team"] #m-user{
+  width:100vw!important;max-width:100vw!important;max-height:92dvh!important;
+  border-radius:20px 20px 0 0!important;margin:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-team"] .tabs,
+.clinic-compact-ui .workspace[data-active-view="admin-team"] .tm-tabs{
+  overflow-x:auto!important;white-space:nowrap!important;
+}
+
+/* ===== ADMIN CATALOG ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-catalogo"] .ac-root{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-catalogo"] .ac-sp,
+.clinic-compact-ui .workspace[data-active-view="admin-catalogo"] .ac-grid,
+.clinic-compact-ui .workspace[data-active-view="admin-catalogo"] .ac-grid3{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+
+/* ===== STUDIO ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-studio"] .st-body,
+.clinic-compact-ui .workspace[data-active-view="admin-studio"] .st-tab-content{
+  width:100%!important;max-width:100%!important;min-width:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-studio"] .st-kpi-grid{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-studio"] .st-template-grid,
+.clinic-compact-ui .workspace[data-active-view="admin-studio"] .st-grid{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-studio"] .st-nav{
+  overflow-x:auto!important;white-space:nowrap!important;
+}
+
+/* ===== MARKETING ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-marketing"] .mk{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-marketing"] .mk-2t,
+.clinic-compact-ui .workspace[data-active-view="admin-marketing"] .emb-2,
+.clinic-compact-ui .workspace[data-active-view="admin-marketing"] .iv-row{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-marketing"] .mov{
+  align-items:flex-end!important;padding:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-marketing"] .modal{
+  width:100vw!important;max-width:100vw!important;max-height:90dvh!important;border-radius:20px 20px 0 0!important;
+}
+
+/* ===== EMAIL ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-email"] .em{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-email"] .st{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-email"] .flow-node{
+  width:100%!important;max-width:100%!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-email"] .mov{
+  align-items:flex-end!important;padding:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-email"] .modal,
+.clinic-compact-ui .workspace[data-active-view="admin-email"] .em-preview-modal{
+  width:100vw!important;max-width:100vw!important;max-height:90dvh!important;border-radius:20px 20px 0 0!important;
+}
+
+/* ===== CAJA advisor/admin shared ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-caja"] .grid2,
+.clinic-compact-ui .workspace[data-active-view="admin-caja"] .grid2,
+.clinic-compact-ui .workspace[data-active-view="advisor-caja"] .venta-cols,
+.clinic-compact-ui .workspace[data-active-view="admin-caja"] .venta-cols{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-caja"] .modal-venta,
+.clinic-compact-ui .workspace[data-active-view="admin-caja"] .modal-venta{
+  width:100vw!important;max-width:100vw!important;max-height:92dvh!important;border-radius:20px 20px 0 0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-caja"] .tc-item,
+.clinic-compact-ui .workspace[data-active-view="admin-caja"] .tc-item{
+  width:100%!important;max-width:100%!important;
+}
+
+/* ===== CARTERA ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-cartera"] .car{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-cartera"] .car-badges{
+  overflow-x:auto!important;max-width:100%!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-cartera"] .car-table{
+  min-width:900px!important;
+}
+
+/* ===== ADMIN AGENDA ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-agenda"] .ag{
+  width:100%!important;min-width:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-agenda"] .ag-main{
+  overflow-x:auto!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-agenda"] .ag-dh,
+.clinic-compact-ui .workspace[data-active-view="admin-agenda"] .ag-gw{
+  min-width:720px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-agenda"] .ag-mo{
+  align-items:flex-end!important;padding:0!important;
+}
+
+/* ===== BILLING ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-billing"] .billing-root{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-billing"] .kpi-row{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+
+/* ===== CONFIG ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-config"] .cfg{
+  width:100%!important;min-width:0!important;padding:8px!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-config"] .cfg-hdr{
+  align-items:flex-start!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-config"] .cfg-tabs{
+  margin-left:0!important;max-width:100%!important;overflow-x:auto!important;flex-wrap:nowrap!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-config"] .cfg-tab{flex:0 0 auto!important}
+.clinic-compact-ui .workspace[data-active-view="admin-config"] .fg,
+.clinic-compact-ui .workspace[data-active-view="admin-config"] .m2c{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-config"] .ig{
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-config"] .mov{
+  align-items:flex-end!important;padding:0!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-config"] .modal{
+  width:100vw!important;max-width:100vw!important;max-height:92dvh!important;border-radius:20px 20px 0 0!important;
+}
+
+/* ===== ADMIN CHATS / COORDINACION ===== */
+.clinic-compact-ui .workspace[data-active-view="admin-chats"] .Z{
+  display:flex!important;flex-direction:column!important;
+  width:100%!important;min-width:0!important;height:auto!important;min-height:calc(100dvh - var(--th))!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-chats"] .ZL{
+  width:100%!important;max-width:100%!important;max-height:34dvh!important;
+  flex:0 0 auto!important;border-right:0!important;border-bottom:1px solid #e5e7eb!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-chats"] .ZM{
+  width:100%!important;min-width:0!important;min-height:66dvh!important;flex:0 0 auto!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-chats"] .ZR{
+  width:100%!important;max-width:100%!important;min-height:52dvh!important;
+  flex:0 0 auto!important;border-left:0!important;border-top:1px solid #e5e7eb!important;
+}
+.clinic-compact-ui .workspace[data-active-view="admin-chats"] .ZMh,
+.clinic-compact-ui .workspace[data-active-view="admin-chats"] .ZRh{
+  padding-left:10px!important;padding-right:10px!important;
+}
+
+/* ===== ADVISOR COORDINATION ===== */
+.clinic-compact-ui .workspace[data-active-view="advisor-coord"] .A{
+  display:flex!important;flex-direction:column!important;
+  width:100%!important;min-width:0!important;height:auto!important;min-height:calc(100dvh - var(--th))!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-coord"] .AL{
+  width:100%!important;max-width:100%!important;max-height:32dvh!important;
+  flex:0 0 auto!important;border-right:0!important;border-bottom:1px solid #e5e7eb!important;
+}
+.clinic-compact-ui .workspace[data-active-view="advisor-coord"] .AM{
+  width:100%!important;min-width:0!important;min-height:68dvh!important;flex:0 0 auto!important;
+}
+
+/* ===== LANDSCAPE TOUCH ENHANCEMENTS ===== */
+.clinic-compact-ui.clinic-landscape .workspace[data-active-view="advisor-followups"] .main2,
+.clinic-compact-ui.clinic-landscape .workspace[data-active-view="advisor-citas"] .main2,
+.clinic-compact-ui.clinic-landscape .workspace[data-active-view="advisor-sales"] .main2,
+.clinic-compact-ui.clinic-landscape .workspace[data-active-view="advisor-commissions"] .main2,
+.clinic-compact-ui.clinic-landscape .workspace[data-active-view="admin-sales"] .vs-mid,
+.clinic-compact-ui.clinic-landscape .workspace[data-active-view="admin-sales"] .vs-rankings,
+.clinic-compact-ui.clinic-landscape .workspace[data-active-view="admin-commissions"] .cm-top,
+.clinic-compact-ui.clinic-landscape .workspace[data-active-view="admin-commissions"] .cm-bot{
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+}
+.clinic-compact-ui.clinic-landscape .workspace[data-active-view="admin-sales-intelligence"] .si-three{
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+}
+.clinic-compact-ui.clinic-landscape .workspace[data-active-view="admin-config"] .fg{
+  grid-template-columns:minmax(130px,.45fr) minmax(0,1fr)!important;
+}
+
+/* ===== DESKTOP PROTECTION =====
+   No layout-changing rules exist outside .clinic-compact-ui. */

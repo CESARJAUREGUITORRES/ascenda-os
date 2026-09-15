@@ -1,0 +1,265 @@
+{
+  "version": "1.0",
+  "updated": "2026-09-15",
+  "policy": "Every VIEW_MAP/PANEL_ROUTES view must be registered. ADAPTED_BASELINE does not imply human canary certification.",
+  "compact_classifier": "clinic-shell-ui-v1.js",
+  "shared_adapter": "clinic-panels-mobile-v13.css",
+  "views": [
+    {
+      "view_id": "advisor-home",
+      "route": "/advisor-home.html",
+      "family": "advisor-dashboard",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-calls",
+      "route": "/calls.html",
+      "family": "call-center-v12",
+      "adapter": "/clinic-callcenter-mobile-v12.css",
+      "baseline_status": "ADAPTED_BASELINE_V12",
+      "human_canary": "PASSED_2026-09-15"
+    },
+    {
+      "view_id": "advisor-followups",
+      "route": "/followups.html",
+      "family": "workflow",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-agenda",
+      "route": "/agenda.html",
+      "family": "calendar",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-citas",
+      "route": "/citas.html",
+      "family": "appointments",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-patients",
+      "route": "/patients.html",
+      "family": "master-detail",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-catalogo",
+      "route": "/catalogo.html",
+      "family": "catalog",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-inventario",
+      "route": "/inventario.html",
+      "family": "inventory",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-caja",
+      "route": "/caja.html",
+      "family": "finance",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-sales",
+      "route": "/sales.html",
+      "family": "analytics",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-commissions",
+      "route": "/commissions.html",
+      "family": "analytics",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-attendance",
+      "route": "/attendance.html",
+      "family": "master-detail",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "advisor-coord",
+      "route": "/asesor-coord.html",
+      "family": "communications",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "devices-notifications",
+      "route": "/admin-device-center-v2.html",
+      "family": "settings",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-home",
+      "route": "/admin-home.html",
+      "family": "admin-dashboard",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-agenda",
+      "route": "/admin-agenda.html",
+      "family": "calendar",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-patients",
+      "route": "/patients.html",
+      "family": "master-detail",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-sales",
+      "route": "/admin-sales.html",
+      "family": "analytics",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-sales-intelligence",
+      "route": "/admin-sales-intelligence.html",
+      "family": "analytics",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-commissions",
+      "route": "/admin-comisiones.html",
+      "family": "analytics",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-marketing",
+      "route": "/admin-marketing.html",
+      "family": "analytics",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-email",
+      "route": "/admin-email.html",
+      "family": "communications",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-calls",
+      "route": "/admin-calls.html",
+      "family": "analytics",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-caja",
+      "route": "/caja.html",
+      "family": "finance",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-cartera",
+      "route": "/admin-cartera.html",
+      "family": "finance",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-billing",
+      "route": "/admin-billing.html",
+      "family": "finance",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-team",
+      "route": "/admin-team.html",
+      "family": "forms",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-catalogo",
+      "route": "/admin-catalogo.html",
+      "family": "catalog",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-studio",
+      "route": "/studio.html",
+      "family": "studio",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-inventario",
+      "route": "/inventario.html",
+      "family": "inventory",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-config",
+      "route": "/admin-config.html",
+      "family": "settings",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    },
+    {
+      "view_id": "admin-chats",
+      "route": "/coordinacion.html",
+      "family": "communications",
+      "adapter": "/clinic-panels-mobile-v13.css",
+      "baseline_status": "ADAPTED_BASELINE_V13",
+      "human_canary": "PENDING"
+    }
+  ]
+}

@@ -1,8 +1,8 @@
-/* ASCENDA CLINIC — SHELL UI V1.1
+/* ASCENDA CLINIC — SHELL UI V1.3
    Presentation-only adapter. Existing drawer navigation and business behavior remain authoritative. */
 (function(){
 'use strict';
-if(window.__ASCENDA_CLINIC_UI_V11__)return;
+if(window.__ASCENDA_CLINIC_UI_V13__)return;
 window.__ASCENDA_CLINIC_UI_V11__=true;
 
 function q(s,r){return (r||document).querySelector(s)}
@@ -46,6 +46,8 @@ function ensureHomeHero(){
 }
 function applyPanelClass(){
   var ws=q('#workspace');if(!ws)return;
+  var active=(window.AOS&&AOS.activeView)?String(AOS.activeView):'';
+  if(active)ws.setAttribute('data-active-view',active);else ws.removeAttribute('data-active-view');
   var child=ws.firstElementChild;
   if(child)child.classList.add('clinic-responsive-panel');
   ensureHomeHero();
