@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#071D4A">
+  <title>ASCENDA CLINIC</title>
+  <style>
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#f7faff;color:#071d4a}
+    body{min-height:100dvh;display:grid;place-items:center}
+    .s{display:grid;place-items:center;gap:14px;text-align:center}
+    .i{width:64px;height:64px;border-radius:20px;background:#fff;box-shadow:0 18px 45px rgba(7,29,74,.12);display:grid;place-items:center}
+    .i img{width:42px;height:42px;object-fit:contain}
+    .t{font-weight:800;font-size:16px}.m{font-size:12px;color:#7485a8}
+    .p{width:150px;height:4px;border-radius:99px;background:#e5edf9;overflow:hidden}.p:after{content:'';display:block;width:45%;height:100%;background:linear-gradient(90deg,#0a4fbf,#00e5a0);animation:a 1s ease-in-out infinite alternate}
+    @keyframes a{from{transform:translateX(-15%)}to{transform:translateX(140%)}}
+  </style>
+</head>
+<body>
+  <div class="s"><div class="i"><img src="/favicon.png" alt="ASCENDA CLINIC"></div><div class="t">ASCENDA CLINIC</div><div class="m">Abriendo tu espacio de trabajo…</div><div class="p"></div></div>
+  <script>
+  (function(){
+    'use strict';
+    function login(){location.replace('/')}
+    function app(){location.replace('/app')}
+    var session=null;
+    try{session=JSON.parse(localStorage.getItem('aos_session')||'null')}catch(_){}
+    var valid=!!(session&&Number(session.expires)>Date.now()&&String(session.codigo_asesor||session.usuario||'').trim());
+    if(!valid){login();return}
+    if(!('caches' in window)){login();return}
+    Promise.race([
+      caches.open('aos-phase2-auth').then(function(c){return c.match('/__aos_app_token')}).then(function(r){return r?r.text():''}),
+      new Promise(function(resolve){setTimeout(function(){resolve('')},1800)})
+    ]).then(function(token){
+      if(String(token||'').trim().length>=32)app();else login();
+    }).catch(login);
+  })();
+  </script>
+</body>
+</html>
