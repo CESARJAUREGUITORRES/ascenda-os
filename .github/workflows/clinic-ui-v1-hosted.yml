@@ -1,0 +1,64 @@
+name: CLINIC UI V1 Hosted Gate
+on:
+  push:
+    branches:
+      - feat/clinic-ui-responsive-v1-20260915
+permissions:
+  contents: write
+jobs:
+  clinic-ui:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/clinic-ui-responsive-v1-20260915
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Wire visual layer without touching shell behavior
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          app=Path('app/public/app.html')
+          s=app.read_text()
+          css='<link rel="stylesheet" href="/clinic-ui-v1.css?v=20260915-1">'
+          js='<script src="/clinic-shell-ui-v1.js?v=20260915-1"></script>'
+          if css not in s:s=s.replace('</head>',css+'\n</head>',1)
+          if js not in s:s=s.replace('</body>',js+'\n</body>',1)
+          s=s.replace('<title>AscendaOS v1</title>','<title>Ascenda Clinic</title>')
+          s=s.replace('<meta name="apple-mobile-web-app-title" content="AscendaOS">','<meta name="apple-mobile-web-app-title" content="Ascenda Clinic">')
+          app.write_text(s)
+
+          login=Path('app/public/login.html')
+          l=login.read_text()
+          l=l.replace('/clinic-login-v4.css?v=20260915-1','/clinic-login-v4.css?v=20260915-3')
+          l=l.replace('/clinic-login-v4.js?v=20260915-2','/clinic-login-v4.js?v=20260915-3')
+          login.write_text(l)
+          PY
+      - name: JavaScript syntax
+        run: |
+          node --check app/public/clinic-shell-ui-v1.js
+          node --check app/public/clinic-login-v4.js
+          node --check ci/clinic-ui/contract.js
+      - name: CLINIC UI V1 contract
+        run: node ci/clinic-ui/contract.js
+      - name: Existing APP-PWA V2 contract
+        run: node ci/app-pwa-v2/contract.js
+      - name: Existing Call Center performance contract
+        run: node ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js
+      - name: Existing Sales Intelligence acceptance
+        run: node ci/rev-f6-7/static_acceptance.js
+      - name: Commit wiring patch
+        run: |
+          if git diff --quiet; then
+            echo "No patch changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/public/app.html app/public/login.html
+          git commit -m "CLINIC UI V1: wire responsive shell and Login V4.2"
+          git push origin HEAD:feat/clinic-ui-responsive-v1-20260915
