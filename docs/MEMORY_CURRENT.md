@@ -17,18 +17,18 @@
 2. root `SECURITY.md`;
 3. global workstation registry `AscendaSoftyInc/ascenda-softy/docs/operations/PROJECT_REGISTRY_CURRENT.md`;
 4. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
-4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
-5. this file;
-6. `docs/control/ASCENDA_GOOGLE_INTEGRATION_V1_CURRENT.md`;
-7. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
-7. `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`;
-8. `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`;
-9. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
-10. `docs/control/ASCENDA_CONVERSATIONS_BLUEPRINT_REGISTRY_CURRENT.md`;
-11. `docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md`;
-12. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
-13. exact GitHub + Supabase + Railway/runtime evidence;
-14. Notion Control Maestro / CONV execution Skill.
+5. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
+6. this file;
+7. `docs/control/ASCENDA_GOOGLE_INTEGRATION_V1_CURRENT.md`;
+8. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
+9. `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`;
+10. `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`;
+11. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
+12. `docs/control/ASCENDA_CONVERSATIONS_BLUEPRINT_REGISTRY_CURRENT.md`;
+13. `docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md`;
+14. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
+15. exact GitHub + Supabase + Railway/runtime evidence;
+16. Notion Control Maestro / CONV execution Skill.
 
 Historical WA docs/chats remain evidence only.
 
