@@ -180,3 +180,24 @@ The owner then authorized continuing to the next proof so WhatsApp can be expose
 ## Google integration lock transfer — 2026-09-12
 
 Owner explicitly authorized implementation of Google Calendar + Contacts after completing Google Cloud OAuth setup and Railway secret configuration. INT-GOOGLE-001 now owns the single HIGH/CRITICAL mutable lane until the bounded human canary or a new explicit owner transfer. Calendar/Contacts feature flags remain false until certified.
+
+
+# Web Quality Memory — CURRENT
+
+## Permanent web release rule
+
+All websites, landing pages, storefronts, public product surfaces, customer-facing web apps and PWAs in this project inherit `docs/control/WEB_RELEASE_STANDARD_V1.md`.
+
+The source checklist originated from the 20-point pre-launch review adopted on 2026-09-15 and was hardened for production use.
+
+Key interpretation:
+- do not release on visual approval alone;
+- applicable checks must be PASS or N/A with reason;
+- one dominant primary CTA per page/hero/state;
+- cookie consent is conditional on non-essential tracking;
+- Google Business Profile is conditional on eligible local-business use;
+- WhatsApp visibility is conditional on an approved WhatsApp conversion journey;
+- authenticated/internal pages still require accessibility, security, privacy, performance, error handling and observability;
+- public releases require exact-SHA deployment evidence and public smoke.
+
+Canonical standard: `docs/control/WEB_RELEASE_STANDARD_V1.md`.

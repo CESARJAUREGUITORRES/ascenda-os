@@ -320,3 +320,17 @@ Do not run multiple HIGH/CRITICAL projects concurrently on shared CI/DB infrastr
 ## Long-term objective
 
 Stabilize ASCENDA Zi Vital as a controlled reference implementation, migrate it to corporate-owned infrastructure, and build the future multi-tenant SaaS separately. Do not convert the current production DB into multi-tenant SaaS by big-bang mutation.
+
+## Mandatory Web Release Gate
+
+Any change that creates or modifies a website, landing page, storefront, public marketing surface, customer-facing web application or PWA must follow `docs/control/WEB_RELEASE_STANDARD_V1.md`.
+
+A web-facing release is not `PRODUCTION READY` merely because CI/build/deploy is green. Applicable Web Release Standard items must be evidenced as PASS, or explicitly documented as N/A with reason.
+
+Do not weaken the standard by treating conditional items as universal:
+- cookie banner only when non-essential cookies/trackers require consent;
+- Google Business Profile only for eligible local businesses;
+- WhatsApp CTA only when WhatsApp is an approved conversion channel;
+- “one CTA” means one dominant primary CTA per page/hero/state, not literally one button on the whole page.
+
+For authenticated/internal screens, SEO/local-discovery checks can be N/A, but accessibility, security, privacy, performance, error handling and observability remain mandatory.
