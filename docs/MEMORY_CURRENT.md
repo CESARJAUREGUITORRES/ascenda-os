@@ -15,7 +15,8 @@
 
 1. root `AGENTS.md`;
 2. root `SECURITY.md`;
-3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
+3. global workstation registry `AscendaSoftyInc/ascenda-softy/docs/operations/PROJECT_REGISTRY_CURRENT.md`;
+4. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
 4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
 5. this file;
 6. `docs/control/ASCENDA_GOOGLE_INTEGRATION_V1_CURRENT.md`;
@@ -215,3 +216,19 @@ Canonical commercial identity transition is now active:
 - next branding loop: `CLINIC-BRAND-L0 — Identity + Login V4 + compatibility gates`.
 
 Permanent rule: **brand rename != technical rename**.
+
+
+## Workstation routing memory — 2026-09-15
+
+ASCENDA CLINIC is the commercial/product identity for this operational runtime; ASCENDA OS remains the current technical codename until an explicit infrastructure migration.
+
+Canonical local routing:
+- GitHub `CESARJAUREGUITORRES/ascenda-os`
+- Supabase `ituyqwstonmhnfshnaqz` / `aos_*`
+- Railway project `8def5cac-6aa4-42f1-96cc-8c9cf7d7d3a3`
+- production environment `eba28532-1f35-4174-b57a-ded82178507e`
+- production service `bd208ab8-1e71-4c52-94e2-0d6b2bdebce4`
+
+Global sibling registry: `AscendaSoftyInc/ascenda-softy/docs/operations/PROJECT_REGISTRY_CURRENT.md`.
+
+Do not reconnect providers solely because an invited project is absent from generic listings; direct canonical-ID readback is the routing proof. Do not persist publishable keys, passwords, service keys or connection strings in project memory.
