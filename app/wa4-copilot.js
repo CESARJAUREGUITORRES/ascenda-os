@@ -88,6 +88,28 @@ function deterministicOwnerApprovedIntroDraft(runtime,inbound,messages){
   return null;
 }
 
+function deterministicPlaybookEnvelope(inbound,draft){
+  const stage=playbooks.classifyStage(String(inbound||''));
+  return {
+    version:'WA4B-DETERMINISTIC-ENVELOPE-V1',
+    status:'READY',
+    commercial_stage:stage,
+    objective:'Respuesta determinística gobernada para el turno actual.',
+    recommended_next_action:String(draft&&draft.next_action||'REPLY'),
+    advisor_talking_points:[],
+    public_safe_knowledge_ids:Array.isArray(draft&&draft.cited_knowledge_ids)?draft.cited_knowledge_ids:[],
+    objection_strategy:null,
+    quote_or_payment_context:null,
+    continuity_candidates:[],
+    clinical_escalation:{required:false,reason:null},
+    policy_escalation:null,
+    evidence_refs:[],
+    freshness_state:'DETERMINISTIC',
+    send_authority:'HUMAN_ONLY',
+    auto_send:false
+  };
+}
+
 function runtimeSummary(r){
   r=r||{};
   return {
@@ -507,7 +529,7 @@ function createCopilot(deps){
       if(introDraft){
         const patientReply=renderWhatsAppText(introDraft.reply);
         Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_OWNER_COPY',safety_model:null,outcome:'SUGGESTED',input_messages:messages.length,input_chars:inbound.length,output_chars:patientReply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'REPLY',safety_category:'OWNER_APPROVED_COPY'})).catch(()=>{});
-        return writeJson(res,200,{ok:true,runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:null},suggestion:Object.assign({},introDraft,{reply:patientReply}),needs_human:false,next_action:'REPLY',model:'DETERMINISTIC_OWNER_COPY',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
+        return writeJson(res,200,{ok:true,playbook:deterministicPlaybookEnvelope(inbound,introDraft),runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:null},suggestion:Object.assign({},introDraft,{reply:patientReply}),needs_human:false,next_action:'REPLY',model:'DETERMINISTIC_OWNER_COPY',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
       }
 
       if(!clinicalRisk&&isPriceFastLane(runtime)){
@@ -522,7 +544,7 @@ function createCopilot(deps){
           const quality=qualityCheck(patientReply,runtime,contexts,inbound,fast.publicBundle);
           if(!quality.ok)throw new Error('WA4_FAST_PRICE_QUALITY_'+quality.violations.join('|').slice(0,80));
           Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_PRICE_FASTLANE',safety_model:null,outcome:'SUGGESTED',input_messages:messages.length,input_chars:inbound.length,output_chars:patientReply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'REPLY',safety_category:'FAST_PRICE_READY'})).catch(()=>{});
-          return writeJson(res,200,{ok:true,runtime:runtimeSummary(runtime),contexts,quality,suggestion:Object.assign({},draft,{reply:patientReply,cited_knowledge_ids:grounded.citations}),needs_human:false,next_action:'REPLY',model:'DETERMINISTIC_PRICE_FASTLANE',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
+          return writeJson(res,200,{ok:true,playbook:deterministicPlaybookEnvelope(inbound,draft),runtime:runtimeSummary(runtime),contexts,quality,suggestion:Object.assign({},draft,{reply:patientReply,cited_knowledge_ids:grounded.citations}),needs_human:false,next_action:'REPLY',model:'DETERMINISTIC_PRICE_FASTLANE',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
         }catch(e){
           Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_PRICE_FASTLANE',safety_model:null,outcome:'BLOCKED',input_messages:messages.length,input_chars:inbound.length,output_chars:0,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'HUMAN_COMMERCIAL',safety_category:'FAST_PRICE_UNAVAILABLE',error_code:String(e&&e.message||'WA4_FAST_PRICE_UNAVAILABLE').slice(0,120)})).catch(()=>{});
           return writeJson(res,503,{ok:false,error:'WA4_FAST_PRICE_UNAVAILABLE',needs_human:true,next_action:'HUMAN_COMMERCIAL',runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:null},auto_send:false});
@@ -541,7 +563,7 @@ function createCopilot(deps){
           const quality=qualityCheck(patientReply,runtime,contexts,inbound,fast.publicBundle);
           if(!quality.ok)throw new Error('WA4_HIFU_PRICE_QUALITY_'+quality.violations.join('|').slice(0,80));
           Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_HIFU_PRICE_FASTLANE',safety_model:null,outcome:'SUGGESTED',input_messages:messages.length,input_chars:inbound.length,output_chars:patientReply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'REPLY',safety_category:'FAST_HIFU_PRICE_READY'})).catch(()=>{});
-          return writeJson(res,200,{ok:true,runtime:runtimeSummary(runtime),contexts,quality,suggestion:Object.assign({},draft,{reply:patientReply,cited_knowledge_ids:grounded.citations}),needs_human:false,next_action:'REPLY',model:'DETERMINISTIC_HIFU_PRICE_FASTLANE',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
+          return writeJson(res,200,{ok:true,playbook:deterministicPlaybookEnvelope(inbound,draft),runtime:runtimeSummary(runtime),contexts,quality,suggestion:Object.assign({},draft,{reply:patientReply,cited_knowledge_ids:grounded.citations}),needs_human:false,next_action:'REPLY',model:'DETERMINISTIC_HIFU_PRICE_FASTLANE',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
         }catch(e){
           Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_HIFU_PRICE_FASTLANE',safety_model:null,outcome:'BLOCKED',input_messages:messages.length,input_chars:inbound.length,output_chars:0,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'HUMAN_COMMERCIAL',safety_category:'FAST_HIFU_PRICE_UNAVAILABLE',error_code:String(e&&e.message||'WA4_HIFU_PRICE_UNAVAILABLE').slice(0,120)})).catch(()=>{});
           return writeJson(res,503,{ok:false,error:'WA4_HIFU_PRICE_UNAVAILABLE',needs_human:true,next_action:'HUMAN_COMMERCIAL',runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:null},auto_send:false});
@@ -552,7 +574,7 @@ function createCopilot(deps){
       if(!clinicalRisk&&bookingPreflight){
         const patientReply=composePatientReply(bookingPreflight.reply,messages,inbound);
         Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_BOOKING_PREFLIGHT',safety_model:null,outcome:'SUGGESTED',input_messages:messages.length,input_chars:inbound.length,output_chars:patientReply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'REPLY',safety_category:'BOOKING_PREFLIGHT_READY'})).catch(()=>{});
-        return writeJson(res,200,{ok:true,runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:{status:'PREFLIGHT'}},suggestion:Object.assign({},bookingPreflight,{reply:patientReply}),needs_human:false,next_action:bookingPreflight.next_action,model:'DETERMINISTIC_BOOKING_PREFLIGHT',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
+        return writeJson(res,200,{ok:true,playbook:deterministicPlaybookEnvelope(inbound,bookingPreflight),runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:{status:'PREFLIGHT'}},suggestion:Object.assign({},bookingPreflight,{reply:patientReply}),needs_human:false,next_action:bookingPreflight.next_action,model:'DETERMINISTIC_BOOKING_PREFLIGHT',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
       }
 
       if(!clinicalRisk&&bookingHotLaneRequested(runtime,inbound)&&String(runtime&&runtime.state&&runtime.state.treatment||'')==='HIFU'&&isGenericHifuContext(inbound,runtime)){
@@ -567,7 +589,7 @@ function createCopilot(deps){
             if(draft){
               const patientReply=composePatientReply(draft.reply,messages,inbound);
               Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_HIFU_BOOKING_FASTLANE',safety_model:null,outcome:draft.needs_human===true?'HUMAN_REQUIRED':'SUGGESTED',input_messages:messages.length,input_chars:inbound.length,output_chars:patientReply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:draft.next_action,safety_category:'HIFU_BOOKING_FASTLANE'})).catch(()=>{});
-              return writeJson(res,200,{ok:true,runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:bookingCtx.prompt_context||bookingCtx},suggestion:Object.assign({},draft,{reply:patientReply}),needs_human:draft.needs_human===true,next_action:draft.next_action,model:'DETERMINISTIC_HIFU_BOOKING_FASTLANE',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
+              return writeJson(res,200,{ok:true,playbook:deterministicPlaybookEnvelope(inbound,draft),runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:bookingCtx.prompt_context||bookingCtx},suggestion:Object.assign({},draft,{reply:patientReply}),needs_human:draft.needs_human===true,next_action:draft.next_action,model:'DETERMINISTIC_HIFU_BOOKING_FASTLANE',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
             }
           }catch(e){
             Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_HIFU_BOOKING_FASTLANE',safety_model:null,outcome:'ERROR',input_messages:messages.length,input_chars:inbound.length,output_chars:0,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'FAIL_CLOSED',safety_category:'HIFU_BOOKING_FASTLANE',error_code:String(e&&e.message||'WA4_HIFU_BOOKING_UNAVAILABLE').slice(0,120)})).catch(()=>{});
@@ -689,4 +711,4 @@ function createCopilot(deps){
     }
   };
 }
-module.exports={createCopilot,buildGovernedContext,buildFastPriceContext,buildHifuPriceContext,gatePublicCatalogMoney,adapterSummary,deterministicBookingDraft,deterministicBookingPreflightDraft,deterministicAvailabilityDraft,deterministicNoPromotionDraft,deterministicOwnerApprovedIntroDraft,deterministicToxinPriceDraft,deterministicHifuPriceDraft,isPriceFastLane,isGenericHifuPriceFastLane,bookingHotLaneRequested,selectedHifuVariant,isGenericHifuContext,preferHifuFrozenRows,qualityCheck,canonicalizePatientText,renderWhatsAppText,composePatientReply,hasApprovedIntro,currentConversationSession,CONVERSATION_SESSION_GAP_MS,isGreetingOnly,APPROVED_FIRST_CONTACT_COPY,APPROVED_FIRST_CONTACT_PREFIX,SALES_SCHEMA,SAFETY_SCHEMA};
+module.exports={createCopilot,buildGovernedContext,buildFastPriceContext,buildHifuPriceContext,gatePublicCatalogMoney,adapterSummary,deterministicBookingDraft,deterministicBookingPreflightDraft,deterministicAvailabilityDraft,deterministicNoPromotionDraft,deterministicOwnerApprovedIntroDraft,deterministicToxinPriceDraft,deterministicHifuPriceDraft,isPriceFastLane,isGenericHifuPriceFastLane,bookingHotLaneRequested,selectedHifuVariant,isGenericHifuContext,preferHifuFrozenRows,qualityCheck,canonicalizePatientText,renderWhatsAppText,composePatientReply,hasApprovedIntro,currentConversationSession,CONVERSATION_SESSION_GAP_MS,deterministicPlaybookEnvelope,isGreetingOnly,APPROVED_FIRST_CONTACT_COPY,APPROVED_FIRST_CONTACT_PREFIX,SALES_SCHEMA,SAFETY_SCHEMA};
