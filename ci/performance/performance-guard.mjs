@@ -30,13 +30,17 @@ for(const item of census.recurrentNetworkCandidates||[]){
 
 const waNative=read('app/public/wa-native-panel.js');
 const waMulti=read('app/public/wa-multiagent-final-panel.js');
+const waMultiV2=read('app/public/wa-multiagent-v2-panel.js');
 expect('WA_SINGLE_INBOX_OWNER',!waMulti.includes("api('/api/wa3/inbox?limit=120')"),'multiagent regained direct inbox read');
 expect('WA_SHARED_SNAPSHOT',waNative.includes('getInboxSnapshot')&&waNative.includes('aos:wa3-inbox')&&waMulti.includes('getInboxSnapshot')&&waMulti.includes('aos:wa3-inbox'),'WA shared snapshot/event contract missing');
-expect('WA_EVENT_DRIVEN_INBOX',waNative.includes("fetch('/api/wa3/events'")&&waNative.includes('scheduleFallback(30000)')&&!waNative.includes('setInterval(function(){heartbeat(false);},2500)'),'native inbox is not event-driven with bounded 30s fallback');
+expect('WA_EVENT_DRIVEN_INBOX',waNative.includes("fetch('/api/wa3/events'")&&waNative.includes('scheduleFallback(45000)')&&waNative.includes('document.hidden?60000:45000')&&!waNative.includes('setInterval(function(){heartbeat(false);},2500)'),'native inbox is not event-driven with bounded 45s visible / 60s hidden fallback');
 expect('WA_IDLE_TIMELINE',!waNative.includes('S.heartbeatTick%3===0'),'idle third-tick timeline refresh returned');
 expect('WA_HIDDEN_GUARD',waMulti.includes('X.busy||document.hidden'),'multiagent hidden-page guard missing');
 expect('WA_MULTIAGENT_EVENT_FALLBACK',waMulti.includes("'aos:wa3-core-event'")&&waMulti.includes('function nextPollDelay(')&&waMulti.includes('function scheduleRefresh(')&&waMulti.includes('X.pollDelayMs=nextPollDelay')&&waMulti.includes('scheduleRefresh(45000)'),'multiagent core-event refresh plus bounded fallback missing');
 expect('WA_MULTIAGENT_NO_FIXED_5S',!waMulti.includes("setInterval(function(){refresh();},5000)"),'fixed 5s multiagent polling returned');
+expect('WA_V2_SINGLE_INBOX_OWNER',!waMultiV2.includes("api('/api/wa3/inbox?limit=120')"),'legacy V2 regained direct inbox reads');
+expect('WA_V2_EVENT_FALLBACK',waMultiV2.includes("'aos:wa3-core-event'")&&waMultiV2.includes('getInboxSnapshot')&&waMultiV2.includes('function nextPollDelay(')&&waMultiV2.includes('function scheduleRefresh(')&&waMultiV2.includes('document.hidden?60000:45000')&&waMultiV2.includes('scheduleRefresh(45000)'),'legacy V2 event/snapshot fallback contract missing');
+expect('WA_V2_NO_FIXED_5S',!waMultiV2.includes("setInterval(function(){if(!document.hidden)refresh();},5000)"),'legacy V2 fixed 5s polling returned');
 
 const calls=read('app/public/calls.html');
 expect('CALLS_SINGLE_PANEL_OWNER',count(calls,/_rpc\('aos_panel_asesor'/g)===1,'Calls has more than one direct aos_panel_asesor owner');
