@@ -13,11 +13,11 @@ function brandInitial(){
   var app=qs('meta[name="application-name"]');if(app&&app.getAttribute('content')!==BRAND)app.setAttribute('content',BRAND);
   var apple=qs('meta[name="apple-mobile-web-app-title"]');if(apple&&apple.getAttribute('content')!==BRAND)apple.setAttribute('content',BRAND);
   var brand=qs('.brand');
-  if(brand&&brand.dataset.clinicBrand!=='1'){
-    brand.dataset.clinicBrand='1';
-    brand.innerHTML='ASCENDA <span>CLINIC</span>';
+  if(brand&&brand.dataset.clinicBrand!=='2'){
+    brand.dataset.clinicBrand='2';
+    brand.innerHTML='<img class="clinic-wordmark-icon" src="/ascenda-clinic-mark.svg?v=20260915-1" alt=""><span class="clinic-wordmark-text">Ascenda <strong>Clinic</strong></span>';
   }
-  var img=qs('.logo img');if(img)img.alt=BRAND;
+  var img=qs('.logo img');if(img){img.alt=BRAND;img.src='/ascenda-clinic-mark.svg?v=20260915-1';}
   setText('#login','Ingresar');
   var initialMuted=qs('#card>.muted');if(initialMuted)setText('#card>.muted','ASCENDA CLINIC · acceso seguro');
   setText('.install-title','📲 Instalar ASCENDA CLINIC');
