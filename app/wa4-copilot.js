@@ -283,6 +283,62 @@ async function buildHifuPriceContext(serviceRpc,runtime){
   return {publicBundle:gatePublicCatalogMoney(raw,contexts,'PRICE_QUOTE',runtime),processContexts:contexts};
 }
 
+function bookingHotLaneRequested(runtime,inbound){
+  const intents=new Set(runtime&&Array.isArray(runtime.intents)?runtime.intents:[]);
+  const allowed=new Set(['BOOKING','SCHEDULE','HARD_TIME_CONSTRAINT','PROXIMITY_CONSTRAINT','LOCATION']);
+  const hasBookingIntent=intents.has('BOOKING')||intents.has('SCHEDULE')||intents.has('HARD_TIME_CONSTRAINT');
+  const onlyBooking=[...intents].every(x=>allowed.has(String(x)));
+  const variant=/\b(beauty|full\s*face|cisne)\b/i.test(String(inbound||''));
+  return runtime&&runtime.booking_readiness==='HIGH'&&((hasBookingIntent&&onlyBooking)||variant);
+}
+function selectedHifuVariant(messages){
+  const xs=Array.isArray(messages)?messages:[];
+  for(let i=xs.length-1;i>=0;i--){
+    if(!String(xs[i]&&xs[i].direction||'').toUpperCase().includes('IN'))continue;
+    const t=normalizeText(xs[i]&&xs[i].message_body);
+    if(/\bfull\s*face\b/.test(t))return 'ZI FROZEN FULL FACE';
+    if(/\bcisne\b/.test(t))return 'ZI FROZEN CISNE';
+    if(/\bbeauty\b/.test(t))return 'ZI FROZEN BEAUTY';
+  }
+  return null;
+}
+function deterministicBookingPreflightDraft(runtime,messages,inbound){
+  if(!bookingHotLaneRequested(runtime,inbound))return null;
+  const s=runtime&&runtime.state||{};
+  if(String(s.requested_day||'')==='DOMINGO'){
+    return {reply:'Los domingos no atendemos. ¿Qué otro día de la semana te acomoda? 📅',intent:'BOOKING',next_action:'OFFER_BOOKING',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'Sunday closed preflight.'};
+  }
+  if(!s.requested_day&&!s.site){
+    return {reply:'Claro 😊 Para revisar disponibilidad real de esta semana, dime por favor:\n\n• qué día te acomoda\n• en qué sede: San Isidro o Pueblo Libre 📅',intent:'BOOKING',next_action:'OFFER_BOOKING',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'Booking preflight requires date and site.'};
+  }
+  if(!s.requested_day){
+    return {reply:conversationStyle.bookingAskDate(s.site),intent:'BOOKING',next_action:'OFFER_BOOKING',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'Booking preflight requires date.'};
+  }
+  if(!s.site){
+    return {reply:conversationStyle.bookingAskSite(),intent:'BOOKING',next_action:'OFFER_BOOKING',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'Booking preflight requires site.'};
+  }
+  if(String(s.treatment||'')==='HIFU'&&isGenericHifuContext(inbound,runtime)&&!selectedHifuVariant(messages)){
+    return {reply:'Perfecto 😊 Para revisar el horario exacto necesito saber qué opción ZI FROZEN quieres consultar:\n\n• Beauty\n• Full Face\n• Cisne',intent:'BOOKING',next_action:'OFFER_BOOKING',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'Generic HIFU booking requires exact governed variant.'};
+  }
+  return null;
+}
+function deterministicAvailabilityDraft(booking,runtime){
+  const status=String(booking&&booking.status||'');
+  if(status==='REAL_SLOTS_READY'){
+    const rows=(Array.isArray(booking.candidate_slots)?booking.candidate_slots:[]).slice(0,5);
+    if(!rows.length)return null;
+    const lines=rows.map(s=>{
+      const who=String(s&&s.professional_name||'').trim();
+      return '• '+String(s&&(s.time||s.hora)||'').slice(0,5)+(who?' — '+who:'');
+    });
+    return {reply:'📅 Tengo estos horarios disponibles:\n\n'+lines.join('\n')+'\n\n¿Cuál te acomoda mejor?',intent:'BOOKING',next_action:'OFFER_BOOKING',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'Fresh governed Agenda slots.'};
+  }
+  if(status==='NO_REAL_SLOTS'){
+    return {reply:'Por ahora no veo horarios disponibles para esa fecha y sede. ¿Quieres que revise otro día o la otra sede? 📅',intent:'BOOKING',next_action:'OFFER_BOOKING',confidence:1,cited_knowledge_ids:[],needs_human:false,reason:'No real slots in governed Agenda authority.'};
+  }
+  return deterministicBookingDraft(booking,runtime);
+}
+
 function deterministicToxinPriceDraft(publicBundle,processContexts){
   const ctx=new Map((Array.isArray(processContexts)?processContexts:[]).filter(x=>x&&x.entity_id).map(x=>[String(x.entity_id),x]));
   const options=[];
@@ -435,6 +491,33 @@ function createCopilot(deps){
         }
       }
 
+      const bookingPreflight=deterministicBookingPreflightDraft(runtime,messages,inbound);
+      if(!clinicalRisk&&bookingPreflight){
+        const patientReply=composePatientReply(bookingPreflight.reply,messages,inbound);
+        Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_BOOKING_PREFLIGHT',safety_model:null,outcome:'SUGGESTED',input_messages:messages.length,input_chars:inbound.length,output_chars:patientReply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'REPLY',safety_category:'BOOKING_PREFLIGHT_READY'})).catch(()=>{});
+        return writeJson(res,200,{ok:true,runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:{status:'PREFLIGHT'}},suggestion:Object.assign({},bookingPreflight,{reply:patientReply}),needs_human:false,next_action:bookingPreflight.next_action,model:'DETERMINISTIC_BOOKING_PREFLIGHT',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
+      }
+
+      if(!clinicalRisk&&bookingHotLaneRequested(runtime,inbound)&&String(runtime&&runtime.state&&runtime.state.treatment||'')==='HIFU'&&isGenericHifuContext(inbound,runtime)){
+        const variant=selectedHifuVariant(messages);
+        if(variant){
+          try{
+            const fast=await buildHifuPriceContext(serviceRpc,runtime);
+            const selected=fast.processContexts.find(p=>String(p&&p.entity_name||'').toUpperCase()===variant);
+            if(!selected)throw new Error('WA4_HIFU_BOOKING_VARIANT_UNAVAILABLE');
+            const bookingCtx=await bookingResolver.resolve({runtime,processContexts:[selected],preferred_site:runtime.state.site});
+            const draft=deterministicAvailabilityDraft(bookingCtx,runtime);
+            if(draft){
+              const patientReply=composePatientReply(draft.reply,messages,inbound);
+              Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_HIFU_BOOKING_FASTLANE',safety_model:null,outcome:draft.needs_human===true?'HUMAN_REQUIRED':'SUGGESTED',input_messages:messages.length,input_chars:inbound.length,output_chars:patientReply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:draft.next_action,safety_category:'HIFU_BOOKING_FASTLANE'})).catch(()=>{});
+              return writeJson(res,200,{ok:true,runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:bookingCtx.prompt_context||bookingCtx},suggestion:Object.assign({},draft,{reply:patientReply}),needs_human:draft.needs_human===true,next_action:draft.next_action,model:'DETERMINISTIC_HIFU_BOOKING_FASTLANE',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
+            }
+          }catch(e){
+            Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_HIFU_BOOKING_FASTLANE',safety_model:null,outcome:'ERROR',input_messages:messages.length,input_chars:inbound.length,output_chars:0,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'FAIL_CLOSED',safety_category:'HIFU_BOOKING_FASTLANE',error_code:String(e&&e.message||'WA4_HIFU_BOOKING_UNAVAILABLE').slice(0,120)})).catch(()=>{});
+          }
+        }
+      }
+
       const [campaignCtx,identityCtx]=await Promise.all([
         campaignAdapter.resolve({conversation:conv,runtime}),
         identityAdapter.resolve({conversation:conv,runtime})
@@ -549,4 +632,4 @@ function createCopilot(deps){
     }
   };
 }
-module.exports={createCopilot,buildGovernedContext,buildFastPriceContext,buildHifuPriceContext,gatePublicCatalogMoney,adapterSummary,deterministicBookingDraft,deterministicNoPromotionDraft,deterministicOwnerApprovedIntroDraft,deterministicToxinPriceDraft,deterministicHifuPriceDraft,isPriceFastLane,isGenericHifuPriceFastLane,isGenericHifuContext,preferHifuFrozenRows,qualityCheck,canonicalizePatientText,renderWhatsAppText,composePatientReply,hasApprovedIntro,isGreetingOnly,APPROVED_FIRST_CONTACT_COPY,APPROVED_FIRST_CONTACT_PREFIX,SALES_SCHEMA,SAFETY_SCHEMA};
+module.exports={createCopilot,buildGovernedContext,buildFastPriceContext,buildHifuPriceContext,gatePublicCatalogMoney,adapterSummary,deterministicBookingDraft,deterministicBookingPreflightDraft,deterministicAvailabilityDraft,deterministicNoPromotionDraft,deterministicOwnerApprovedIntroDraft,deterministicToxinPriceDraft,deterministicHifuPriceDraft,isPriceFastLane,isGenericHifuPriceFastLane,bookingHotLaneRequested,selectedHifuVariant,isGenericHifuContext,preferHifuFrozenRows,qualityCheck,canonicalizePatientText,renderWhatsAppText,composePatientReply,hasApprovedIntro,isGreetingOnly,APPROVED_FIRST_CONTACT_COPY,APPROVED_FIRST_CONTACT_PREFIX,SALES_SCHEMA,SAFETY_SCHEMA};
