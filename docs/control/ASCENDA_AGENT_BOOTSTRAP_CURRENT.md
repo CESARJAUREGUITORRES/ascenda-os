@@ -129,3 +129,16 @@ Until CONV-L7 and a fresh owner authorization:
 CI green is necessary, not sufficient.
 
 The product closes only when the real panel supports fast natural conversation, governed prices/promotions/media/booking, immediate human takeover, safe follow-up/campaign behavior, no material ASCENDA performance regression, and a second company can be onboarded through configuration/adapters without a source fork.
+
+
+## Product identity boundary — ASCENDA CLINIC
+
+Before any branding, login, SaaSization or product-packaging write, also read:
+`docs/control/ASCENDA_CLINIC_REBRAND_TRANSITION_V1.md`.
+
+Binding rules:
+- ASCENDA CLINIC is the approved visible/commercial identity for the current clinical product line;
+- keep `ascenda-os` technical identifiers until the dedicated technical rename gate;
+- never infer that a branding request authorizes repo/Railway/Supabase/callback/secret/DB-object renames;
+- preserve Auth V3, 2FA, existing session authority and production compatibility during LOGIN V4;
+- SOFTY may commercialize/provision CLINIC but must not become a required dependency for normal CLINIC runtime.
