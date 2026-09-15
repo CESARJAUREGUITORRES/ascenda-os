@@ -47,7 +47,7 @@ assert(meta.includes('graph.facebook.com'), 'MetaCloudAdapter must own the Graph
 assert(wa3.includes('/api/wa/meta/dispatch-internal'), 'WA3 compatibility send must route inward to MetaCloudAdapter boundary')
 assert(f4.includes('/api/wa/meta/dispatch-internal'), 'F4 must expose the internal MetaCloudAdapter dispatch boundary')
 
-assert(panel.includes("fetch('/api/wa3/events'") && panel.includes('scheduleFallback(30000)'), 'L2 event-driven replacement of audited polling is missing')
+assert(panel.includes("fetch('/api/wa3/events'") && panel.includes('scheduleFallback(45000)') && panel.includes('document.hidden?60000:45000'), 'L2 event-driven replacement of audited polling is missing')
 
 for (const token of ['REPLACE', 'PORT', 'RETIRE', 'KEEP']) {
   assert(extraction.includes(token), 'Extraction classification missing: ' + token)
