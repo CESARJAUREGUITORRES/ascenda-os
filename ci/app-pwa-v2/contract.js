@@ -22,6 +22,7 @@ const adminRollback=read('supabase/rollback/20260914125000_app_pwa_admin_push_co
 const idempotency=read('supabase/migrations/20260914130500_s15_push_idempotent_completion.sql')
 const login=read('app/public/login.html')
 const brain=read('app/public/cerebro.html')
+const agents=read('app/public/agents.html')
 const manifest=JSON.parse(read('app/public/manifest.json'))
 
 ok(migration.includes('create table if not exists public.aos_devices_v1'),'device registry missing')
@@ -97,6 +98,14 @@ ok(login.includes('<link rel="manifest" href="/manifest.json">'),'login must exp
 ok(login.includes("navigator.serviceWorker.register('/phase2-service-worker.js'"),'login must register the canonical PWA service worker before authentication')
 ok(login.includes("PENDING_KEY='aos_auth_pending_v1'"),'mobile 2FA challenge resume state missing')
 ok(login.includes('autocomplete="one-time-code"'),'OTP field must expose native one-time-code autocomplete semantics')
+ok(!shell.includes('Notification.requestPermission();'),'app shell must not auto-request notification permission')
+ok(!agents.includes('Notification.requestPermission();'),'agents panel must not auto-request notification permission')
+ok(pushClient.includes('SamsungBrowser'),'Push onboarding must identify Samsung Internet')
+ok(pushClient.includes('Ya lo habilité'),'blocked Push permission must provide a recovery flow')
+ok(pushClient.includes('no pedir Push por clicks laterales'),'navigation clicks must not opportunistically request Push permission')
+ok(login.includes('SamsungBrowser'),'login install onboarding must identify Samsung Internet')
+ok(login.includes('Instalar apps desconocidas'),'Samsung install failure must include Android recovery guidance')
+ok(pushClient.includes('20260915-samsung-push-p02')===false,'Push client source must not self-couple to cache version')
 ok(login.includes("clearPending();message('Código verificado.'"),'successful 2FA must clear pending challenge state')
 const pendingSave=login.split('function savePending(){')[1].split('function clearPending(){')[0]
 ok(!pendingSave.includes('loginPass')&&!pendingSave.includes('password'),'pending 2FA state must never persist the password')
