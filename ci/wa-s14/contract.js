@@ -73,7 +73,7 @@ ok(client.includes("PUSH_SUBSCRIPTION_RECOVERY_FAILED"),'client must fail closed
 ok(rollback.includes('on conflict(endpoint) do update set'),'S15.4 rollback must restore previous reactivation behavior')
 
 // S15.5: shell mount + PWA restore must reach the SW token bridge instead of aborting on empty sessionStorage.
-ok(shell.includes("PUSH_SRC='/notification-push-s14.js?v=20260914-admin-push-p01'"),'production shell must mount the versioned S14 Push client')
+ok(shell.includes("PUSH_SRC='/notification-push-s14.js?v=20260915-samsung-push-p02'"),'production shell must mount the versioned S14 Push client')
 ok(shell.includes('function ensurePush()'),'production shell Push loader missing')
 ok(shell.includes("window.AOS_PUSH&&typeof AOS_PUSH.ensure==='function'"),'shell Push loader must be idempotent')
 ok(shell.includes("ensurePush().catch(function(e){try{console.warn('[S15.5] Web Push bootstrap fail-open'"),'shell must bootstrap Push fail-open after authenticated app context is ready')
