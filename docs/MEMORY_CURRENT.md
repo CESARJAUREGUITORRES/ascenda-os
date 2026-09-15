@@ -201,3 +201,17 @@ Key interpretation:
 - public releases require exact-SHA deployment evidence and public smoke.
 
 Canonical standard: `docs/control/WEB_RELEASE_STANDARD_V1.md`.
+
+
+## ASCENDA CLINIC product identity transition — 2026-09-15
+
+Canonical commercial identity transition is now active:
+
+- visible/product brand target = **ASCENDA CLINIC**;
+- current technical/runtime codename remains **ASCENDA OS / ascenda-os** until a separate migration gate;
+- brand/UI changes may proceed without renaming repo, Railway, Supabase, DB objects, callbacks or CI namespaces;
+- ASCENDA SOFTY is the Workbench/SaaSization/Commercial Plane, not a hard runtime dependency for CLINIC;
+- canonical contract: `docs/control/ASCENDA_CLINIC_REBRAND_TRANSITION_V1.md`;
+- next branding loop: `CLINIC-BRAND-L0 — Identity + Login V4 + compatibility gates`.
+
+Permanent rule: **brand rename != technical rename**.
