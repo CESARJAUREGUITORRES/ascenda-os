@@ -49,8 +49,9 @@ ok(push.includes("code === 404 || code === 410"),'stale Web Push subscription re
 
 ok(client.includes("'PushManager' in window"),'PushManager support gate missing')
 ok(client.includes("Notification.permission==='granted'"),'automatic subscription must require previously granted permission')
-ok(client.includes("Notification.permission!=='default'"),'permission gesture guard missing')
-ok(client.includes("closest('#nav-admin-whatsapp,#nav-whatsapp-agent"),'permission request must remain tied to WhatsApp user gesture while allowing additional module opt-ins')
+ok(client.includes("Notification.permission==='default')")&&client.includes("Notification.requestPermission()"),'explicit permission request path missing')
+ok(client.includes("id=\"_aosPushAdvisorEnable\"")&&client.includes("'Activar ahora'"),'Push permission request must remain tied to the dedicated onboarding CTA')
+ok(client.includes("no pedir Push por clicks laterales"),'navigation clicks must not trigger permission prompts')
 ok(client.includes("reg.pushManager.subscribe({userVisibleOnly:true"),'browser Push subscription missing')
 ok(sw.includes("self.addEventListener('push'"),'service-worker Push event missing')
 ok(sw.includes("payload.version!=='AOS_PUSH_V1'"),'service worker must enforce versioned notification envelope')
@@ -73,7 +74,7 @@ ok(client.includes("PUSH_SUBSCRIPTION_RECOVERY_FAILED"),'client must fail closed
 ok(rollback.includes('on conflict(endpoint) do update set'),'S15.4 rollback must restore previous reactivation behavior')
 
 // S15.5: shell mount + PWA restore must reach the SW token bridge instead of aborting on empty sessionStorage.
-ok(shell.includes("PUSH_SRC='/notification-push-s14.js?v=20260914-admin-push-p01'"),'production shell must mount the versioned S14 Push client')
+ok(shell.includes("PUSH_SRC='/notification-push-s14.js?v=20260915-samsung-push-p02'"),'production shell must mount the versioned S14 Push client')
 ok(shell.includes('function ensurePush()'),'production shell Push loader missing')
 ok(shell.includes("window.AOS_PUSH&&typeof AOS_PUSH.ensure==='function'"),'shell Push loader must be idempotent')
 ok(shell.includes("ensurePush().catch(function(e){try{console.warn('[S15.5] Web Push bootstrap fail-open'"),'shell must bootstrap Push fail-open after authenticated app context is ready')
