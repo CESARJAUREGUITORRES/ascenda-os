@@ -15,46 +15,83 @@ html,body{min-height:100%;background:#f4f8ff}
 body{overflow-x:hidden}
 .wrap{background:#f4f8ff}
 .hero{
+  position:relative;
+  overflow:hidden;
   background:
-    radial-gradient(circle at 14% 12%,rgba(0,229,160,.16),transparent 27%),
-    radial-gradient(circle at 84% 84%,rgba(102,124,255,.20),transparent 28%),
-    linear-gradient(145deg,#06183e 0%,#0a3d9f 56%,#176cf0 100%);
+    radial-gradient(circle at 16% 16%,rgba(0,229,160,.12),transparent 24%),
+    radial-gradient(circle at 84% 82%,rgba(26,111,232,.30),transparent 32%),
+    linear-gradient(145deg,#051735 0%,#07317a 42%,#0A4FBF 72%,#0D63D8 100%);
+  isolation:isolate
 }
 .hero:before{
   content:'';
   position:absolute;
-  inset:26px;
+  width:680px;height:680px;
+  left:-260px;top:-240px;
+  border-radius:42%;
   border:1px solid rgba(255,255,255,.09);
-  border-radius:32px;
+  box-shadow:
+    0 0 0 62px rgba(255,255,255,.018),
+    0 0 0 128px rgba(0,229,160,.018);
+  transform:rotate(18deg);
+  animation:clinicOrbit 18s ease-in-out infinite alternate;
   pointer-events:none;
+  z-index:-1
 }
 .hero:after{
-  width:480px;
-  height:480px;
-  right:-165px;
-  top:-125px;
-  opacity:.10;
-  filter:blur(2px)
+  content:'';
+  position:absolute;
+  width:720px;height:260px;
+  right:-260px;bottom:9%;
+  border-radius:50%;
+  background:
+    linear-gradient(90deg,transparent 0%,rgba(0,229,160,.09) 42%,rgba(70,169,255,.13) 72%,transparent 100%);
+  border-top:1px solid rgba(0,229,160,.24);
+  transform:rotate(-13deg);
+  filter:blur(.2px);
+  animation:clinicWave 14s ease-in-out infinite alternate;
+  pointer-events:none;
+  z-index:-1
 }
 .brand{
   position:relative;
   display:inline-flex;
   align-items:center;
-  gap:9px;
-  font-size:25px;
-  letter-spacing:.35px;
-  margin-bottom:56px
+  gap:12px;
+  margin-bottom:54px;
+  white-space:nowrap
 }
-.brand span{color:var(--clinic-mint)}
-.brand:before{
+.brand:before{display:none!important}
+.clinic-wordmark-icon{
+  width:46px;height:46px;display:block;flex:0 0 46px;
+  filter:drop-shadow(0 8px 20px rgba(0,0,0,.18))
+}
+.clinic-wordmark-text{
+  font:800 28px 'Exo 2',sans-serif;
+  letter-spacing:-.65px;
+  color:#fff;
+  display:inline-flex;align-items:baseline;gap:7px
+}
+.clinic-wordmark-text strong{font:inherit;color:var(--clinic-mint)}
+.ey{opacity:.72;letter-spacing:4px}
+.hero h1{max-width:610px;position:relative}
+.hero h1:after{
   content:'';
-  width:17px;height:17px;border-radius:5px;background:var(--clinic-mint);
-  box-shadow:22px 0 0 #6d7dff,0 22px 0 #176cf0,22px 22px 0 rgba(255,255,255,.96);
-  margin-right:18px
+  display:block;
+  width:48px;height:3px;
+  margin-top:18px;
+  border-radius:99px;
+  background:linear-gradient(90deg,var(--clinic-mint),rgba(0,229,160,.1))
 }
-.ey{opacity:.68}
-.hero h1{max-width:610px}
 .hero p{font-size:15px;max-width:470px}
+@keyframes clinicOrbit{
+  from{transform:translate3d(-12px,-8px,0) rotate(12deg) scale(.98)}
+  to{transform:translate3d(28px,22px,0) rotate(25deg) scale(1.04)}
+}
+@keyframes clinicWave{
+  from{transform:translate3d(-24px,8px,0) rotate(-14deg) scaleX(.96)}
+  to{transform:translate3d(34px,-12px,0) rotate(-9deg) scaleX(1.05)}
+}
 .side{
   position:relative;
   overflow:hidden;
@@ -103,16 +140,7 @@ body{overflow-x:hidden}
   border-radius:22px;
   pointer-events:none
 }
-.card:after{
-  content:'';
-  position:absolute;
-  right:23px;top:23px;
-  width:10px;height:10px;
-  border-radius:4px;
-  background:var(--clinic-mint);
-  box-shadow:-15px 0 0 var(--clinic-blue),-15px 15px 0 #6c7cff;
-  opacity:.95
-}
+.card:after{display:none!important}
 .logo{
   width:62px;height:62px;
   border-radius:19px;
@@ -120,7 +148,7 @@ body{overflow-x:hidden}
   background:linear-gradient(145deg,#eaf3ff,#f9fcff);
   box-shadow:inset 0 0 0 1px #dfeafa,0 12px 28px rgba(10,79,191,.10)
 }
-.logo img{width:40px;height:40px}
+.logo img{width:42px;height:42px;display:block}
 .clinic-chip{
   width:max-content;
   max-width:100%;
@@ -291,4 +319,11 @@ body{overflow-x:hidden}
 @media(prefers-reduced-motion:reduce){
   *{scroll-behavior:auto!important}
   .field input,.btn,.otp-cell{transition:none!important}
+}
+.clinic-chip,.clinic-security-note{display:none!important}
+@media(max-width:780px){
+  .hero{display:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .hero:before,.hero:after{animation:none!important}
 }
