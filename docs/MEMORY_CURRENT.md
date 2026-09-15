@@ -15,19 +15,20 @@
 
 1. root `AGENTS.md`;
 2. root `SECURITY.md`;
-3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
-4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
-5. this file;
-6. `docs/control/ASCENDA_GOOGLE_INTEGRATION_V1_CURRENT.md`;
-7. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
-7. `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`;
-8. `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`;
-9. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
-10. `docs/control/ASCENDA_CONVERSATIONS_BLUEPRINT_REGISTRY_CURRENT.md`;
-11. `docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md`;
-12. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
-13. exact GitHub + Supabase + Railway/runtime evidence;
-14. Notion Control Maestro / CONV execution Skill.
+3. global workstation registry `AscendaSoftyInc/ascenda-softy/docs/operations/PROJECT_REGISTRY_CURRENT.md`;
+4. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`;
+5. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`;
+6. this file;
+7. `docs/control/ASCENDA_GOOGLE_INTEGRATION_V1_CURRENT.md`;
+8. `docs/control/ASCENDA_AGENT_BOOTSTRAP_CURRENT.md`;
+9. `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`;
+10. `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`;
+11. `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`;
+12. `docs/control/ASCENDA_CONVERSATIONS_BLUEPRINT_REGISTRY_CURRENT.md`;
+13. `docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md`;
+14. `docs/control/ASCENDA_RELIABILITY_PERFORMANCE_DOCTRINE_CURRENT.md`;
+15. exact GitHub + Supabase + Railway/runtime evidence;
+16. Notion Control Maestro / CONV execution Skill.
 
 Historical WA docs/chats remain evidence only.
 
@@ -215,3 +216,19 @@ Canonical commercial identity transition is now active:
 - next branding loop: `CLINIC-BRAND-L0 — Identity + Login V4 + compatibility gates`.
 
 Permanent rule: **brand rename != technical rename**.
+
+
+## Workstation routing memory — 2026-09-15
+
+ASCENDA CLINIC is the commercial/product identity for this operational runtime; ASCENDA OS remains the current technical codename until an explicit infrastructure migration.
+
+Canonical local routing:
+- GitHub `CESARJAUREGUITORRES/ascenda-os`
+- Supabase `ituyqwstonmhnfshnaqz` / `aos_*`
+- Railway project `8def5cac-6aa4-42f1-96cc-8c9cf7d7d3a3`
+- production environment `eba28532-1f35-4174-b57a-ded82178507e`
+- production service `bd208ab8-1e71-4c52-94e2-0d6b2bdebce4`
+
+Global sibling registry: `AscendaSoftyInc/ascenda-softy/docs/operations/PROJECT_REGISTRY_CURRENT.md`.
+
+Do not reconnect providers solely because an invited project is absent from generic listings; direct canonical-ID readback is the routing proof. Do not persist publishable keys, passwords, service keys or connection strings in project memory.
