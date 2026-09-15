@@ -14,11 +14,12 @@ This file defines mandatory operating rules for every AI/Codex/development agent
 
 1. `AGENTS.md`
 2. `SECURITY.md`
-3. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`
-4. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`
-5. `docs/MEMORY_CURRENT.md`
-6. `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md`
-7. `docs/control/ASCENDA_ZERO_COST_CI_V2_HANDOFF.md`
+3. global workstation registry: `AscendaSoftyInc/ascenda-softy/docs/operations/PROJECT_REGISTRY_CURRENT.md`
+4. `docs/control/ASCENDA_PROJECT_PORTFOLIO_CURRENT.md`
+5. `docs/control/ASCENDA_WORKSTREAM_LOCK_CURRENT.md`
+6. `docs/MEMORY_CURRENT.md`
+7. `docs/control/ASCENDA_ZERO_COST_VALIDATION_STANDARD.md`
+8. `docs/control/ASCENDA_ZERO_COST_CI_V2_HANDOFF.md`
 8. the CURRENT Control Maestro / phase checkpoint of **one selected project only** (for the active Google workstream: `docs/control/ASCENDA_GOOGLE_INTEGRATION_V1_CURRENT.md`)
 9. exact GitHub `main`, branch/PR/checks and live Supabase/Railway evidence
 10. for ASCENDA Conversations work, `docs/control/ASCENDA_CONVERSATIONS_CORE_V1_ROADMAP_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_RUN_UNTIL_BLOCKED_PROTOCOL_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_L0_READINESS_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_L1_READINESS_CURRENT.md`, `docs/control/ASCENDA_CONVERSATIONS_BLUEPRINT_REGISTRY_CURRENT.md` and `docs/control/ASCENDA_CONVERSATIONS_BENCHMARK_V1.md`; legacy WhatsApp Revenue Hub docs are evidence/reference only;
@@ -28,6 +29,30 @@ This file defines mandatory operating rules for every AI/Codex/development agent
 Historical documents may contain useful context, but they do not override CURRENT.
 
 Before continuing work from another chat/agent, revalidate GitHub + Supabase. Never assume an old checkpoint, branch, runtime chain or migration version is still valid.
+
+## Workstation / cross-product routing — non-negotiable
+
+This repository owns the current operational runtime for both **ASCENDA CLINIC** (commercial/product identity) and **ASCENDA OS** (technical/runtime codename).
+
+Canonical local infrastructure:
+- GitHub: `CESARJAUREGUITORRES/ascenda-os`
+- Supabase: `ituyqwstonmhnfshnaqz`
+- Railway project: `8def5cac-6aa4-42f1-96cc-8c9cf7d7d3a3`
+- Railway production environment: `eba28532-1f35-4174-b57a-ded82178507e`
+- Railway production service: `bd208ab8-1e71-4c52-94e2-0d6b2bdebce4`
+- Database namespace: `aos_*`
+
+The separate repo `CESARJAUREGUITORRES/ascenda-clinic-theme` is the reusable public WordPress/theme layer. It does not own a second operational clinic backend unless a future explicit infrastructure gate creates one.
+
+Global sibling routing authority:
+`AscendaSoftyInc/ascenda-softy/docs/operations/PROJECT_REGISTRY_CURRENT.md`.
+
+Never select Supabase/Railway targets from generic connector listings alone. Resolve exact canonical IDs, perform read-only identity checks, then mutate.
+
+Sibling namespaces/projects must never be reused implicitly:
+- SOFTY: `jihlrufaaqrejkcrnjdz` / `softy_*` / Railway `020df9d6-6d84-4102-b655-d63634d605c1`
+- MENTOR: `xdnygskxgzrhuxtjsuit` / reserved `mentor_*` / Railway `ca5102b4-ceab-468b-8fdf-8cce90833ff2`
+- DROP / ROO7: `tgnezlhtqkiucwmrdirw` / `roo7_*` / Railway `dae1dbdf-4eb3-4539-94b5-d2e48b4e178e`
 
 ## Global portfolio lock — non-negotiable
 
