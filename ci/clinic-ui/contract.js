@@ -1,0 +1,33 @@
+'use strict'
+const fs=require('fs')
+const app=fs.readFileSync('app/public/app.html','utf8')
+const ui=fs.readFileSync('app/public/clinic-ui-v1.css','utf8')
+const shell=fs.readFileSync('app/public/clinic-shell-ui-v1.js','utf8')
+const login=fs.readFileSync('app/public/login.html','utf8')
+const loginCss=fs.readFileSync('app/public/clinic-login-v4.css','utf8')
+const loginJs=fs.readFileSync('app/public/clinic-login-v4.js','utf8')
+const home=fs.readFileSync('app/public/admin-home.html','utf8')
+function ok(v,m){if(!v){console.error('CLINIC UI V1 CONTRACT FAIL:',m);process.exit(1)}}
+
+ok(app.includes("document.getElementById('tb-brand').addEventListener('click'"),'drawer logo click authority missing')
+ok(app.includes("classList.toggle('col', AOS.collapsed)"),'drawer collapse behavior missing')
+ok(app.includes("var VIEW_MAP = {"),'view map missing')
+for(const id of ['admin-home','admin-calls','admin-sales','admin-team','admin-agenda','admin-patients','admin-caja','admin-cartera','admin-inventario']){
+  ok(app.includes("'"+id+"'"),'panel route missing: '+id)
+}
+ok(ui.includes('.workspace .ah-c3{display:block!important}'),'mobile must not hide home admin column')
+ok(ui.includes('.workspace table{')&&ui.includes('overflow-x:auto'),'responsive table preservation missing')
+ok(ui.includes('.workspace .krow{grid-template-columns:repeat(2'),'mobile KPI grid missing')
+ok(ui.includes('.workspace .ag-dh,.workspace .ag-gw{min-width:720px}'),'agenda safe horizontal canvas missing')
+ok(ui.includes(':root{--th:58px;--sw:min(78vw,282px);--swc:62px}'),'mobile drawer sizing missing')
+ok(shell.includes("brand.innerHTML='Ascenda <span>Clinic</span>'"),'shell visible brand rename missing')
+ok(shell.includes("AOS.collapsed=true"),'mobile initial rail state missing')
+ok(shell.includes("MutationObserver(function(){applyPanelClass()})"),'panel responsive observer missing')
+ok(shell.includes("clinic-home-hero"),'home visual hero missing')
+ok(loginCss.includes('@keyframes clinicOrbit')&&loginCss.includes('@keyframes clinicWave'),'modern hero motion missing')
+ok(loginCss.includes('.card:after{display:none!important}'),'login decorative dots must be removed')
+ok(loginJs.includes('/ascenda-clinic-mark.svg?v=20260915-1'),'login must use canonical drawer-derived mark')
+ok(loginJs.includes('Ascenda <strong>Clinic</strong>'),'login wordmark spacing missing')
+ok(!ui.includes('.ah-c3{display:none'),'global layer must not hide home content')
+ok(home.includes('@media(max-width:900px){.ah-grid{grid-template-columns:1fr;}.ah-c3{display:none;}}'),'legacy panel rule must remain overridden, not rewritten')
+console.log('CLINIC UI V1 responsive contract: PASS')
