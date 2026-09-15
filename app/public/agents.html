@@ -2032,10 +2032,8 @@ function App(){
   const firstPullRef  = useRef(true);  // skip notificaciones en el primer pull
 
   useEffect(() => {
-    // Solicitar permisos de Notification al montar
-    if (window.Notification && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
+    // APP-PWA #517: permisos Push pertenecen al onboarding central y requieren
+    // una acción explícita del usuario; este panel no solicita permisos al montar.
   }, []);
 
   useEffect(() => {
