@@ -258,7 +258,7 @@ KronIA is K0–K8. CIA-F15 Tool Registry + Agent Registry SHADOW + Policy Gate a
 
 ## Frontend
 
-Locate the exact panel loaded by the shell, preserve session/navigation, reuse existing contracts, validate loading/error/empty/responsive/roles, and do not assume Vite/app/src controls production without proof.
+Locate the exact panel loaded by the shell, preserve session/navigation, reuse existing contracts, validate loading/error/empty/responsive/roles, and do not assume Vite/app/src controls production without proof.\n\nFor any ASCENDA CLINIC authenticated-panel responsive/mobile work, also read `docs/adn/ASCENDA_RESPONSIVE_UI_AGENT_CURRENT.md`, `docs/skills/ASCENDA_RESPONSIVE_PANEL_SKILL_V1.md` and `ci/clinic-ui/panel-mobile-registry.json`. Prefer view-scoped external presentation adapters; preserve functional panel authority and desktop fine-pointer layout.
 
 ## Minimum tests
 
