@@ -1,0 +1,29 @@
+name: CALL Mobile V1 Emergency Hosted Gate
+on:
+  push:
+    branches:
+      - feat/call-mobile-session-v1-20260915
+jobs:
+  call-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Call Mobile V1 contract
+        run: node ci/call-mobile/contract.js
+      - name: calls.html inline script syntax
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),vm=require('vm')
+          const html=fs.readFileSync('app/public/calls.html','utf8')
+          const blocks=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean)
+          for(const src of blocks)new vm.Script(src)
+          console.log('calls.html inline scripts: syntax PASS')
+          NODE
+      - name: Existing Call Center performance contract
+        run: node ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js
+      - name: Existing Google integration static contract
+        run: node ci/google-integration-v1/contract.js
