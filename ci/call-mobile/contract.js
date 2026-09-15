@@ -1,0 +1,18 @@
+'use strict'
+const fs=require('fs')
+const html=fs.readFileSync('app/public/calls.html','utf8')
+function ok(v,m){if(!v){console.error('CALL MOBILE V1 CONTRACT FAIL:',m);process.exit(1)}}
+ok(html.includes("CC_CALL_KEY='aos_cc_active_call_v1'"),'persistent call session key missing')
+ok(html.includes("localStorage.setItem(CC_CALL_KEY"),'call session must survive native dialer backgrounding')
+ok(html.includes("window.location.href='tel:+'+numLimpio"),'native tel: handoff missing')
+ok(html.includes("window.__AOS_CC_CALL_LIFECYCLE_V1__"),'global visibility lifecycle guard missing')
+ok(html.includes("AOS_setEstado('TIPIFICAR'"),'return from dialer must enter TIPIFICAR state')
+ok(html.includes("PWA_LLAMADA_HASTA_TIPIFICACION"),'management-duration semantic missing')
+ok(html.includes("Date.now()-Number(s.startedAt)"),'duration must run from call click until saved tipification')
+ok(html.includes("session_id:callMeta.session_id"),'call ledger session_id missing')
+ok(html.includes("desde_dispositivo:callMeta.desde_dispositivo"),'call ledger device source missing')
+ok((html.match(/duracion_seg:callMeta\.duracion_seg/g)||[]).length>=3,'normal/cita/seguimiento must all persist call duration')
+ok((html.match(/tipo_gestion:callMeta\.tipo_gestion/g)||[]).length>=3,'normal/cita/seguimiento must all persist management type')
+ok((html.match(/ccCallClear\(/g)||[]).length>=4,'successful result flows must clear persisted session')
+ok(!html.includes("CC._lastDur="),'legacy return-only duration state must be retired')
+console.log('CALL MOBILE V1 contract: PASS')
