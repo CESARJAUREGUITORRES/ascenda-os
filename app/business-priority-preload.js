@@ -56,6 +56,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     if (p.indexOf('/rest/v1/rpc/aos_notification_push_claim_v1') === 0) return 'notification-push-claim'
     if (p.indexOf('/rest/v1/rpc/aos_push_vapid_config_v1') === 0) return 'notification-vapid-config'
     if (p.indexOf('/rest/v1/rpc/aos_push_vapid_store_v1') === 0) return 'notification-vapid-store'
+    if (p.indexOf('/rest/v1/rpc/aos_google_claim_sync_v1') === 0) return 'google-sync-claim'
     if (p.indexOf('/rest/v1/aos_f5_private_file_transport_tmp?') === 0 && p.indexOf('status=in.(READY,PROCESSING)') >= 0) return 'f5-recovery-scan'
     if (p.indexOf('/rest/v1/aos_email_plantillas?') === 0 && p.indexOf('activo=eq.true') >= 0) return 'email-template-cache'
     if (p.indexOf('/rest/v1/aos_usuarios?') === 0 && p.indexOf('select=nombre,apellidos,cmp') >= 0 && p.indexOf('cmp=neq.') >= 0) return 'medical-cmp-cache'
