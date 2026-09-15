@@ -327,3 +327,35 @@ body{overflow-x:hidden}
 @media(prefers-reduced-motion:reduce){
   .hero:before,.hero:after{animation:none!important}
 }
+
+/* CLINIC Login V4.3 canary corrections */
+.brand .clinic-wordmark-text{
+  color:#fff!important;
+  gap:3px!important;
+  font-family:'DM Sans',sans-serif!important;
+  font-size:28px!important;
+  font-weight:700!important;
+  letter-spacing:-1.25px!important
+}
+.brand .clinic-wordmark-text strong{
+  color:var(--clinic-mint)!important;
+  font-family:'Exo 2',sans-serif!important;
+  font-size:.98em!important;
+  font-weight:800!important;
+  letter-spacing:-1px!important
+}
+.hero{
+  background:
+    radial-gradient(circle at 18% 12%,rgba(0,229,160,.14),transparent 23%),
+    radial-gradient(circle at 82% 76%,rgba(27,118,240,.30),transparent 30%),
+    repeating-linear-gradient(116deg,rgba(255,255,255,.018) 0 1px,transparent 1px 38px),
+    linear-gradient(145deg,#041630 0%,#062C6F 38%,#0847A7 69%,#0A66E4 100%)!important
+}
+.hero:before{
+  border-color:rgba(84,176,255,.16)!important;
+  box-shadow:
+    0 0 0 54px rgba(24,112,232,.025),
+    0 0 0 112px rgba(0,229,160,.018),
+    inset 0 0 80px rgba(0,229,160,.025)!important
+}
+.hero h1 b{color:var(--clinic-mint)!important}
