@@ -21,8 +21,10 @@ let child = null
 let notificationPumpTimer = null
 let notificationPumpBusy = false
 let notificationPumpIdleLevel = 0
+let notificationPumpFailureLevel = 0
 const NOTIFICATION_PUMP_ACTIVE_MS = 4000
 const NOTIFICATION_PUMP_IDLE_MS = [8000, 15000]
+const NOTIFICATION_PUMP_ERROR_MS = [30000, 120000, 600000]
 
 function parseJson(text) { try { return text ? JSON.parse(text) : null } catch (_) { return null } }
 function writeJson(res, status, body) {
@@ -93,15 +95,23 @@ async function runNotificationPump() {
   try {
     const r = await push.dispatchPendingNotifications(25)
     if (r && (r.delivered || r.failed || r.partial)) console.log('[S15] notification push', r)
+    notificationPumpFailureLevel = 0
     return r || { ok: true, claimed: 0 }
   } catch (e) {
-    console.error('[S15] notification pump fail-open', e && e.message || e)
-    return { ok: false, error: true, claimed: 0 }
+    const code = String(e && e.message || e || 'UNKNOWN')
+    console.error('[S15] notification pump fail-open', code)
+    return { ok: false, error: true, error_code: code, claimed: 0 }
   } finally {
     notificationPumpBusy = false
   }
 }
 function notificationPumpDelay(result) {
+  if (result && result.error === true) {
+    notificationPumpFailureLevel = Math.min(notificationPumpFailureLevel + 1, NOTIFICATION_PUMP_ERROR_MS.length)
+    notificationPumpIdleLevel = 0
+    return NOTIFICATION_PUMP_ERROR_MS[notificationPumpFailureLevel - 1]
+  }
+  notificationPumpFailureLevel = 0
   const didWork = !!(result && (Number(result.claimed || 0) > 0 || Number(result.delivered || 0) > 0 || Number(result.failed || 0) > 0 || Number(result.partial || 0) > 0))
   if (didWork) { notificationPumpIdleLevel = 0; return NOTIFICATION_PUMP_ACTIVE_MS }
   notificationPumpIdleLevel = Math.min(notificationPumpIdleLevel + 1, NOTIFICATION_PUMP_IDLE_MS.length)
@@ -127,6 +137,7 @@ function stopNotificationPump() {
   if (notificationPumpTimer) clearTimeout(notificationPumpTimer)
   notificationPumpTimer = null
   notificationPumpIdleLevel = 0
+  notificationPumpFailureLevel = 0
 }
 
 function proxy(req, res) {
