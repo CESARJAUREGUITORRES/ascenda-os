@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {isGenericHifuContext,preferHifuFrozenRows,isGenericHifuPriceFastLane,deterministicHifuPriceDraft,gatePublicCatalogMoney}=require('./wa4-copilot');
+const {isGenericHifuContext,preferHifuFrozenRows,isGenericHifuPriceFastLane,deterministicHifuPriceDraft,gatePublicCatalogMoney,bookingHotLaneRequested,selectedHifuVariant,deterministicBookingPreflightDraft,deterministicAvailabilityDraft}=require('./wa4-copilot');
 const runtime=require('./wa4-conversation-runtime-v2');
 
 function row(title,category){
@@ -73,4 +73,54 @@ test('generic HIFU price uses deterministic Zi Frozen hot path and excludes corp
   assert.match(draft.reply,/S\/ 899/);
   assert.equal(draft.reply.includes('HIFU 7D BRAZOS'),false);
   assert.equal(draft.needs_human,false);
+});
+
+
+test('availability this week is handled by deterministic booking preflight before knowledge fanout',()=>{
+  const rt={booking_readiness:'HIGH',intents:['SCHEDULE'],state:{treatment:'HIFU',requested_day:null,site:null}};
+  assert.equal(bookingHotLaneRequested(rt,'¿Qué disponibilidad tienen esta semana?'),true);
+  const draft=deterministicBookingPreflightDraft(rt,[],'¿Qué disponibilidad tienen esta semana?');
+  assert.ok(draft);
+  assert.equal(draft.needs_human,false);
+  assert.match(draft.reply,/qué día/i);
+  assert.match(draft.reply,/San Isidro/i);
+  assert.match(draft.reply,/Pueblo Libre/i);
+});
+
+test('generic HIFU booking asks exact Zi Frozen variant after date and site are known',()=>{
+  const rt={booking_readiness:'HIGH',intents:['SCHEDULE'],state:{treatment:'HIFU',requested_day:'TOMORROW',site:'SAN_ISIDRO'}};
+  const messages=[
+    {direction:'INBOUND',message_body:'Quiero HIFU',created_at:'2026-09-15T01:00:00Z'},
+    {direction:'OUTBOUND',message_body:'Beauty, Full Face o Cisne',created_at:'2026-09-15T01:00:05Z'},
+    {direction:'INBOUND',message_body:'mañana en San Isidro',created_at:'2026-09-15T01:00:10Z'}
+  ];
+  assert.equal(selectedHifuVariant(messages),null);
+  const draft=deterministicBookingPreflightDraft(rt,messages,'mañana en San Isidro');
+  assert.ok(draft);
+  assert.match(draft.reply,/Beauty/);
+  assert.match(draft.reply,/Full Face/);
+  assert.match(draft.reply,/Cisne/);
+});
+
+test('selected HIFU variant is inferred only from inbound customer messages',()=>{
+  const messages=[
+    {direction:'OUTBOUND',message_body:'Beauty, Full Face o Cisne',created_at:'2026-09-15T01:00:00Z'},
+    {direction:'INBOUND',message_body:'Full Face',created_at:'2026-09-15T01:00:10Z'}
+  ];
+  assert.equal(selectedHifuVariant(messages),'ZI FROZEN FULL FACE');
+});
+
+test('fresh governed booking slots render deterministically without broad RAG',()=>{
+  const draft=deterministicAvailabilityDraft({
+    status:'REAL_SLOTS_READY',
+    candidate_slots:[
+      {time:'10:00',professional_name:'Dra. Uno'},
+      {time:'11:30',professional_name:'Dra. Dos'}
+    ]
+  },{booking_readiness:'HIGH'});
+  assert.ok(draft);
+  assert.equal(draft.needs_human,false);
+  assert.match(draft.reply,/10:00/);
+  assert.match(draft.reply,/11:30/);
+  assert.match(draft.reply,/¿Cuál te acomoda mejor\?/);
 });
