@@ -1,0 +1,24 @@
+name: TEAM Verify Emergency Hosted Gate
+on:
+  push:
+    branches:
+      - hotfix/team-verify-mobile-bg-20260915
+jobs:
+  team-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node ci/team-mobile/contract.js
+      - name: Inline Team script syntax
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),vm=require('vm')
+          const html=fs.readFileSync('app/public/admin-team.html','utf8')
+          const blocks=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m=>m[1]).filter(Boolean)
+          for(const src of blocks)new vm.Script(src)
+          console.log('admin-team inline scripts: syntax PASS')
+          NODE
