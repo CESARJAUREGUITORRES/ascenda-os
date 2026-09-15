@@ -1,0 +1,52 @@
+name: CLINIC Call Center Mobile V1.2 Gate
+on:
+  push:
+    branches:
+      - feat/clinic-callcenter-mobile-v12-20260915
+permissions:
+  contents: write
+jobs:
+  callcenter-mobile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/clinic-callcenter-mobile-v12-20260915
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Wire panel adapter only
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('app/public/app.html')
+          s=p.read_text()
+          tag='<link rel="stylesheet" href="/clinic-callcenter-mobile-v12.css?v=20260915-1">'
+          anchor='<link rel="stylesheet" href="/clinic-ui-v1.css?v=20260915-2">'
+          if tag not in s:
+            if anchor not in s: raise SystemExit('clinic-ui anchor missing')
+            s=s.replace(anchor,anchor+'\n'+tag,1)
+          p.write_text(s)
+          PY
+      - name: Syntax and contracts
+        run: |
+          node --check ci/clinic-ui/callcenter-mobile-v12-contract.js
+          node ci/clinic-ui/callcenter-mobile-v12-contract.js
+          node ci/clinic-ui/contract.js
+          node ci/app-pwa-v2/contract.js
+          node ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js
+      - name: Verify calls.html business file unchanged from main
+        run: |
+          git fetch origin main
+          git diff --exit-code origin/main -- app/public/calls.html
+      - name: Commit shell wiring
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/public/app.html
+          git commit -m "CLINIC UI V1.2: wire Call Center mobile template"
+          git push origin HEAD:feat/clinic-callcenter-mobile-v12-20260915
