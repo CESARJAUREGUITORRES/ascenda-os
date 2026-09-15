@@ -54,6 +54,7 @@ test('shared server background shield is narrow and protects critical traffic',(
 
   assert.equal(classify(agent),'agent-cron-scan');
   assert.equal(classify({hostname:host,path:'/rest/v1/rpc/aos_notification_push_claim_v1'}),'notification-push-claim');
+  assert.equal(classify({hostname:host,path:'/rest/v1/rpc/aos_google_claim_sync_v1'}),'google-sync-claim');
   assert.equal(classify(template),'email-template-cache');
   assert.equal(classify(cmp),'medical-cmp-cache');
   assert.equal(classify({hostname:host,path:'/rest/v1/aos_integraciones?select=tipo,api_key&tipo=in.(groq,gemini)'}),'','AI key bootstrap must never be shielded');
