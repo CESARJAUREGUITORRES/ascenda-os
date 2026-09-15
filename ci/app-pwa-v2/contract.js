@@ -98,7 +98,8 @@ ok(login.includes("navigator.serviceWorker.register('/phase2-service-worker.js'"
 ok(login.includes("PENDING_KEY='aos_auth_pending_v1'"),'mobile 2FA challenge resume state missing')
 ok(login.includes('autocomplete="one-time-code"'),'OTP field must expose native one-time-code autocomplete semantics')
 ok(login.includes("clearPending();message('Código verificado.'"),'successful 2FA must clear pending challenge state')
-ok(!login.includes('password:loginPass')&&!login.includes('loginPass:loginPass'),'pending 2FA state must never persist the password')
+const pendingSave=login.split('function savePending(){')[1].split('function clearPending(){')[0]
+ok(!pendingSave.includes('loginPass')&&!pendingSave.includes('password'),'pending 2FA state must never persist the password')
 ok(!brain.includes('reg.unregister()'),'KronIA must never unregister the shared Ascenda service worker')
 ok(!brain.includes('caches.delete(n)'),'KronIA must never purge shared Ascenda PWA caches')
 ok(manifest.id==='/app'&&manifest.scope==='/'&&manifest.display==='standalone','manifest identity/scope/install mode regression')
