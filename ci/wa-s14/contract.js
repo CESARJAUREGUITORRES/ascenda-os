@@ -49,8 +49,9 @@ ok(push.includes("code === 404 || code === 410"),'stale Web Push subscription re
 
 ok(client.includes("'PushManager' in window"),'PushManager support gate missing')
 ok(client.includes("Notification.permission==='granted'"),'automatic subscription must require previously granted permission')
-ok(client.includes("Notification.permission!=='default'"),'permission gesture guard missing')
-ok(client.includes("closest('#nav-admin-whatsapp,#nav-whatsapp-agent"),'permission request must remain tied to WhatsApp user gesture while allowing additional module opt-ins')
+ok(client.includes("Notification.permission==='default')")&&client.includes("Notification.requestPermission()"),'explicit permission request path missing')
+ok(client.includes("id=\"_aosPushAdvisorEnable\"")&&client.includes("'Activar ahora'"),'Push permission request must remain tied to the dedicated onboarding CTA')
+ok(client.includes("no pedir Push por clicks laterales"),'navigation clicks must not trigger permission prompts')
 ok(client.includes("reg.pushManager.subscribe({userVisibleOnly:true"),'browser Push subscription missing')
 ok(sw.includes("self.addEventListener('push'"),'service-worker Push event missing')
 ok(sw.includes("payload.version!=='AOS_PUSH_V1'"),'service worker must enforce versioned notification envelope')
