@@ -54,9 +54,10 @@ function sbPost(endpoint, body, method) {
     const data = JSON.stringify(body)
     const req = https.request({
       hostname: url.hostname, path: url.pathname + url.search,
-      method: httpMethod,
+      method: httpMethod, timeout: 12000,
       headers: f16SupabaseHeaders(dbKey, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(data) })
     }, (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(res.statusCode)) })
+    req.on('timeout', function(){ req.destroy(new Error('SUPABASE_TIMEOUT')) })
     req.on('error', reject)
     req.write(data)
     req.end()
@@ -67,14 +68,14 @@ function sbGet(endpoint) {
   const url = new URL(SB_URL + endpoint)
   const dbKey = f16DbKey(endpoint)
   return new Promise(function(resolve, reject) {
-    https.get({
+    var req = https.get({
       hostname: url.hostname, path: url.pathname + url.search,
-      headers: f16SupabaseHeaders(dbKey)
+      headers: f16SupabaseHeaders(dbKey), timeout: 12000
     }, function(r) {
       var d = ''; r.on('data', function(c) { d += c }); r.on('end', function() {
         try { resolve(JSON.parse(d)) } catch(e) { resolve([]) }
       })
-    }).on('error', function() { resolve([]) })
+    }); req.on('timeout', function(){ req.destroy(new Error('SUPABASE_TIMEOUT')) }); req.on('error', function() { resolve([]) })
   })
 }
 function sbRpc(fnName, params) {
@@ -100,11 +101,12 @@ function sbPatch(endpoint, body) {
   var data = JSON.stringify(body || {})
   return new Promise(function(resolve) {
     var req = https.request({
-      hostname: url.hostname, path: url.pathname + url.search, method: 'PATCH',
+      hostname: url.hostname, path: url.pathname + url.search, method: 'PATCH', timeout: 12000,
       headers: f16SupabaseHeaders(dbKey, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), 'Prefer': 'return=minimal' })
     }, function(r) {
       var d = ''; r.on('data', function(c) { d += c }); r.on('end', function() { resolve(r.statusCode < 300) })
     })
+    req.on('timeout', function(){ req.destroy(new Error('SUPABASE_TIMEOUT')) })
     req.on('error', function() { resolve(false) })
     req.write(data); req.end()
   })
@@ -3566,14 +3568,14 @@ function sbFetch(endpoint) {
   return new Promise(function(resolve, reject) {
     var url = new URL(SB_URL + endpoint)
     var dbKey = f16DbKey(endpoint)
-    https.get({
+    var req = https.get({
       hostname: url.hostname, path: url.pathname + url.search,
-      headers: f16SupabaseHeaders(dbKey)
+      headers: f16SupabaseHeaders(dbKey), timeout: 12000
     }, function(res) {
       var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
         try { resolve(JSON.parse(d)) } catch(e) { reject(e) }
       })
-    }).on('error', reject)
+    }); req.on('timeout', function(){ req.destroy(new Error('SUPABASE_TIMEOUT')) }); req.on('error', reject)
   })
 }
 
@@ -3582,10 +3584,10 @@ function sbPatchAgent(agentId, data) {
     var url = new URL(SB_URL + '/rest/v1/aos_agentes?id=eq.' + agentId)
     var body = JSON.stringify(data)
     var req = https.request({
-      hostname: url.hostname, path: url.pathname + url.search, method: 'PATCH',
+      hostname: url.hostname, path: url.pathname + url.search, method: 'PATCH', timeout: 12000,
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal', 'Content-Length': Buffer.byteLength(body) }
     }, function(res) { var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() { resolve(res.statusCode) }) })
-    req.on('error', reject); req.write(body); req.end()
+    req.on('timeout', function(){ req.destroy(new Error('SUPABASE_TIMEOUT')) }); req.on('error', reject); req.write(body); req.end()
   })
 }
 
@@ -3594,14 +3596,14 @@ function sbRpc(rpcName, params) {
     var url = new URL(SB_URL + '/rest/v1/rpc/' + rpcName)
     var body = JSON.stringify(params || {})
     var req = https.request({
-      hostname: url.hostname, path: url.pathname, method: 'POST',
+      hostname: url.hostname, path: url.pathname, method: 'POST', timeout: 12000,
       headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
     }, function(res) {
       var d = ''; res.on('data', function(c) { d += c }); res.on('end', function() {
         try { resolve(JSON.parse(d)) } catch(e) { resolve(d) }
       })
     })
-    req.on('error', reject); req.write(body); req.end()
+    req.on('timeout', function(){ req.destroy(new Error('SUPABASE_TIMEOUT')) }); req.on('error', reject); req.write(body); req.end()
   })
 }
 
