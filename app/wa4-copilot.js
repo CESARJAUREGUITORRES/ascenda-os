@@ -298,39 +298,45 @@ async function buildHifuPriceContext(serviceRpc,runtime){
 
   const ids=new Set(contexts.map(p=>String(p.entity_id)));
   const governed=knowledge.buildKnowledgeBundle(publicRows,12,'PUBLIC_CLIENT');
-  const governedItems=(governed.items||[]).filter(item=>{
+  const governedById=new Map();
+  for(const item of (governed.items||[])){
     const id=playbooks.catalogId(item);
-    return id&&ids.has(String(id));
-  });
-
-  let raw;
-  if(governedItems.length){
-    raw=Object.assign({},governed,{items:governedItems});
-  }else{
-    const items=contexts.map(p=>({
-      knowledge_id:'service:'+String(p.entity_id),
-      domain:'CATALOG',
-      title:String(p.entity_name||'').slice(0,240),
-      facts:{
-        tipo:String(p.entity_type||'SERVICIO'),
-        nombre:String(p.entity_name||'').slice(0,240),
-        categoria:String(p.category||'').slice(0,120),
-        precio_base:p.precio_base==null?null:Number(p.precio_base),
-        precio_oferta:p.precio_oferta==null?null:Number(p.precio_oferta),
-        moneda:String(p.moneda||'').toUpperCase()
-      },
-      authority_tier:1,
-      freshness_state:'FRESH',
-      retrieval_state:'READY',
-      evidence_ref:{
-        relation:'aos_wa4_process_entity_context_v1',
-        pk:String(p.entity_id),
-        version:String(p.price_evidence_ref||'WA4A1C')
-      }
-    }));
-    raw={version:'WA4A1C-HIFU-FAST-V1',audience:'PUBLIC_CLIENT',items,authority:'GOVERNED_SOURCE_ONLY',generic_llm_authority:false};
+    if(id&&ids.has(String(id)))governedById.set(String(id),item);
   }
 
+  const items=contexts.map(p=>{
+    const id=String(p.entity_id);
+    const g=governedById.get(id)||null;
+    const safeFacts=Object.assign({},g&&g.facts||{});
+    safeFacts.tipo=String(p.entity_type||safeFacts.tipo||'SERVICIO');
+    safeFacts.nombre=String(p.entity_name||safeFacts.nombre||'').slice(0,240);
+    safeFacts.categoria=String(p.category||safeFacts.categoria||'').slice(0,120);
+    safeFacts.precio_base=p.precio_base==null?null:Number(p.precio_base);
+    safeFacts.precio_oferta=p.precio_oferta==null?null:Number(p.precio_oferta);
+    safeFacts.moneda=String(p.moneda||safeFacts.moneda||'').toUpperCase();
+    return {
+      knowledge_id:String(g&&g.knowledge_id||('service:'+id)),
+      domain:'CATALOG',
+      title:String(g&&g.title||p.entity_name||'').slice(0,240),
+      facts:safeFacts,
+      authority_tier:Number(g&&g.authority_tier||1),
+      freshness_state:'FRESH',
+      retrieval_state:'READY',
+      evidence_ref:g&&g.evidence_ref||{
+        relation:'aos_wa4_process_entity_context_v1',
+        pk:id,
+        version:String(p.price_evidence_ref||'WA4A1C')
+      }
+    };
+  });
+
+  const raw={
+    version:'WA4A1C-HIFU-GOVERNED-FAST-V2',
+    audience:'PUBLIC_CLIENT',
+    items,
+    authority:'GOVERNED_SOURCE_ONLY',
+    generic_llm_authority:false
+  };
   return {publicBundle:gatePublicCatalogMoney(raw,contexts,'PRICE_QUOTE',runtime),processContexts:contexts};
 }
 
