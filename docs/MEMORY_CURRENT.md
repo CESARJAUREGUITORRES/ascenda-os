@@ -215,3 +215,9 @@ Canonical commercial identity transition is now active:
 - next branding loop: `CLINIC-BRAND-L0 — Identity + Login V4 + compatibility gates`.
 
 Permanent rule: **brand rename != technical rename**.
+
+
+## Workstation infrastructure routing — 2026-09-15
+Canonical local infrastructure is recorded in `docs/control/INFRASTRUCTURE_REGISTRY_CURRENT.md`.
+
+New chats must route CLINIC/OS by exact GitHub/Supabase/Railway IDs and not by provider list order. Brand transition to ASCENDA CLINIC does not change the technical ASCENDA OS IDs until an explicit migration gate.

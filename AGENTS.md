@@ -334,3 +334,9 @@ Do not weaken the standard by treating conditional items as universal:
 - “one CTA” means one dominant primary CTA per page/hero/state, not literally one button on the whole page.
 
 For authenticated/internal screens, SEO/local-discovery checks can be N/A, but accessibility, security, privacy, performance, error handling and observability remain mandatory.
+
+
+## Workstation infrastructure routing
+Before any GitHub/Supabase/Railway mutation, read `docs/control/INFRASTRUCTURE_REGISTRY_CURRENT.md` and verify its exact IDs against live provider readback.
+
+The shared operating account can access multiple ASCENDA products. Visibility in one account does not authorize cross-product routing. Active product lock remains mandatory.
