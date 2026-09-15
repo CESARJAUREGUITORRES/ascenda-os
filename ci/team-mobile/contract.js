@@ -10,7 +10,10 @@ ok(team.includes("/rest/v1/rpc/aos_team_set_access_v1"),'protected role/panel ch
 ok(team.includes("p_target_user_id:id,p_paneles:ps,p_nivel:nextLevel"),'governed Team access payload missing')
 ok(team.includes("EMAIL_PERSISTENCE_MISMATCH"),'email persistence guard missing')
 ok(team.includes("EMAIL_VERIFY_FAILED"),'post-save email verification missing')
-ok(team.includes("aos_team_full?id=eq.'+id+'&select=id,email,paneles_acceso,nivel_jerarquia,updated_at"),'post-save Team readback missing')
+ok(team.includes("aos_team_full?id=eq.'+id+'&select=id,email,paneles_acceso,nivel_jerarquia"),'post-save Team readback missing')
+ok(!team.includes("select=id,email,paneles_acceso,nivel_jerarquia,updated_at"),'Team verification must not request columns absent from aos_team_full')
+ok(team.includes("#m-user>.modal")&&team.includes("background:#fff!important"),'mobile Team modal must force a solid white background')
+ok(team.includes("#m-user .mbody")&&team.includes("min-height:calc(100dvh - 58px)"),'mobile Team body must cover the remaining viewport')
 const save=team.split('function saveU(id){')[1].split('function loadEst(uid)')[0]
 ok(!/var d=\{[^}]*paneles_acceso/.test(save),'profile PATCH must not include protected paneles_acceso')
 ok(!/var d=\{[^}]*nivel_jerarquia/.test(save),'profile PATCH must not include protected nivel_jerarquia')
