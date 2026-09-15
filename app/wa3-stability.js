@@ -12,6 +12,7 @@ function createActorResolver(opts) {
   if (typeof verify !== 'function') throw new Error('WA3_VERIFY_REQUIRED')
   const okTtlMs = Math.max(1000, Number(opts.okTtlMs || 5000))
   const denyTtlMs = Math.max(1000, Number(opts.denyTtlMs || 30000))
+  const errorTtlMs = Math.max(1000, Number(opts.errorTtlMs || 15000))
   const maxEntries = Math.max(10, Number(opts.maxEntries || 1000))
   const cache = new Map()
   const inflight = new Map()
@@ -31,7 +32,15 @@ function createActorResolver(opts) {
     const key = tokenKey(t)
     const now = Date.now()
     const hit = cache.get(key)
-    if (hit && now < hit.expiresAt) return hit.actor
+    if (hit && now < hit.expiresAt) {
+      if (hit.error === true) {
+        const e = new Error('WA3_AUTH_UPSTREAM_UNAVAILABLE')
+        e.status = 503
+        e.cached = true
+        throw e
+      }
+      return hit.actor
+    }
     if (hit) cache.delete(key)
     if (inflight.has(key)) return inflight.get(key)
 
@@ -44,6 +53,8 @@ function createActorResolver(opts) {
         return good ? actor : null
       })
       .catch(function(err) {
+        cache.set(key, { actor: null, error: true, expiresAt: Date.now() + errorTtlMs })
+        prune(Date.now())
         const e = new Error('WA3_AUTH_UPSTREAM_UNAVAILABLE')
         e.status = 503
         e.cause = err
@@ -60,7 +71,7 @@ function createActorResolver(opts) {
     else cache.clear()
   }
 
-  return { resolve, invalidate, cache, inflight, okTtlMs, denyTtlMs }
+  return { resolve, invalidate, cache, inflight, okTtlMs, denyTtlMs, errorTtlMs }
 }
 
 function createSuccessCache(opts) {
