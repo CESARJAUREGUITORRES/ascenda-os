@@ -279,26 +279,35 @@ function deterministicHifuPriceDraft(publicBundle,processContexts){
     '\n\n¿Qué te gustaría mejorar principalmente: flacidez, pérdida de firmeza o definición del contorno facial? 😊';
   return {reply,intent:'PRICE',next_action:'REPLY',confidence:1,cited_knowledge_ids:unique.map(o=>o.knowledge_id),needs_human:false,reason:'Deterministic READY/FRESH Zi Frozen HIFU price fast lane.'};
 }
-async function buildHifuPriceContext(serviceRpc,runtime,serviceGet){
-  const out=await serviceRpc('aos_wa4_hifu_price_fast_v1',{});
-  const contexts=(Array.isArray(out&&out.data)?out.data:[]).filter(p=>
+async function buildHifuPriceContext(serviceRpc,runtime){
+  const [priceOut,publicRows]=await Promise.all([
+    serviceRpc('aos_wa4_hifu_price_fast_v1',{}),
+    searchKnowledge(
+      serviceRpc,
+      'ZI FROZEN HIFU facial colágeno flacidez firmeza contorno',
+      'PUBLIC_CLIENT',
+      12,
+      ['CATALOG']
+    ).catch(()=>[])
+  ]);
+  const contexts=(Array.isArray(priceOut&&priceOut.data)?priceOut.data:[]).filter(p=>
     p&&p.entity_id&&p.mapping_state==='MAPPED'&&p.ready_for_quote===true&&
     String(p.price_state||'')==='READY'&&String(p.freshness_state||'')==='FRESH'&&
     String(p.category||'').toUpperCase()==='HIFU'&&/^ZI FROZEN\b/i.test(String(p.entity_name||''))
   ).slice(0,8);
-  const details=new Map();
-  if(typeof serviceGet==='function'&&contexts.length){
-    try{
-      const ids=contexts.map(p=>String(p.entity_id)).filter(Boolean);
-      const detailOut=await serviceGet('/rest/v1/aos_catalogo_servicios?id=in.('+ids.join(',')+')&select='+encodeURIComponent('id,descripcion_comercial,beneficios'));
-      for(const row of (Array.isArray(detailOut&&detailOut.data)?detailOut.data:[])){
-        if(row&&row.id)details.set(String(row.id),row);
-      }
-    }catch(_){}
-  }
-  const items=contexts.map(p=>{
-    const d=details.get(String(p.entity_id))||{};
-    return {
+
+  const ids=new Set(contexts.map(p=>String(p.entity_id)));
+  const governed=knowledge.buildKnowledgeBundle(publicRows,12,'PUBLIC_CLIENT');
+  const governedItems=(governed.items||[]).filter(item=>{
+    const id=playbooks.catalogId(item);
+    return id&&ids.has(String(id));
+  });
+
+  let raw;
+  if(governedItems.length){
+    raw=Object.assign({},governed,{items:governedItems});
+  }else{
+    const items=contexts.map(p=>({
       knowledge_id:'service:'+String(p.entity_id),
       domain:'CATALOG',
       title:String(p.entity_name||'').slice(0,240),
@@ -308,21 +317,20 @@ async function buildHifuPriceContext(serviceRpc,runtime,serviceGet){
         categoria:String(p.category||'').slice(0,120),
         precio_base:p.precio_base==null?null:Number(p.precio_base),
         precio_oferta:p.precio_oferta==null?null:Number(p.precio_oferta),
-        moneda:String(p.moneda||'').toUpperCase(),
-        descripcion_comercial:String(d.descripcion_comercial||'').slice(0,1200),
-        beneficios:String(d.beneficios||'').slice(0,1200)
+        moneda:String(p.moneda||'').toUpperCase()
       },
       authority_tier:1,
       freshness_state:'FRESH',
       retrieval_state:'READY',
       evidence_ref:{
-        relation:'aos_catalogo_servicios',
+        relation:'aos_wa4_process_entity_context_v1',
         pk:String(p.entity_id),
         version:String(p.price_evidence_ref||'WA4A1C')
       }
-    };
-  });
-  const raw={version:'WA4A1C-HIFU-FAST-V1',audience:'PUBLIC_CLIENT',items,authority:'GOVERNED_SOURCE_ONLY',generic_llm_authority:false};
+    }));
+    raw={version:'WA4A1C-HIFU-FAST-V1',audience:'PUBLIC_CLIENT',items,authority:'GOVERNED_SOURCE_ONLY',generic_llm_authority:false};
+  }
+
   return {publicBundle:gatePublicCatalogMoney(raw,contexts,'PRICE_QUOTE',runtime),processContexts:contexts};
 }
 
@@ -517,7 +525,7 @@ function createCopilot(deps){
 
       if(!clinicalRisk&&isGenericHifuPriceFastLane(runtime,inbound)){
         try{
-          const fast=await buildHifuPriceContext(serviceRpc,runtime,serviceGet);
+          const fast=await buildHifuPriceContext(serviceRpc,runtime);
           const draft=deterministicHifuPriceDraft(fast.publicBundle,fast.processContexts);
           if(!draft)throw new Error('WA4_HIFU_PRICE_EVIDENCE_REQUIRED');
           const grounded=knowledge.validateGroundedSuggestion(draft,fast.publicBundle);
@@ -545,7 +553,7 @@ function createCopilot(deps){
         const variant=selectedHifuVariant(messages);
         if(variant){
           try{
-            const fast=await buildHifuPriceContext(serviceRpc,runtime,serviceGet);
+            const fast=await buildHifuPriceContext(serviceRpc,runtime);
             const selected=fast.processContexts.find(p=>String(p&&p.entity_name||'').toUpperCase()===variant);
             if(!selected)throw new Error('WA4_HIFU_BOOKING_VARIANT_UNAVAILABLE');
             const bookingCtx=await bookingResolver.resolve({runtime,processContexts:[selected],preferred_site:runtime.state.site});
