@@ -39,9 +39,10 @@ jobs:
             '>📲 Instalar AscendaOS</div>':'>📲 Instalar ASCENDA CLINIC</div>',
           }
           for old,new in replacements.items():
-            if old not in s:
-              raise SystemExit('Missing expected presentation anchor: '+old)
-            s=s.replace(old,new,1)
+            if old in s:
+              s=s.replace(old,new,1)
+            elif new not in s:
+              raise SystemExit('Missing both old and new presentation anchor: '+old)
           if css not in s:
             s=s.replace('</head>',css+'</head>',1)
           if js not in s:
