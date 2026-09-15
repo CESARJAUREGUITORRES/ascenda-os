@@ -1,7 +1,7 @@
 'use strict';
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const {isGenericHifuContext,preferHifuFrozenRows,isGenericHifuPriceFastLane,deterministicHifuPriceDraft,gatePublicCatalogMoney,bookingHotLaneRequested,selectedHifuVariant,deterministicBookingPreflightDraft,deterministicAvailabilityDraft,composePatientReply,hasApprovedIntro}=require('./wa4-copilot');
+const {isGenericHifuContext,preferHifuFrozenRows,isGenericHifuPriceFastLane,deterministicHifuPriceDraft,gatePublicCatalogMoney,bookingHotLaneRequested,selectedHifuVariant,deterministicBookingPreflightDraft,deterministicAvailabilityDraft,composePatientReply,hasApprovedIntro,deterministicPlaybookEnvelope}=require('./wa4-copilot');
 const runtime=require('./wa4-conversation-runtime-v2');
 
 function row(title,category){
@@ -149,4 +149,17 @@ test('conversation session does not repeat Sofía inside an active session',()=>
   assert.equal(hasApprovedIntro(messages),true);
   const out=composePatientReply('Claro 😊 Para revisar disponibilidad necesito día y sede.',messages,'Quisiera agendar una cita');
   assert.equal((out.match(/Soy Sofía de Zi Vital/g)||[]).length,0);
+});
+
+
+test('deterministic fast lanes preserve a stable playbook envelope',()=>{
+  const price=deterministicPlaybookEnvelope('Hola, quisiera información sobre HIFU y saber cuánto cuesta',{next_action:'REPLY',cited_knowledge_ids:['service:test']});
+  assert.equal(price.status,'READY');
+  assert.equal(price.commercial_stage,'PRICE_QUOTE');
+  assert.equal(price.auto_send,false);
+  assert.equal(price.send_authority,'HUMAN_ONLY');
+
+  const booking=deterministicPlaybookEnvelope('Quisiera agendar una cita',{next_action:'OFFER_BOOKING',cited_knowledge_ids:[]});
+  assert.equal(booking.commercial_stage,'BOOKING');
+  assert.equal(booking.recommended_next_action,'OFFER_BOOKING');
 });
