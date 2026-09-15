@@ -54,9 +54,10 @@ test('R6 owner-copy and price fast lanes execute before expensive adapters and g
   const src=fs.readFileSync(require.resolve('../../app/wa4-copilot'),'utf8');
   const intro=src.indexOf('const introDraft=!clinicalRisk?deterministicOwnerApprovedIntroDraft');
   const price=src.indexOf('if(!clinicalRisk&&isPriceFastLane(runtime))');
+  const hifu=src.indexOf('if(!clinicalRisk&&isGenericHifuPriceFastLane(runtime,inbound))');
   const adapters=src.indexOf('const [campaignCtx,identityCtx]=await Promise.all');
   const governed=src.indexOf('governed=await buildGovernedContext');
-  assert.ok(intro>0&&price>intro&&adapters>price&&governed>adapters);
+  assert.ok(intro>0&&price>intro&&hifu>price&&adapters>hifu&&governed>adapters);
 });
 
 test('R6 typing transport remains in canonical F4/WA-1 provider boundary',()=>{
@@ -78,6 +79,7 @@ test('R6 fast lane does not create a recurrent network owner in wa4-copilot',()=
   assert.equal(/\bsetTimeout\s*\(/.test(src),false);
   assert.equal(/\bsetInterval\s*\(/.test(src),false);
   assert.ok(src.includes("serviceRpc('aos_wa4_toxin_price_fast_v1',{})"));
+  assert.ok(src.includes("serviceRpc('aos_wa4_hifu_price_fast_v1',{})"));
   const fastStart=src.indexOf('async function buildFastPriceContext');
   const fastEnd=src.indexOf('async function buildGovernedContext',fastStart);
   const fastBody=src.slice(fastStart,fastEnd);
