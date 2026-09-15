@@ -40,11 +40,13 @@
 @media(max-width:768px){
   .tm{padding:10px 8px;gap:8px}
   .g4{grid-template-columns:1fr}
-  .mov{padding:0;align-items:stretch}
-  .modal{width:100vw;max-width:none;min-height:100dvh;border-radius:0;margin:0}
-  .mhd{padding:12px 14px;border-radius:0}
-  .mtit{font-size:13px;max-width:calc(100vw - 58px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .mbody{padding:10px 12px 18px;overflow-x:hidden}
+  .mov{padding:0;align-items:stretch;background:#fff!important;backdrop-filter:none!important}
+  #m-user>.modal{width:100vw;max-width:none;min-height:100dvh;border-radius:0;margin:0;background:#fff!important;box-shadow:none}
+  #m-user .mhd{padding:12px 14px;border-radius:0;background:#fff!important}
+  #m-user .mtit{font-size:13px;max-width:calc(100vw - 58px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #m-user .mbody{padding:10px 12px 18px;overflow-x:hidden;background:#fff!important;min-height:calc(100dvh - 58px)}
+  #m-user #tab-datos,#m-user #tab-roles,#m-user #tab-horarios,#m-user #tab-servicios{background:#fff!important}
+  #m-user .sec-t,#m-user .fg,#m-user .chips{background:#fff}
   .chips{overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none}
   .chips::-webkit-scrollbar{display:none}
   .chip{flex:0 0 auto;padding:8px 10px}
@@ -388,7 +390,7 @@ function saveU(id){
       }).catch(function(){showToast('⚠ Error de red al cambiar username');});
     }
 
-    return fetch(SB+'/rest/v1/aos_team_full?id=eq.'+id+'&select=id,email,paneles_acceso,nivel_jerarquia,updated_at',{
+    return fetch(SB+'/rest/v1/aos_team_full?id=eq.'+id+'&select=id,email,paneles_acceso,nivel_jerarquia',{
       headers:{'apikey':SK,'Authorization':'Bearer '+SK},
       cache:'no-store'
     }).then(function(r){if(!r.ok)throw new Error('VERIFY_HTTP_'+r.status);return r.json();});
