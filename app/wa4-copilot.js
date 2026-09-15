@@ -221,6 +221,68 @@ function isPriceFastLane(runtime){
   if(treatment!=='TOXINA_BOTULINICA'||!intents.has('TREATMENT_PRICE'))return false;
   return !['PROMOTION_REQUEST','BOOKING','SCHEDULE','RESCHEDULE_INTENT','CONFIRM_BOOKING','CONSULTATION_PRICE','PRICE_PER_SESSION'].some(x=>intents.has(x));
 }
+function isGenericHifuPriceFastLane(runtime,inbound){
+  const intents=new Set(runtime&&Array.isArray(runtime.intents)?runtime.intents:[]);
+  if(!isGenericHifuContext(inbound,runtime)||!intents.has('TREATMENT_PRICE'))return false;
+  return !['PROMOTION_REQUEST','BOOKING','SCHEDULE','RESCHEDULE_INTENT','CONFIRM_BOOKING','CONSULTATION_PRICE','PRICE_PER_SESSION'].some(x=>intents.has(x));
+}
+function deterministicHifuPriceDraft(publicBundle,processContexts){
+  const ctx=new Map((Array.isArray(processContexts)?processContexts:[]).filter(x=>x&&x.entity_id).map(x=>[String(x.entity_id),x]));
+  const options=[];
+  for(const item of (publicBundle&&Array.isArray(publicBundle.items)?publicBundle.items:[])){
+    if(!item||item.domain!=='CATALOG')continue;
+    const id=playbooks.catalogId(item),p=id?ctx.get(id):null;
+    if(!id||!p||p.ready_for_quote!==true||String(p.price_state||'')!=='READY'||String(p.freshness_state||'')!=='FRESH')continue;
+    const name=String(p.entity_name||item.title||'').trim();
+    if(!/^ZI FROZEN\b/i.test(name)||String(p.category||'').toUpperCase()!=='HIFU')continue;
+    const currency=String(p.moneda||'').toUpperCase();
+    const price=p.quote_price!=null?p.quote_price:(p.precio_oferta!=null?p.precio_oferta:p.precio_base);
+    const priceLabel=moneyLabel(currency,price);
+    if(!priceLabel)continue;
+    options.push({knowledge_id:String(item.knowledge_id),name,price:Number(price),priceLabel});
+  }
+  options.sort((a,b)=>a.price-b.price||a.name.localeCompare(b.name));
+  const unique=[];const seen=new Set();
+  for(const o of options){const k=o.name.toUpperCase();if(seen.has(k))continue;seen.add(k);unique.push(o);if(unique.length>=6)break;}
+  if(!unique.length)return null;
+  const lines=unique.map(o=>'• '+o.name.replace(/^ZI FROZEN\s*/i,'').trim()+' — '+o.priceLabel);
+  const reply='✨ En Zi Vital, el HIFU facial se trabaja en la línea ZI FROZEN.\n\n'+
+    'Estas son las opciones vigentes:\n'+lines.join('\n')+
+    '\n\n¿Qué zona del rostro te gustaría tratar? 😊';
+  return {reply,intent:'PRICE',next_action:'REPLY',confidence:1,cited_knowledge_ids:unique.map(o=>o.knowledge_id),needs_human:false,reason:'Deterministic READY/FRESH Zi Frozen HIFU price fast lane.'};
+}
+async function buildHifuPriceContext(serviceRpc,runtime){
+  const out=await serviceRpc('aos_wa4_hifu_price_fast_v1',{});
+  const contexts=(Array.isArray(out&&out.data)?out.data:[]).filter(p=>
+    p&&p.entity_id&&p.mapping_state==='MAPPED'&&p.ready_for_quote===true&&
+    String(p.price_state||'')==='READY'&&String(p.freshness_state||'')==='FRESH'&&
+    String(p.category||'').toUpperCase()==='HIFU'&&/^ZI FROZEN\b/i.test(String(p.entity_name||''))
+  ).slice(0,8);
+  const items=contexts.map(p=>({
+    knowledge_id:'service:'+String(p.entity_id),
+    domain:'CATALOG',
+    title:String(p.entity_name||'').slice(0,240),
+    facts:{
+      tipo:String(p.entity_type||'SERVICIO'),
+      nombre:String(p.entity_name||'').slice(0,240),
+      categoria:String(p.category||'').slice(0,120),
+      precio_base:p.precio_base==null?null:Number(p.precio_base),
+      precio_oferta:p.precio_oferta==null?null:Number(p.precio_oferta),
+      moneda:String(p.moneda||'').toUpperCase()
+    },
+    authority_tier:1,
+    freshness_state:'FRESH',
+    retrieval_state:'READY',
+    evidence_ref:{
+      relation:'aos_catalogo_servicios',
+      pk:String(p.entity_id),
+      version:String(p.price_evidence_ref||'WA4A1C')
+    }
+  }));
+  const raw={version:'WA4A1C-HIFU-FAST-V1',audience:'PUBLIC_CLIENT',items,authority:'GOVERNED_SOURCE_ONLY',generic_llm_authority:false};
+  return {publicBundle:gatePublicCatalogMoney(raw,contexts,'PRICE_QUOTE',runtime),processContexts:contexts};
+}
+
 function deterministicToxinPriceDraft(publicBundle,processContexts){
   const ctx=new Map((Array.isArray(processContexts)?processContexts:[]).filter(x=>x&&x.entity_id).map(x=>[String(x.entity_id),x]));
   const options=[];
@@ -354,6 +416,25 @@ function createCopilot(deps){
         }
       }
 
+      if(!clinicalRisk&&isGenericHifuPriceFastLane(runtime,inbound)){
+        try{
+          const fast=await buildHifuPriceContext(serviceRpc,runtime);
+          const draft=deterministicHifuPriceDraft(fast.publicBundle,fast.processContexts);
+          if(!draft)throw new Error('WA4_HIFU_PRICE_EVIDENCE_REQUIRED');
+          const grounded=knowledge.validateGroundedSuggestion(draft,fast.publicBundle);
+          if(!grounded.ok)throw new Error(grounded.error||'WA4_HIFU_PRICE_GROUNDING_FAILED');
+          const patientReply=composePatientReply(grounded.reply,messages,inbound);
+          const contexts={campaign:null,identity:null,booking:null};
+          const quality=qualityCheck(patientReply,runtime,contexts,inbound,fast.publicBundle);
+          if(!quality.ok)throw new Error('WA4_HIFU_PRICE_QUALITY_'+quality.violations.join('|').slice(0,80));
+          Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_HIFU_PRICE_FASTLANE',safety_model:null,outcome:'SUGGESTED',input_messages:messages.length,input_chars:inbound.length,output_chars:patientReply.length,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'REPLY',safety_category:'FAST_HIFU_PRICE_READY'})).catch(()=>{});
+          return writeJson(res,200,{ok:true,runtime:runtimeSummary(runtime),contexts,quality,suggestion:Object.assign({},draft,{reply:patientReply,cited_knowledge_ids:grounded.citations}),needs_human:false,next_action:'REPLY',model:'DETERMINISTIC_HIFU_PRICE_FASTLANE',estimated_cost_usd:0,latency_ms:Date.now()-started,auto_send:false});
+        }catch(e){
+          Promise.resolve(log({conversation_id:id,actor_id:auth.actor_id,task:'SALES_PLAYBOOK',provider:'deterministic',model:'DETERMINISTIC_HIFU_PRICE_FASTLANE',safety_model:null,outcome:'BLOCKED',input_messages:messages.length,input_chars:inbound.length,output_chars:0,prompt_tokens:0,completion_tokens:0,total_tokens:0,estimated_cost_usd:0,latency_ms:Date.now()-started,safety_action:'HUMAN_COMMERCIAL',safety_category:'FAST_HIFU_PRICE_UNAVAILABLE',error_code:String(e&&e.message||'WA4_HIFU_PRICE_UNAVAILABLE').slice(0,120)})).catch(()=>{});
+          return writeJson(res,503,{ok:false,error:'WA4_HIFU_PRICE_UNAVAILABLE',needs_human:true,next_action:'HUMAN_COMMERCIAL',runtime:runtimeSummary(runtime),contexts:{campaign:null,identity:null,booking:null},auto_send:false});
+        }
+      }
+
       const [campaignCtx,identityCtx]=await Promise.all([
         campaignAdapter.resolve({conversation:conv,runtime}),
         identityAdapter.resolve({conversation:conv,runtime})
@@ -468,4 +549,4 @@ function createCopilot(deps){
     }
   };
 }
-module.exports={createCopilot,buildGovernedContext,buildFastPriceContext,gatePublicCatalogMoney,adapterSummary,deterministicBookingDraft,deterministicNoPromotionDraft,deterministicOwnerApprovedIntroDraft,deterministicToxinPriceDraft,isPriceFastLane,isGenericHifuContext,preferHifuFrozenRows,qualityCheck,canonicalizePatientText,renderWhatsAppText,composePatientReply,hasApprovedIntro,isGreetingOnly,APPROVED_FIRST_CONTACT_COPY,APPROVED_FIRST_CONTACT_PREFIX,SALES_SCHEMA,SAFETY_SCHEMA};
+module.exports={createCopilot,buildGovernedContext,buildFastPriceContext,buildHifuPriceContext,gatePublicCatalogMoney,adapterSummary,deterministicBookingDraft,deterministicNoPromotionDraft,deterministicOwnerApprovedIntroDraft,deterministicToxinPriceDraft,deterministicHifuPriceDraft,isPriceFastLane,isGenericHifuPriceFastLane,isGenericHifuContext,preferHifuFrozenRows,qualityCheck,canonicalizePatientText,renderWhatsAppText,composePatientReply,hasApprovedIntro,isGreetingOnly,APPROVED_FIRST_CONTACT_COPY,APPROVED_FIRST_CONTACT_PREFIX,SALES_SCHEMA,SAFETY_SCHEMA};
