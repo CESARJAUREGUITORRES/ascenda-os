@@ -1,0 +1,35 @@
+name: APP-PWA Samsung Push Emergency Hosted Gate
+on:
+  push:
+    branches:
+      - hotfix/pwa-samsung-push-onboarding-20260915
+  workflow_dispatch:
+
+jobs:
+  samsung-pwa-push-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: JavaScript syntax
+        run: |
+          node --check app/public/notification-push-s14.js
+          node --check app/public/wa-shell-integration.js
+          node --check app/public/phase2-service-worker.js
+          node --check ci/app-pwa-v2/contract.js
+          node --check ci/wa-s14/contract.js
+          node --check ci/s15/auth_boundary_contract.js
+          node --check ci/wa3-boxes-routing-handoff/ui_contract_v2.js
+      - name: APP-PWA V2 contract
+        run: node ci/app-pwa-v2/contract.js
+      - name: Push S14 contract
+        run: node ci/wa-s14/contract.js
+      - name: S15 auth boundary
+        run: node ci/s15/auth_boundary_contract.js
+      - name: WA3 UI contract JS
+        run: node ci/wa3-boxes-routing-handoff/ui_contract_v2.js
+      - name: WA3 UI contract Python
+        run: python3 ci/wa3-boxes-routing-handoff/ui_contract_v2.py
