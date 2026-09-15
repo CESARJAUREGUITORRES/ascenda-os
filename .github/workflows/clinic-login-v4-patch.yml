@@ -70,6 +70,8 @@ jobs:
           ok(js.includes("MutationObserver"),'OTP dynamic render observer missing')
           console.log('CLINIC Login V4 static gate: PASS')
           NODE
+      - name: Existing APP-PWA V2 contract
+        run: node ci/app-pwa-v2/contract.js
       - name: Commit presentation patch to branch
         run: |
           if git diff --quiet; then
