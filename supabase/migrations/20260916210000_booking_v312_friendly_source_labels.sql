@@ -473,29 +473,7 @@ begin
 end
 $$;
 
--- Rewrite existing automatic Comercial cards and their visible sender.
-update public.aos_mensajes m
-set mensaje=p.payload->>'message',
-    de=p.payload->>'sender',
-    updated_at=now()
-from public.aos_coord_appointment_reports r
-cross join lateral public.aos_coord_appointment_report_payload_v1(r.appointment_id) p(payload)
-where m.id=r.message_id
-  and m.tipo='CITA_AUTO'
-  and coalesce((p.payload->>'ok')::boolean,false)=true;
-
-update public.aos_canales ch
-set ultimo_mensaje=left(m.mensaje,100),
-    ultimo_mensaje_at=m.created_at,
-    updated_at=now()
-from lateral (
-  select mensaje,created_at
-  from public.aos_mensajes
-  where canal='CH-GRP-COMERCIAL'
-    and coalesce(eliminado,false)=false
-  order by created_at desc
-  limit 1
-) m
-where ch.id='CH-GRP-COMERCIAL';
+-- Historical automatic Comercial cards are intentionally not rewritten here:
+-- the Coordination channel is lock-guarded. New reports use the friendly labels immediately.
 
 commit;
