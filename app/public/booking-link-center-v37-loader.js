@@ -1,0 +1,2 @@
+// BOOKING-V3.7 loader: install link center even on long-lived app shells.
+(function(){if(window.__BOOKING_LINK_CENTER_V37_LOADER__)return;window.__BOOKING_LINK_CENTER_V37_LOADER__=1;var s=document.createElement('script');s.src='/booking-link-center-v37.js?v=20260916-1';s.async=false;document.head.appendChild(s);})();
