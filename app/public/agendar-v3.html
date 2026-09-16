@@ -48,10 +48,10 @@ button{touch-action:manipulation}
 .kicker{font:800 10px 'Exo 2';color:var(--blue);letter-spacing:1.1px;text-transform:uppercase}
 .title{font:800 clamp(22px,3vw,31px) 'Exo 2';margin-top:5px;color:#0C214B}.sub{font-size:12px;color:var(--muted);line-height:1.55;margin-top:7px}
 .domain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
-.domain-card{position:relative;overflow:hidden;min-height:265px;border-radius:22px;border:1px solid rgba(255,255,255,.66);cursor:pointer;box-shadow:0 15px 38px rgba(19,42,91,.11),inset 0 1px 0 rgba(255,255,255,.75);transform-style:preserve-3d;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;text-align:left;background:#fff}
+.domain-card{position:relative;overflow:hidden;min-height:0;border-radius:22px;border:1px solid rgba(255,255,255,.66);cursor:pointer;box-shadow:0 15px 38px rgba(19,42,91,.11),inset 0 1px 0 rgba(255,255,255,.75);transform-style:preserve-3d;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;text-align:left;background:#fff}
 .domain-card:hover{transform:translateY(-6px) rotateX(1deg);box-shadow:0 24px 55px rgba(19,42,91,.17)}
 .domain-card.sel{outline:3px solid rgba(0,201,167,.25);border-color:var(--cyan)}
-.domain-art{height:164px;position:relative;overflow:hidden}
+.domain-art{width:100%;aspect-ratio:4/5;height:auto;position:relative;overflow:hidden}
 .domain-art:before{content:"";position:absolute;width:190px;height:190px;border-radius:50%;right:-46px;top:-66px;background:rgba(255,255,255,.32);filter:blur(1px)}
 .domain-art:after{content:"";position:absolute;width:120px;height:120px;border-radius:38px;left:28px;bottom:-62px;background:rgba(255,255,255,.2);transform:rotate(28deg)}
 .domain-art.facial{background:linear-gradient(145deg,#DFF8F2,#A4DFFF 54%,#7DA3FF)}
@@ -62,15 +62,21 @@ button{touch-action:manipulation}
 .section-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
 .back{border:0;background:#EEF4FF;color:var(--blue);border-radius:10px;padding:9px 11px;font-size:10px;font-weight:800;cursor:pointer}
 .searchbox{margin-top:18px;display:flex;align-items:center;gap:9px;padding:11px 13px;border:1px solid var(--border);background:#F8FAFE;border-radius:13px}.searchbox input{border:0;outline:0;background:transparent;flex:1;min-width:0;font-size:12px;color:var(--text)}
-.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.chip{border:1px solid var(--border);background:#fff;color:#687894;border-radius:999px;padding:7px 10px;font-size:9px;font-weight:800;cursor:pointer}.chip.act{background:#EAF4FF;border-color:#B8D6FF;color:#0A4FBF}
-.treat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.treat{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--border);border-radius:15px;background:#fff;cursor:pointer;text-align:left;transition:.18s;min-width:0}.treat:hover{border-color:#AFCBFF;box-shadow:0 8px 20px rgba(10,79,191,.08);transform:translateY(-2px)}.treat.sel{border-color:var(--cyan);background:linear-gradient(135deg,#F6FFFC,#F2F8FF);box-shadow:0 8px 24px rgba(0,201,167,.10)}
-.ticon{width:46px;height:46px;flex:none;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px;background:linear-gradient(145deg,#F0F5FF,#E5FAF5);box-shadow:inset 0 1px 0 #fff,0 5px 12px rgba(7,29,74,.08)}
-.tinfo{min-width:0;flex:1}.tname{font-size:11px;font-weight:800;color:#14274E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tmeta{font-size:8px;color:#8290AC;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}.route-badge{font-size:8px;font-weight:800;border-radius:999px;padding:4px 7px;background:#EDF5FF;color:#0A4FBF;flex:none}
+.approach-list{display:grid;gap:14px;margin-top:16px}
+.approach-block{position:relative;overflow:hidden;border:1px solid #DCE5F4;border-radius:19px;background:linear-gradient(145deg,#FFFFFF,#F8FBFF);box-shadow:0 10px 28px rgba(7,29,74,.055)}
+.approach-block:before{content:"";position:absolute;width:150px;height:150px;border-radius:50%;right:-65px;top:-75px;background:var(--approach-glow,rgba(10,79,191,.08));pointer-events:none}
+.approach-head{position:relative;padding:15px 16px 13px;border-bottom:1px solid #EAF0F8;display:flex;align-items:flex-start;gap:12px}
+.approach-icon{width:42px;height:42px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex:none;font-size:20px;background:linear-gradient(145deg,#fff,#EFF7FF);box-shadow:0 7px 18px rgba(7,29,74,.10),inset 0 1px 0 #fff}
+.approach-copy{min-width:0;flex:1}.approach-kicker{font-size:8px;text-transform:uppercase;letter-spacing:.75px;font-weight:800;color:#7787A3}.approach-title{font:800 16px 'Exo 2';color:#10244E;margin-top:2px}.approach-alias{font-size:9px;color:#0A8C77;font-weight:700;margin-top:2px}.approach-summary{font-size:9px;color:#6D7C98;line-height:1.5;margin-top:5px;max-width:720px}
+.approach-items{padding:11px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.treat{display:flex;align-items:center;gap:11px;padding:12px;border:1px solid var(--border);border-radius:14px;background:#fff;cursor:pointer;text-align:left;transition:.18s;min-width:0}.treat:hover{border-color:#AFCBFF;box-shadow:0 8px 20px rgba(10,79,191,.08);transform:translateY(-2px)}.treat.sel{border-color:var(--cyan);background:linear-gradient(135deg,#F6FFFC,#F2F8FF);box-shadow:0 8px 24px rgba(0,201,167,.10)}
+.ticon{width:43px;height:43px;flex:none;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:20px;background:linear-gradient(145deg,#F0F5FF,#E5FAF5);box-shadow:inset 0 1px 0 #fff,0 5px 12px rgba(7,29,74,.08)}
+.tinfo{min-width:0;flex:1}.tname{font-size:10px;font-weight:800;color:#14274E;white-space:normal;line-height:1.25}.tmeta{font-size:8px;color:#8290AC;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}.route-badge{font-size:8px;font-weight:800;border-radius:999px;padding:4px 7px;background:#EDF5FF;color:#0A4FBF;flex:none;white-space:nowrap}
 .route-box{margin-top:16px;padding:14px;border:1px dashed #BFD0ED;border-radius:15px;background:#F8FBFF}.route-box h4{font-size:11px;color:#17315E}.route-box p{font-size:9px;color:#71809B;margin-top:3px}
 .route-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.route-card{border:1px solid var(--border);background:#fff;border-radius:13px;padding:12px;text-align:left;cursor:pointer}.route-card:hover,.route-card.sel{border-color:var(--cyan);background:#F0FFFB}.route-card b{display:block;font-size:11px}.route-card span{display:block;font-size:9px;color:#7886A0;margin-top:3px;line-height:1.35}
-.booking-layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:16px;align-items:start}
+.booking-layout{display:grid;grid-template-columns:340px minmax(0,1fr);gap:16px;align-items:start}
 .context-card{background:linear-gradient(180deg,#FFFFFF,#F5F8FE);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 12px 30px rgba(7,29,74,.08);position:sticky;top:12px}
-.context-visual{height:210px;background:linear-gradient(145deg,#E9F2FF,#E5FCF5);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.context-visual{width:100%;aspect-ratio:4/5;height:auto;background:linear-gradient(145deg,#E9F2FF,#E5FCF5);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
 .context-visual img{width:100%;height:100%;object-fit:contain;object-position:center bottom;display:block;filter:drop-shadow(0 14px 18px rgba(7,29,74,.16))}
 .team-art{width:138px;height:138px;border-radius:36% 64% 55% 45%/47% 44% 56% 53%;margin-bottom:28px;background:linear-gradient(145deg,#fff,#C9F3E8);box-shadow:16px 20px 32px rgba(10,79,191,.14),inset 7px 7px 17px #fff,inset -8px -8px 20px rgba(0,150,120,.10);display:flex;align-items:center;justify-content:center;font-size:56px}
 .context-body{padding:16px}.ctx-label{font-size:8px;text-transform:uppercase;letter-spacing:.7px;color:#7B8AA4;font-weight:800}.ctx-title{font:800 18px 'Exo 2';margin-top:3px}.ctx-sub{font-size:10px;color:#6D7B98;line-height:1.5;margin-top:4px}.ctx-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:#ECFDF8;color:#087A68;font-size:8px;font-weight:800;margin-top:10px}.site-card{margin-top:11px;border-radius:12px;padding:10px;background:#EEF4FF;border:1px solid #D8E5FA;font-size:9px;color:#52617D;line-height:1.5}.site-card b{color:#17315E}
@@ -87,12 +93,12 @@ button{touch-action:manipulation}
 .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}.field.full{grid-column:1/-1}.field label{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.55px;color:#71809A;font-weight:800;margin-bottom:5px}.input{width:100%;border:1px solid var(--border);background:#fff;border-radius:11px;padding:11px 12px;font-size:11px;color:#172B52;outline:none}.input:focus{border-color:#6AA1FF;box-shadow:0 0 0 3px rgba(10,79,191,.07)}
 .found{margin-top:8px;padding:8px 10px;border-radius:9px;background:#ECFDF8;color:#087A68;font-size:9px;font-weight:700;display:none}
 .review{margin-top:14px;border:1px solid var(--border);border-radius:14px;overflow:hidden}.review-row{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;font-size:10px;border-bottom:1px solid #EEF2F7}.review-row:last-child{border-bottom:0}.review-row span:first-child{color:#7D8AA2}.review-row span:last-child{text-align:right;font-weight:800}
-.overlay{position:fixed;inset:0;background:rgba(6,26,67,.68);backdrop-filter:blur(7px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}.modal{width:min(450px,100%);background:#fff;border-radius:22px;padding:22px;box-shadow:0 28px 80px rgba(0,0,0,.28)}.success{text-align:center}.success-icon{width:72px;height:72px;border-radius:24px;background:linear-gradient(145deg,#E8FFF7,#DDEBFF);display:flex;align-items:center;justify-content:center;font-size:35px;margin:0 auto 12px;box-shadow:0 12px 25px rgba(10,79,191,.12)}
+.overlay{position:fixed;inset:0;background:rgba(6,26,67,.68);backdrop-filter:blur(7px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}.modal{width:min(450px,100%);background:#fff;border-radius:22px;padding:22px;box-shadow:0 28px 80px rgba(0,0,0,.28)}.success{text-align:center}.success-icon{width:72px;height:72px;border-radius:24px;background:linear-gradient(145deg,#ECFDF5,#D1FAE5);border:1px solid #A7F3D0;color:#059669;display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:800;margin:0 auto 12px;box-shadow:0 12px 25px rgba(5,150,105,.16)}
 .loading,.expired{position:fixed;inset:0;background:var(--bg);z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;text-align:center;padding:20px}.expired{display:none}.spinner{width:30px;height:30px;border:3px solid #DDE5F3;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .empty{padding:22px;text-align:center;color:#8290A8;font-size:10px;border:1px dashed #CFD9EA;border-radius:13px;margin-top:12px}
-@media(max-width:860px){.booking-layout{grid-template-columns:1fr}.context-card{position:relative;top:0}.context-visual{height:185px}.context-card{display:grid;grid-template-columns:180px 1fr}.context-visual{height:100%;min-height:190px}.context-body{padding:16px}}
-@media(max-width:720px){.app-hero{padding:18px 14px 38px}.hero-pill{display:none}.shell{padding:0 11px}.progress-card{overflow:auto}.pline{flex-basis:15px}.plabel{display:none}.domain-grid{grid-template-columns:1fr}.domain-card{min-height:0;display:grid;grid-template-columns:42% 58%}.domain-art{height:100%;min-height:180px}.domain-card-body{padding:17px}.treat-grid{grid-template-columns:1fr}.booking-layout{display:block}.context-card{display:grid;grid-template-columns:120px 1fr;margin-bottom:12px}.context-visual{min-height:155px}.team-art{width:96px;height:96px;font-size:40px;margin-bottom:24px}.context-body{padding:13px}.week-grid{gap:4px}.wday{padding:9px 2px}.slots{grid-template-columns:repeat(3,1fr)}.field-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.route-grid{grid-template-columns:1fr}.panel{border-radius:19px}.cal-card{border-radius:17px}}
-@media(max-width:420px){.domain-card{grid-template-columns:38% 62%}.domain-art{min-height:170px}.art-orb{width:90px;height:90px;font-size:42px}.slots{grid-template-columns:repeat(2,1fr)}.identity-row{display:grid}.context-card{grid-template-columns:105px 1fr}.ctx-title{font-size:15px}.hero-copy h1{font-size:23px}}
+@media(max-width:860px){.booking-layout{grid-template-columns:1fr}.context-card{position:relative;top:0;display:block}.context-visual{width:min(300px,100%);aspect-ratio:4/5;height:auto;min-height:0;margin:0 auto}.context-body{padding:16px}.approach-items{grid-template-columns:1fr 1fr}}
+@media(max-width:720px){.app-hero{padding:18px 14px 38px}.hero-pill{display:none}.shell{padding:0 11px}.progress-card{overflow:auto}.pline{flex-basis:15px}.plabel{display:none}.domain-grid{display:flex;overflow-x:auto;gap:12px;scroll-snap-type:x mandatory;padding:2px 2px 10px;scrollbar-width:none}.domain-grid::-webkit-scrollbar{display:none}.domain-card{min-width:min(78vw,300px);max-width:300px;scroll-snap-align:center;display:block}.domain-art{width:100%;aspect-ratio:4/5;height:auto;min-height:0}.domain-card-body{padding:17px}.approach-items{grid-template-columns:1fr}.booking-layout{display:block}.context-card{display:block;margin-bottom:12px}.context-visual{width:min(280px,100%);aspect-ratio:4/5;height:auto;min-height:0;margin:0 auto}.team-art{width:118px;height:118px;font-size:46px;margin-bottom:36px}.context-body{padding:13px}.week-grid{gap:4px}.wday{padding:9px 2px}.slots{grid-template-columns:repeat(3,1fr)}.field-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.route-grid{grid-template-columns:1fr}.panel{border-radius:19px}.cal-card{border-radius:17px}}
+@media(max-width:420px){.domain-card{min-width:82vw}.art-orb{width:96px;height:96px;font-size:44px}.slots{grid-template-columns:repeat(2,1fr)}.identity-row{display:grid}.ctx-title{font-size:15px}.hero-copy h1{font-size:23px}.approach-head{padding:13px}.approach-items{padding:9px}.route-badge{font-size:7px}}
 </style>
 </head>
 <body>
@@ -142,9 +148,8 @@ button{touch-action:manipulation}
  <section class="step" id="step2">
   <div class="panel">
    <div class="section-top"><div><div class="kicker">Paso 2</div><h2 class="title" id="treatTitle">Elige tu tratamiento</h2><p class="sub" id="treatSub">Mostramos las opciones disponibles para el área seleccionada.</p></div><button class="back" onclick="goStep(1)">← Cambiar área</button></div>
-   <div class="searchbox"><span>🔎</span><input id="treatSearch" placeholder="Buscar tratamiento..." oninput="renderTreatments()"></div>
-   <div class="chips" id="catChips"></div>
-   <div class="treat-grid" id="treatGrid"></div>
+   <div class="searchbox"><span>🔎</span><input id="treatSearch" placeholder="Buscar tratamiento o enfoque..." oninput="renderTreatments()"></div>
+   <div class="approach-list" id="treatGrid"></div>
    <div id="routeBox"></div>
   </div>
  </section>
@@ -194,7 +199,57 @@ const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6I
 const H={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'};
 const SITE='SAN ISIDRO';
 const SITE_INFO={dir:'Av. Javier Prado Este 996 · Ofi. 501 · Edificio Capricornio',maps:'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5'};
-const AG={token:'',link:null,domain:null,catalogRaw:[],treatments:[],profiles:[],profileDays:{},selTreatment:null,route:null,eligibleDoctors:[],selProf:null,selFecha:'',selHora:'',calView:'WEEK',anchor:new Date(),monthYear:0,monthIndex:0,dayCache:{},slots:[],period:'ALL',patient:null,category:'TODOS'};
+const AG={token:'',link:null,domain:null,catalogRaw:[],treatments:[],profiles:[],profileDays:{},selTreatment:null,selUx:null,route:null,eligibleDoctors:[],selProf:null,selFecha:'',selHora:'',calView:'WEEK',anchor:new Date(),monthYear:0,monthIndex:0,dayCache:{},slots:[],period:'ALL',patient:null};
+
+const UX_TAXONOMY={
+ FACIAL:[
+  {code:'FACIAL_SKIN_SIGNATURE',title:'Skin Signature',alias:'Calidad cutánea · Salud · Glow consciente',summary:'Calidad de piel, hidratación, estabilidad, luminosidad y cuidado de la barrera cutánea.',icon:'✨',glow:'rgba(76,201,240,.16)',items:[
+   {cap:'HIDROFACIAL',label:'Hidrofacial',icon:'🫧'},
+   {cap:'PEELINGS',label:'Peelings',icon:'◌'},
+   {cap:'MESOTERAPIA FACIAL',label:'Mesoterapia',icon:'💎'},
+   {cap:'BIOREVITALIZACION FACIAL',label:'Biorevitalización',icon:'🌸'},
+   {cap:'RADIOFRECUENCIA FRACCIONADA',label:'Radiofrecuencia fraccionada',icon:'⚡'}
+  ]},
+  {code:'FACIAL_HARMONY_DESIGN',title:'Harmony Design',alias:'Equilibrio estructural · Expresión · Soporte',summary:'Enfoque orientado a equilibrio estructural y expresión, buscando cambios moderados y naturales.',icon:'◇',glow:'rgba(139,92,246,.14)',items:[
+   {cap:'ACIDO HIALURONICO',label:'Ácido hialurónico',icon:'💧'},
+   {cap:'TOXINA',label:'Toxina',icon:'✦'},
+   {cap:'HIFU',label:'HIFU · Zi Frozen',icon:'◉'},
+   {cap:'ENZIMAS FACIALES',label:'Enzimas faciales',icon:'🧪'}
+  ]},
+  {code:'FACIAL_BIOREGEN_FACE',title:'BioRegen Face',alias:'Regeneración · Longevidad · Sostén biológico',summary:'Regeneración progresiva y sostén biológico, priorizando resultados naturales y de largo plazo.',icon:'◎',glow:'rgba(0,201,167,.15)',items:[
+   {cap:'BIOESTIMULADOR',label:'Bioestimuladores',icon:'⚡'},
+   {cap:'EXOSOMAS',label:'Exosomas',icon:'🧬'},
+   {cap:'PRP FACIAL',label:'PRP facial',icon:'🩸'}
+  ]}
+ ],
+ CORPORAL:[
+  {code:'CORPORAL_BODY_RESET',title:'Body Reset',alias:'Preparación · Descarga · Inicio del proceso',summary:'Enfoque de preparación corporal antes de procesos de reducción o remodelación.',icon:'↺',glow:'rgba(14,165,233,.13)',items:[
+   {cap:'DETOX',label:'Detox',icon:'🫧'},
+   {cap:'VITAMINAS',label:'Vitaminas',icon:'💉'}
+  ]},
+  {code:'CORPORAL_SCULPT_BODY',title:'Sculpt Body',alias:'Reducción · Definición · Contorno',summary:'Reducción localizada y definición de contorno dentro de un plan progresivo.',icon:'◌',glow:'rgba(59,130,246,.13)',items:[
+   {cap:'APARATOLOGIA CORPORAL',label:'Aparatología corporal',icon:'◉'},
+   {cap:'CRIOLIPOLISIS',label:'Criolipólisis',icon:'❄️'},
+   {cap:'ENZIMAS CORPORALES',label:'Enzimas corporales',icon:'🧪'},
+   {cap:'MESOTERAPIA CORPORAL',label:'Mesoterapia corporal',icon:'💎'},
+   {cap:'CARBOXITERAPIA',label:'Carboxiterapia',icon:'◎'},
+   {cap:'HIDROENZIMAS',label:'Hidroenzimas',icon:'💧'}
+  ]},
+  {code:'CORPORAL_SCULPT_BOOTY',title:'Sculpt Booty',alias:'Proyección · Firmeza · Calidad de tejido',summary:'Enfoque corporal orientado a proyección, firmeza y calidad del tejido.',icon:'◇',glow:'rgba(236,72,153,.12)',items:[
+   {cap:'GLUTEOS',label:'Glúteos',icon:'◌'}
+  ]}
+ ],
+ CAPILAR:[
+  {code:'CAPILAR_ACTIVACION_REGENERACION',title:'Activación & Regeneración',alias:'Hair Revival',summary:'Para procesos que buscan trabajar caída activa, adelgazamiento o pérdida de densidad; el protocolo se define en evaluación.',icon:'🌿',glow:'rgba(16,185,129,.14)',items:[
+   {cap:'MESOTERAPIA CAPILAR',label:'Mesoterapia capilar',icon:'💎'},
+   {cap:'PRP CAPILAR',label:'PRP capilar',icon:'🩸'},
+   {cap:'EXOSOMAS CAPILARES',label:'Exosomas capilares',icon:'🧬'}
+  ]},
+  {code:'CAPILAR_MANTENIMIENTO_PREVENCION',title:'Mantenimiento & Prevención',alias:'Hair Guard',summary:'Para proteger resultados y sostener mantenimiento o prevención capilar a largo plazo.',icon:'🛡️',glow:'rgba(6,148,162,.13)',items:[
+   {cap:'CAPILAR',label:'Evaluación / plan capilar',icon:'🌱'}
+  ]}
+ ]
+};
 
 function E(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
 async function rpc(n,p){const r=await fetch(SB+'/rest/v1/rpc/'+n,{method:'POST',headers:H,body:JSON.stringify(p||{})});const j=await r.json().catch(()=>({}));if(!r.ok)throw j;return j}
@@ -256,29 +311,40 @@ function goStep(n){
  window.scrollTo({top:0,behavior:'smooth'});
 }
 function selectDomain(d){
- AG.domain=d;AG.category='TODOS';AG.selTreatment=null;AG.route=null;AG.selProf=null;
+ AG.domain=d;AG.selTreatment=null;AG.selUx=null;AG.route=null;AG.selProf=null;
+ document.getElementById('treatSearch').value='';
  goStep(2);
 }
 function domainLabel(d){return d==='FACIAL'?'Facial':d==='CORPORAL'?'Corporal':'Capilar'}
-function renderTreatments(){
- const label=domainLabel(AG.domain);
- document.getElementById('treatTitle').textContent='Tratamientos '+label.toLowerCase();
- document.getElementById('treatSub').textContent='Selecciona el tratamiento que deseas agendar en Zi Vital · San Isidro.';
- const search=norm(document.getElementById('treatSearch').value);
- let rows=AG.treatments.filter(function(x){return x.domain===AG.domain});
- const cats=['TODOS'].concat(Array.from(new Set(rows.map(function(x){return norm(x.categoria)}))).filter(Boolean));
- document.getElementById('catChips').innerHTML=cats.map(function(c){return '<button class="chip '+(AG.category===c?'act':'')+'" onclick="setCategory(\''+E(c)+'\')">'+E(c==='TODOS'?'Todos':c)+'</button>'}).join('');
- if(AG.category!=='TODOS')rows=rows.filter(function(x){return norm(x.categoria)===AG.category});
- if(search)rows=rows.filter(function(x){return norm(x.nombre).indexOf(search)>=0||norm(x.categoria).indexOf(search)>=0});
- document.getElementById('treatGrid').innerHTML=rows.map(function(t){
-  const routes=resolveRoutes(t),badge=routes.length>1?'2 opciones':routes[0]==='DOCTORA'?'Especialista':'Equipo clínico';
-  return '<button class="treat '+(AG.selTreatment&&norm(AG.selTreatment.nombre)===norm(t.nombre)?'sel':'')+'" onclick="selectTreatment(\''+E(norm(t.nombre))+'\')"><div class="ticon">'+iconFor(t)+'</div><div class="tinfo"><div class="tname">'+E(t.nombre)+'</div><div class="tmeta">'+E(t.categoria||label)+'</div></div><span class="route-badge">'+E(badge)+'</span></button>';
- }).join('')||'<div class="empty" style="grid-column:1/-1">No encontramos tratamientos con ese filtro.</div>';
+function treatmentByCapability(cap){return AG.treatments.find(function(x){return norm(x.nombre)===norm(cap)})||null}
+function uxItemByCapability(cap){
+ const groups=UX_TAXONOMY[AG.domain]||[];
+ for(let i=0;i<groups.length;i++){const it=(groups[i].items||[]).find(function(x){return norm(x.cap)===norm(cap)});if(it)return Object.assign({approach:groups[i]},it)}
+ return null;
 }
-function setCategory(c){AG.category=c;renderTreatments()}
+function selectedLabel(){return AG.selUx&&AG.selUx.label?AG.selUx.label:(AG.selTreatment&&AG.selTreatment.nombre)||''}
+function renderTreatments(){
+ const label=domainLabel(AG.domain),search=norm(document.getElementById('treatSearch').value);
+ document.getElementById('treatTitle').textContent='Elige tu enfoque y tratamiento';
+ document.getElementById('treatSub').textContent='Conoce cómo trabaja Zi Vital y selecciona una categoría principal de '+label.toLowerCase()+'.';
+ const groups=(UX_TAXONOMY[AG.domain]||[]).map(function(g){
+  const items=(g.items||[]).map(function(u){return {ux:u,t:treatmentByCapability(u.cap)}}).filter(function(x){return !!x.t}).filter(function(x){
+    if(!search)return true;
+    return norm(x.ux.label).indexOf(search)>=0||norm(g.title).indexOf(search)>=0||norm(g.alias).indexOf(search)>=0;
+  });
+  return {g:g,items:items};
+ }).filter(function(x){return x.items.length>0});
+ document.getElementById('treatGrid').innerHTML=groups.map(function(row){
+  const g=row.g;
+  return '<section class="approach-block" style="--approach-glow:'+E(g.glow||'rgba(10,79,191,.08)')+'"><div class="approach-head"><div class="approach-icon">'+E(g.icon||'✦')+'</div><div class="approach-copy"><div class="approach-kicker">Enfoque '+E(label)+'</div><div class="approach-title">'+E(g.title)+'</div><div class="approach-alias">'+E(g.alias||'')+'</div><div class="approach-summary">'+E(g.summary||'')+'</div></div></div><div class="approach-items">'+row.items.map(function(x){
+    const routes=resolveRoutes(x.t),badge=routes.length>1?'2 opciones':routes[0]==='DOCTORA'?'Especialista':'Equipo clínico';
+    return '<button class="treat '+(AG.selTreatment&&norm(AG.selTreatment.nombre)===norm(x.t.nombre)?'sel':'')+'" onclick="selectTreatment(\''+E(norm(x.t.nombre))+'\')"><div class="ticon">'+E(x.ux.icon||iconFor(x.t))+'</div><div class="tinfo"><div class="tname">'+E(x.ux.label)+'</div><div class="tmeta">'+E(g.title)+'</div></div><span class="route-badge">'+E(badge)+'</span></button>';
+   }).join('')+'</div></section>';
+ }).join('')||'<div class="empty">No encontramos una categoría principal con ese filtro.</div>';
+}
 function selectTreatment(key){
  const t=AG.treatments.find(function(x){return norm(x.nombre)===key});if(!t)return;
- AG.selTreatment=t;AG.route=null;AG.selProf=null;AG.selFecha='';AG.selHora='';
+ AG.selTreatment=t;AG.selUx=uxItemByCapability(t.nombre);AG.route=null;AG.selProf=null;AG.selFecha='';AG.selHora='';
  renderTreatments();
  const routes=resolveRoutes(t);
  if(routes.length===1){AG.route=routes[0];enterAvailability();return}
@@ -310,12 +376,12 @@ async function futureCount(prof){
 function contextHtml(){
  if(AG.route==='DOCTORA'){
   if(!AG.selProf){
-   return '<div class="context-body"><div class="ctx-label">Especialistas disponibles</div><div class="ctx-title">Elige tu especialista</div><div class="ctx-sub">Solo mostramos profesionales habilitados para '+E(AG.selTreatment.nombre)+' con turnos futuros publicados.</div><div id="doctorPicker" style="margin-top:12px"></div><div class="site-card"><b>📍 Zi Vital · San Isidro</b><br>'+E(SITE_INFO.dir)+'</div></div>';
+   return '<div class="context-body"><div class="ctx-label">Especialistas disponibles</div><div class="ctx-title">Elige tu especialista</div><div class="ctx-sub">Solo mostramos profesionales habilitados para '+E(selectedLabel())+' con turnos futuros publicados.</div><div id="doctorPicker" style="margin-top:12px"></div><div class="site-card"><b>📍 Zi Vital · San Isidro</b><br>'+E(SITE_INFO.dir)+'</div></div>';
   }
   const p=AG.selProf;
-  return '<div class="context-visual">'+(p.foto_url?'<img src="'+E(p.foto_url)+'" alt="'+E(p.nombre_publico)+'">':'<div class="team-art">👩‍⚕️</div>')+'</div><div class="context-body"><div class="ctx-label">Especialista seleccionado</div><div class="ctx-title">'+E(p.nombre_publico)+'</div><div class="ctx-sub">'+E(p.especialidad||'Medicina estética')+(p.cmp?' · CMP '+E(p.cmp):'')+'</div><div class="ctx-chip">✓ Habilitado para '+E(AG.selTreatment.nombre)+'</div><div class="site-card"><b>📍 Zi Vital · San Isidro</b><br>'+E(SITE_INFO.dir)+'</div></div>';
+  return '<div class="context-visual">'+(p.foto_url?'<img src="'+E(p.foto_url)+'" alt="'+E(p.nombre_publico)+'">':'<div class="team-art">👩‍⚕️</div>')+'</div><div class="context-body"><div class="ctx-label">Especialista seleccionado</div><div class="ctx-title">'+E(p.nombre_publico)+'</div><div class="ctx-sub">'+E(p.especialidad||'Medicina estética')+(p.cmp?' · CMP '+E(p.cmp):'')+'</div><div class="ctx-chip">✓ Habilitado para '+E(selectedLabel())+'</div><div class="site-card"><b>📍 Zi Vital · San Isidro</b><br>'+E(SITE_INFO.dir)+'</div></div>';
  }
- return '<div class="context-visual"><div class="team-art">'+iconFor(AG.selTreatment)+'</div></div><div class="context-body"><div class="ctx-label">Atención clínica</div><div class="ctx-title">'+E(AG.selTreatment.nombre)+'</div><div class="ctx-sub">Tu cita será atendida por nuestro equipo clínico especializado disponible en ese horario.</div><div class="ctx-chip">✓ Equipo clínico Zi Vital</div><div class="site-card"><b>📍 Zi Vital · San Isidro</b><br>'+E(SITE_INFO.dir)+'</div></div>';
+ return '<div class="context-visual"><div class="team-art">'+iconFor(AG.selTreatment)+'</div></div><div class="context-body"><div class="ctx-label">Atención clínica</div><div class="ctx-title">'+E(selectedLabel())+'</div><div class="ctx-sub">Tu cita será atendida por nuestro equipo clínico especializado disponible en ese horario.</div><div class="ctx-chip">✓ Equipo clínico Zi Vital</div><div class="site-card"><b>📍 Zi Vital · San Isidro</b><br>'+E(SITE_INFO.dir)+'</div></div>';
 }
 function renderContext(){
  const el=document.getElementById('contextCard');el.innerHTML=contextHtml();
@@ -428,7 +494,7 @@ async function lookupIdentity(){
 function routeLabel(){return AG.route==='DOCTORA'?(AG.selProf?AG.selProf.nombre_publico:'Especialista médico'):'Equipo clínico especializado'}
 function renderReview(){
  const el=document.getElementById('review');el.innerHTML=
- '<div class="review-row"><span>Tratamiento</span><span>'+E(AG.selTreatment&&AG.selTreatment.nombre)+'</span></div>'+
+ '<div class="review-row"><span>Tratamiento</span><span>'+E(selectedLabel())+'</span></div>'+
  '<div class="review-row"><span>Atención</span><span>'+E(routeLabel())+'</span></div>'+
  '<div class="review-row"><span>Sede</span><span>Zi Vital · San Isidro</span></div>'+
  '<div class="review-row"><span>Fecha</span><span>'+E(AG.selFecha)+'</span></div>'+
@@ -436,7 +502,7 @@ function renderReview(){
 }
 function summaryHtml(){return '<div class="review">'+
  '<div class="review-row"><span>Área</span><span>'+E(domainLabel(AG.domain))+'</span></div>'+
- '<div class="review-row"><span>Tratamiento</span><span>'+E(AG.selTreatment&&AG.selTreatment.nombre)+'</span></div>'+
+ '<div class="review-row"><span>Tratamiento</span><span>'+E(selectedLabel())+'</span></div>'+
  '<div class="review-row"><span>Atención</span><span>'+E(routeLabel())+'</span></div>'+
  '<div class="review-row"><span>Fecha</span><span>'+E(AG.selFecha)+'</span></div>'+
  '<div class="review-row"><span>Hora</span><span>'+E(AG.selHora)+'</span></div>'+
