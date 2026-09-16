@@ -3,7 +3,7 @@ const fs=require('fs');
 const page=fs.readFileSync('app/public/agendar-v2.html','utf8');
 const redirect=fs.readFileSync('app/public/agendar.html','utf8');
 function ok(v,m){if(!v){console.error('BOOKING-V3 UI CONTRACT FAIL:',m);process.exit(1)}}
-ok(redirect.includes('/agendar-v2.html')||redirect.includes('/agendar-v2'),'legacy /agendar entry no longer routes to booking authority UI');
+ok(redirect.includes('agendar-v2.html'),'legacy /agendar entry no longer routes to booking authority UI');
 ok(page.includes("p.get('t')||p.get('token')"),'personalized token compatibility missing');
 ok(page.includes('aos_links_agenda?token=eq.'),'link validation missing');
 ok(page.includes('Selecciona profesional'),'provider-first UI missing');
