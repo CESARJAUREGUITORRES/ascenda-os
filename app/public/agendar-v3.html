@@ -475,7 +475,7 @@ function renderPeriods(){
 function setPeriod(p){AG.period=p;renderPeriods();renderSlots()}
 function renderSlots(){
  const rows=AG.slots.filter(function(s){return AG.period==='ALL'||periodOf(s.hora)===AG.period});
- document.getElementById('slots').innerHTML=rows.map(function(s){return '<button class="slot '+(AG.selHora===s.hora?'sel':'')+'" onclick="selectSlot(\''+E(s.hora)+'\')">'+E(s.hora)+'<small>'+(s.libres==null?'Disponible':E(s.libres)+' cupo'+(Number(s.libres)===1?'':'s'))+'</small></button>'}).join('')||'<div class="empty" style="grid-column:1/-1">Sin horarios en este bloque.</div>';
+ document.getElementById('slots').innerHTML=rows.map(function(s){return '<button class="slot '+(AG.selHora===s.hora?'sel':'')+'" onclick="selectSlot(\''+E(s.hora)+'\')">'+E(s.hora)+'<small>Disponible</small></button>'}).join('')||'<div class="empty" style="grid-column:1/-1">Sin horarios en este bloque.</div>';
 }
 function selectSlot(h){AG.selHora=h;renderSlots();document.getElementById('toData').disabled=false}
 function prefill(){
