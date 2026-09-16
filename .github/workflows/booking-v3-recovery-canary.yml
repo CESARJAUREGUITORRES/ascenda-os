@@ -9,6 +9,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -22,12 +24,11 @@ jobs:
         run: node ci/rev-f6-7/static_acceptance.js
       - name: Protect booking backend and internal agenda
         run: |
-          git fetch origin main
-          changed="$(git diff --name-only origin/main...HEAD)"
-          echo "$changed"
-          if echo "$changed" | grep -E '^supabase/migrations/|^app/public/agenda\.html$|^app/public/admin-agenda\.html$'; then
-            echo 'Protected booking backend/internal agenda changed unexpectedly'
+          protected="$(git diff --name-only 9dac3dfb2d4de3293c10ca99d9f8fce22984c540...HEAD -- supabase/migrations app/public/agenda.html app/public/admin-agenda.html)"
+          if [ -n "$protected" ]; then
+            echo "$protected"
             exit 1
           fi
+          echo 'Protected booking backend/internal agenda diff: ZERO'
       - name: Diff hygiene
-        run: git diff --check origin/main...HEAD
+        run: git diff --check 9dac3dfb2d4de3293c10ca99d9f8fce22984c540...HEAD
