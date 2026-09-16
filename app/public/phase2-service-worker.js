@@ -146,6 +146,14 @@ self.addEventListener('fetch',function(event){
   var rm=u.pathname.match(/\/rest\/v1\/rpc\/([^/]+)$/);
   // Existing app-shell bell still calls these legacy RPC names. Keep its UI contract,
   // but bind identity to the verified application token through F17 instead of trusting p_id_asesor.
+  if(rm&&rm[1]==='aos_booking_advisor_link_dashboard_v38'){
+    event.respondWith((async function(){
+      var p=await requestJson(req),t=String(await getToken()).trim();
+      if(t.length<32)return json({ok:false,error:'BOOKING_APP_SESSION_REQUIRED'},401);
+      p.p_token=t;
+      return rpcFrom(req,'aos_booking_advisor_link_dashboard_v38',p);
+    })());return;
+  }
   if(rm&&rm[1]==='aos_list_notificaciones'){
     event.respondWith(notificationApi('/api/notifications/inbox?limit=30','GET'));return;
   }
