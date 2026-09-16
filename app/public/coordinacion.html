@@ -299,7 +299,7 @@ function rChat(){
     }else if(m.tipo_contenido==='archivo'&&m.archivo_id){
       html+='<div class="Zmc"><div class="Zmfile" onclick="window.open(\''+SB+'/storage/v1/object/public/coordinacion/'+E(m.mensaje)+'\')">📎 '+E(m.mensaje)+'</div></div>';
     }else if(auto){
-      html+='<div class="Zmc"><div class="ZautoTag">⚡ Cita automática</div>'+E(m.mensaje).replace(/\n/g,'<br>')+'</div>';
+      html+='<div class="Zmc">'+E(m.mensaje).replace(/\n/g,'<br>')+'</div>';
     }else{
       html+='<div class="Zmc">'+E(m.mensaje)+(m.editado?' <span style="font-size:8px;opacity:.5">(editado)</span>':'')+'</div>';
     }
