@@ -1,0 +1,42 @@
+name: BOOKING V3.4 scoped patch
+on:
+  push:
+    branches: [fix/booking-v34-attribution-email-ui-20260916]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/booking-v34-attribution-email-ui-20260916
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Apply exact scoped patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('app/public/agendar-v2.html')
+          s=p.read_text()
+          old='<div class="hero"><div class="brand"><span class="mark"><i></i><i></i><i></i><i></i></span><b>ASCENDA · ZI VITAL</b></div><h1>Agenda tu cita</h1><p>Elige profesional, tratamiento, fecha y horario disponible</p></div>'
+          new='<div class="hero"><h1>Agenda de Citas</h1><p>Elige profesional, tratamiento, fecha y horario disponible</p></div>'
+          if old in s: s=s.replace(old,new,1)
+          old_email="let email=document.getElementById('fe').value.trim();if(email)fetch('/api/send-template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:email,template:'confirmacion_cita',nombre:(n+' '+a).trim(),tratamiento:AG.selTreatment.nombre,hora:AG.selHora,sede:AG.selSede,fecha:AG.selFecha})}).catch(()=>{})"
+          new_email="let email=document.getElementById('fe').value.trim();if(email&&r.agenda_id)fetch('/api/booking/public-confirmation-v33',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appointment_id:r.agenda_id})}).catch(()=>{})"
+          if old_email in s: s=s.replace(old_email,new_email,1)
+          p.write_text(s)
+          PY
+          node ci/booking-v33/contract.js
+          grep -q 'Agenda de Citas' app/public/agendar-v2.html
+          grep -q '/api/booking/public-confirmation-v33' app/public/agendar-v2.html
+          ! grep -q "if(email)fetch('/api/send-template'" app/public/agendar-v2.html
+      - name: Commit patch if needed
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'ascenda-booking-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add app/public/agendar-v2.html
+          git commit -m 'BOOKING-V3.4: finish public header and governed confirmation call'
+          git push
