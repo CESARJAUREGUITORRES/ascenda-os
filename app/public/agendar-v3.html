@@ -534,7 +534,21 @@ async function book(){
  }catch(e){b.disabled=false;b.textContent='Confirmar cita';alert((e&&e.error)||'El horario ya no está disponible o no se pudo agendar.')}
 }
 function success(r){
- const d=document.createElement('div');d.className='overlay';d.innerHTML='<div class="modal success"><div class="success-icon">✓</div><h2 style="font:800 22px Exo 2;color:#087A68">¡Cita agendada!</h2><p style="font-size:11px;color:var(--muted);margin:5px 0 14px">Tu reserva quedó registrada correctamente.</p>'+summaryHtml()+'<p style="font-size:9px;color:#8190A8;margin-top:12px">Revisa tu correo para la confirmación y acceso a Google Calendar.</p></div>';document.body.appendChild(d);
+ const seconds=8;
+ const d=document.createElement('div');
+ d.className='overlay';
+ d.innerHTML='<div class="modal success"><div class="success-icon">✓</div><h2 style="font:800 22px Exo 2;color:#087A68">¡Cita agendada!</h2><p style="font-size:11px;color:var(--muted);margin:5px 0 14px">Tu reserva quedó registrada correctamente.</p>'+summaryHtml()+'<p style="font-size:9px;color:#8190A8;margin-top:12px">Revisa tu correo para la confirmación y acceso a Google Calendar.</p><div style="margin-top:13px;padding:10px 12px;border-radius:12px;background:#F1F8FF;border:1px solid #DCE9FA;font-size:9px;color:#657590">Volveremos al inicio en <b id="successCountdown" style="color:#0A4FBF">'+seconds+'</b> s.</div><button class="btn btn-soft" style="margin-top:9px;width:100%" onclick="restartBooking()">Volver al inicio ahora</button></div>';
+ document.body.appendChild(d);
+ let left=seconds;
+ const timer=setInterval(function(){
+  left-=1;
+  const el=document.getElementById('successCountdown');
+  if(el)el.textContent=String(Math.max(left,0));
+  if(left<=0){clearInterval(timer);restartBooking()}
+ },1000);
+}
+function restartBooking(){
+ location.replace(location.pathname+location.search);
 }
 async function loadBrand(){
  try{
