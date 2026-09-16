@@ -231,3 +231,24 @@ Every public parent option is mapped to an existing `aos_booking_public_catalog_
 - Railway deployment `acc5233a-8140-42b7-b147-f2aaa641fec3` / commit `f25de4002fbe5c847ffff0f185c6070a4d2dc3a7` = **SUCCESS**.
 
 **Next gate:** HUMAN VISUAL CANARY V1.2 on desktop + mobile, then one doctor-route booking and one team-route booking before any V2→V3 cutover.
+
+
+## BOOKING-V3.12 / COORD-CITAS-V1.2 — FRIENDLY ATTRIBUTION LABELS · 16/09/2026
+
+Human-facing attribution formatting is now normalized before the final canary.
+
+- Push / in-app appointment labels never expose advisor UUIDs, booking tokens or full URLs.
+- Personal advisor links render as `Link Cesar`, `Link Ruvila`, etc., resolved from `aos_usuarios`.
+- Organic/company web traffic renders as `Web orgánico`.
+- Coordination > Comercial automatic cards render:
+  - personal link: `🔗 CITA WEB · LINK CESAR` + `Asesor / origen: CESAR`;
+  - company/organic web: `🌐 CITA WEB · ORGÁNICO` + `Asesor / origen: LINK WEB`.
+- Automatic internal-chat push sender is therefore human-readable (`Chat · CESAR` / `Chat · LINK WEB`) instead of UUID.
+- Canonical appointment attribution fields remain unchanged; this is a presentation/notification layer only.
+- Existing notification records were relabeled from canonical appointment data. Historical locked Comercial messages were intentionally not rewritten because the channel lock guard blocks retroactive mutation; all new automatic reports use the new labels.
+- Supabase migration `booking_v312_friendly_source_labels` = PASS.
+- GitHub migration file: `20260916210000_booking_v312_friendly_source_labels.sql`.
+- Railway deployment `06933cc5-5d74-43f7-a8f9-5be1219619eb` / commit `ec6246183d4513bfcb4a2c5e8c70595d91d1ea50` = SUCCESS.
+- Readback on the prior personal-link canary resolves `AD4FC2AC-...` → `CESAR`; admin notification now reads `Nueva cita · Link Cesar`.
+
+**Next gate:** one complete human V3 flow and confirm Agenda + push/in-app + Comercial + patient email + Google Calendar.
