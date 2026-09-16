@@ -71,6 +71,24 @@ function reconcileViewport(){
   if(isCompactDevice())mobileDefault();
   applyPanelClass();
 }
+function installBookingV32AdvisorLink(){
+  if(window.__ASCENDA_BOOKING_V32_MODAL_PATCH__)return;
+  if(typeof window.openAgendarModal!=='function'||typeof window.rpc!=='function')return;
+  var original=window.openAgendarModal;
+  window.openAgendarModal=function(){
+    original.apply(this,arguments);
+    var code=window.AOS&&AOS.ctx?String(AOS.ctx.idAsesor||'').trim():'';
+    if(!code)return;
+    window.rpc('aos_booking_advisor_permanent_link_v32',{p_asesor:code}).then(function(r){
+      if(!r||!r.ok||!r.token)return;
+      var url=window.location.origin+'/agendar?t='+encodeURIComponent(r.token);
+      if(typeof window.mostrarLinkGenerado==='function')window.mostrarLinkGenerado(url,false);
+      var label=document.querySelector('#agendar-link-result > div');
+      if(label)label.textContent='✅ Tu link permanente de asesor';
+    }).catch(function(e){console.warn('[BOOKING-V3.2] permanent advisor link unavailable',e)});
+  };
+  window.__ASCENDA_BOOKING_V32_MODAL_PATCH__=true;
+}
 function boot(){
   reconcileViewport();
   var ws=q('#workspace');
@@ -79,11 +97,10 @@ function boot(){
     obs.observe(ws,{childList:true,subtree:false});
   }
   var timer=0;
-  window.addEventListener('resize',function(){
-    clearTimeout(timer);
-    timer=setTimeout(reconcileViewport,80);
-  });
+  window.addEventListener('resize',function(){clearTimeout(timer);timer=setTimeout(reconcileViewport,80)});
   window.addEventListener('orientationchange',function(){setTimeout(reconcileViewport,120)});
+  var bookingPatchTimer=setInterval(function(){installBookingV32AdvisorLink();if(window.__ASCENDA_BOOKING_V32_MODAL_PATCH__)clearInterval(bookingPatchTimer)},250);
+  setTimeout(function(){clearInterval(bookingPatchTimer)},10000);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
