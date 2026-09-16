@@ -198,8 +198,8 @@
             <span class="ah-cu" id="ah-mu"></span>
           </div>
         </div>
-        <table class="ah-t"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center" title="Citas recuperadas o reactivadas">Reactiv.</th><th style="text-align:center" title="Citas creadas sin llamada origen">Agenda dir.</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th><th>Estado</th></tr></thead>
-        <tbody id="ah-mtb"><tr><td colspan="8"><div class="ah-ld"><div class="ah-sp"></div>Cargando...</div></td></tr></tbody></table>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="ah-t"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center" title="Citas recuperadas o reactivadas">Reactiv.</th><th style="text-align:center" title="Citas creadas sin llamada origen">Agenda dir.</th><th style="text-align:center" title="Reservas realizadas desde web o link personal">Web</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th><th>Estado</th></tr></thead>
+        <tbody id="ah-mtb"><tr><td colspan="9"><div class="ah-ld"><div class="ah-sp"></div>Cargando...</div></td></tr></tbody></table></div>
       </div>
       <div class="ah-c" id="ah-acent" style="border-left:3px solid #16A34A;border-radius:0 12px 12px 0">
         <div class="ah-ct">Actividad
@@ -503,7 +503,7 @@ var muEl=document.getElementById('ah-mu');
 if(muEl&&fecha!==_hoy()){muEl.textContent='Fecha: '+fecha;}
 var map={};
       /* Dynamic operational roster: render only advisors with real activity in the selected period. */
-      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&(parseInt(s.llamadas||0)+parseInt(s.citas||0)+parseInt(s.reactivadas||0)+parseInt(s.agenda_directa||0)>0);}).map(function(s){return s.asesor;});
+      var todos=(sem||[]).filter(function(s){return s&&s.asesor&&(parseInt(s.llamadas||0)+parseInt(s.citas||0)+parseInt(s.reactivadas||0)+parseInt(s.agenda_directa||0)+parseInt(s.citas_web||0)>0);}).map(function(s){return s.asesor;});
       todos=todos.filter(function(n,i,a){return a.indexOf(n)===i;});
       (sem||[]).forEach(function(s){map[s.asesor]=s;});
       var tb=document.getElementById('ah-mtb');if(!tb)return;
@@ -546,8 +546,9 @@ var map={};
             }
           }
           var cv=s.llamadas>0?Math.round((s.citas||0)/s.llamadas*100):0;
-          var react=parseInt(s.reactivadas||0),direct=parseInt(s.agenda_directa||0),citas=parseInt(s.citas||0);
-          totalScore+=citas+react+direct;
+          var react=parseInt(s.reactivadas||0),direct=parseInt(s.agenda_directa||0),citas=parseInt(s.citas||0),web=parseInt(s.citas_web||0);
+          totalScore+=citas+react+direct+web;
+          if(String(s.asesor||'').toUpperCase()==='WEB'){sede='ORGÁNICO';est='ORGÁNICO';cls='bg-ok';}
           var trBg=(cls==='bg-r'||cls==='bg-i')?'#FAFAFA':'';
           return '<tr data-asesor="'+_e(s.asesor)+'" onclick="ahChartFilter(\''+_e(s.asesor)+'\')" style="background:'+trBg+'" class="'+((_D.chartAsesor===s.asesor)?'sel':'')+'"><td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
             '<td style="text-align:center;font-family:Exo 2,sans-serif;font-weight:800;color:#0A4FBF">'+_e(s.llamadas||0)+'</td>'+
@@ -558,7 +559,7 @@ var map={};
             '<td style="font-size:9px;color:#6B7BA8">'+_e(s.ult_hora||'—')+'<br>'+_e(s.ult_numero||'')+'</td>'+
             '<td><span class="ah-bg '+cls+'">'+est+'</span></td></tr>';
         }
-        return '<tr><td><b>'+n+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td><td>0</td><td>+0</td><td>+0</td><td>+0</td><td>0%</td><td style="font-size:9px;color:#6B7BA8">—</td><td><span class="ah-bg bg-i">SIN ACTIV.</span></td></tr>';
+        return '<tr><td><b>'+n+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td><td>0</td><td>+0</td><td>+0</td><td>+0</td><td>+0</td><td>0%</td><td style="font-size:9px;color:#6B7BA8">—</td><td><span class="ah-bg bg-i">SIN ACTIV.</span></td></tr>';
       }).join('');
       // Competitive appointment score toast — mirrors canonical Push semantics.
       if(fecha===_hoy()&&_D.loadCount>=2&&_D.prev.agendaScore>=0&&totalScore>_D.prev.agendaScore){
