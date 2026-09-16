@@ -138,7 +138,7 @@ self.addEventListener('fetch',function(event){
     event.respondWith(Response.redirect(u.origin+'/app.html#admin-whatsapp',302));return;
   }
   // Same-origin governed APIs use the already-controlled Phase 2 token cache.
-  if(u.origin===self.location.origin&&(u.pathname.indexOf('/api/wa3/')===0||u.pathname.indexOf('/api/wa/')===0||u.pathname.indexOf('/api/push/')===0||u.pathname.indexOf('/api/notifications/')===0)){
+  if(u.origin===self.location.origin&&(u.pathname.indexOf('/api/wa3/')===0||u.pathname.indexOf('/api/wa/')===0||u.pathname.indexOf('/api/push/')===0||u.pathname.indexOf('/api/notifications/')===0||u.pathname.indexOf('/api/coord/')===0)){
     event.respondWith(injectSameOriginAppToken(req));return;
   }
   if(u.hostname.indexOf('supabase.co')<0)return;
