@@ -110,3 +110,62 @@ Owner confirmed in production:
 
 **Status:** COORD-V7.2 = HUMAN PASS / CLOSED.  
 **Next lane:** AGENDA-UX-V1 — owner will provide visual references and desired booking-flow redesign. Preserve all certified booking, attribution, notification, email, Google and Coordination contracts.
+
+
+## AGENDA-UX-V1 — SHADOW FRONTEND READY · 16/09/2026
+
+**Status:** `SHADOW READY / HUMAN VISUAL CANARY`
+
+A new public booking surface was added at `app/public/agendar-v3.html` without changing the certified V2 entrypoint or personal-link generator.
+
+### V3 UX implemented
+- Service-first entry: **Facial / Corporal / Capilar**.
+- Premium responsive cards, layered shadows, depth/3D effects and mobile-first layout.
+- Treatment discovery by domain, category chips and search.
+- Routing uses the existing Team > Services authority:
+  - treatment only on doctor profiles → exact-provider medical route;
+  - treatment only on nursing profiles → clinical-team pool route;
+  - treatment configured for both → patient sees a neutral choice between `Consulta con especialista` and `Equipo clínico especializado`.
+- Doctor route displays only professionals assigned to that treatment and with future **SAN ISIDRO** shifts.
+- Current production readback for September 2026:
+  - Dra. Carolina: future San Isidro shift dates present;
+  - Dra. Pamela: no San Isidro dates;
+  - Dra. Yessica: no San Isidro dates.
+  Therefore the current doctor flow resolves visually to Carolina when applicable.
+- Nursing route never asks the patient to choose an individual nurse. It uses the existing `SITE_POOL` availability authority.
+- Public site is fixed to **SAN ISIDRO**; no site selector is shown.
+- Calendar has **7-day** and **month** views.
+- Slot validation still uses `aos_booking_availability_v2`.
+- Booking write still uses `aos_agendar_publica_v2`.
+- Confirmation email remains `/api/booking/public-confirmation-v33`.
+- Booking tokens and attribution are preserved: WEB/ADVISOR_LINK continue through the existing `p_token` contract.
+- Existing notification, Google Calendar/Contacts and Coordination report flows remain downstream of the same canonical appointment write.
+
+### Additive read helpers
+- `aos_booking_pool_days_v3(role,year,month,site)`: future pool shift days.
+- `aos_booking_provider_days_v3(provider,year,month,site)`: future provider days scoped to San Isidro.
+- `aos_booking_patient_lookup_v3(identity)`: exact-match DNI/phone lookup for public booking; excludes fused patient rows and does not provide broad patient search.
+
+### Safety / rollout
+- `agendar-v2.html` remains the current certified public authority UI.
+- `agendar.html` redirect remains on V2.
+- `booking-link-center-v37.js` continues generating V2 links.
+- V3 is **shadow only** until owner visual + functional canary PASS.
+- No replacement of the canonical ledger `aos_agenda_citas`.
+- No parallel booking backend or duplicated Google/email/notification logic.
+
+### Validation
+- V3 embedded JavaScript syntax: PASS.
+- Exact patient lookup by owner DNI and phone: PASS.
+- Nursing San Isidro future-days helper: PASS.
+- San Isidro provider-day helper: PASS.
+- Railway deployment `79eb84fa-bc3b-4000-ac09-e6a61372cf51` / commit `f1920e96164aee6d59692cfbe33ba0aec83a5026`: **SUCCESS**.
+
+### Human canary sequence
+1. Open V3 shadow without token and inspect desktop/mobile UX.
+2. Facial → a doctor-only treatment (e.g. route derived from Team services) → Carolina → 7-day/month calendar → real slot.
+3. Choose a team-only treatment → clinical-team card → pool calendar/slots.
+4. Test exact DNI/phone autofill.
+5. Run one WEB booking; verify Agenda, attribution, push/in-app, approved Zi Vital email, Google Calendar and Comercial report.
+6. Run one advisor-token V3 booking and verify `ADVISOR_LINK`.
+7. Only after PASS may V2 links/redirect be migrated to V3.
