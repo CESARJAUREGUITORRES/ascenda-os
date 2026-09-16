@@ -198,6 +198,49 @@ async function handleNotificationRead(req, res) {
   }
 }
 
+async function handleCoordChannelLock(req, res) {
+  let raw; try { raw = await readRaw(req, 24 * 1024) } catch (e) { return writeJson(res, e.status || 400, { ok: false, error: e.message }) }
+  const body = parseJson(raw.toString('utf8'))
+  if (!body || !String(body.channel_id || '').trim()) return writeJson(res, 400, { ok: false, error: 'CHANNEL_ID_REQUIRED' })
+  const actor = await verifyApp(req.headers['x-aos-app-token'], false)
+  if (!actor.ok) return writeJson(res, actor.status || 403, { ok: false, error: 'COORD_APP_SESSION_REQUIRED' })
+  try {
+    const out = await serviceRpc('aos_coord_set_channel_lock_actor_v2', {
+      p_actor_id: actor.actor_id,
+      p_canal: String(body.channel_id || '').trim(),
+      p_locked: body.locked === true
+    })
+    if (!out || out.ok !== true) {
+      const err = out && out.error || 'COORD_LOCK_REJECTED'
+      return writeJson(res, err === 'FORBIDDEN_SUPERADMIN_ONLY' ? 403 : 400, out || { ok: false, error: err })
+    }
+    return writeJson(res, 200, out)
+  } catch (e) {
+    console.error('[COORD-V7.2] lock', e.message)
+    return writeJson(res, 503, { ok: false, error: 'COORD_LOCK_UNAVAILABLE' })
+  }
+}
+
+async function handleCoordSearch(req, res) {
+  let raw; try { raw = await readRaw(req, 24 * 1024) } catch (e) { return writeJson(res, e.status || 400, { ok: false, error: e.message }) }
+  const body = parseJson(raw.toString('utf8'))
+  if (!body || !String(body.channel_id || '').trim()) return writeJson(res, 400, { ok: false, error: 'CHANNEL_ID_REQUIRED' })
+  const actor = await verifyApp(req.headers['x-aos-app-token'], false)
+  if (!actor.ok) return writeJson(res, actor.status || 403, { ok: false, error: 'COORD_APP_SESSION_REQUIRED' })
+  try {
+    const out = await serviceRpc('aos_coord_search_messages_actor_v2', {
+      p_actor_id: actor.actor_id,
+      p_canal: String(body.channel_id || '').trim(),
+      p_query: String(body.query || '')
+    })
+    if (!out || out.ok !== true) return writeJson(res, 403, out || { ok: false, error: 'COORD_SEARCH_REJECTED' })
+    return writeJson(res, 200, out)
+  } catch (e) {
+    console.error('[COORD-V7.2] search', e.message)
+    return writeJson(res, 503, { ok: false, error: 'COORD_SEARCH_UNAVAILABLE' })
+  }
+}
+
 async function handlePushConfig(req, res) {
   const actor = await verifyApp(req.headers['x-aos-app-token'], false)
   if (!actor.ok) return writeJson(res, actor.status || 403, { ok: false, error: 'PUSH_APP_SESSION_REQUIRED' })
@@ -293,6 +336,8 @@ const server = http.createServer(async function(req, res) {
   if (url.pathname === '/api/notifications/health' && req.method === 'GET') return writeJson(res, 200, { ok: true, version: 'S15.1', auth: 'actor-bound' })
   if (url.pathname === '/api/notifications/inbox' && req.method === 'GET') return handleNotificationInbox(req, res, url)
   if (url.pathname === '/api/notifications/read' && req.method === 'POST') return handleNotificationRead(req, res)
+  if (url.pathname === '/api/coord/channel-lock' && req.method === 'POST') return handleCoordChannelLock(req, res)
+  if (url.pathname === '/api/coord/search' && req.method === 'POST') return handleCoordSearch(req, res)
   if (url.pathname === '/api/push/config' && req.method === 'GET') return handlePushConfig(req, res)
   if (url.pathname === '/api/push/subscribe' && req.method === 'POST') return handlePushSubscribe(req, res)
   if (url.pathname === '/api/push/unsubscribe' && req.method === 'POST') return handlePushUnsubscribe(req, res)
