@@ -252,7 +252,7 @@ function rCt(c,ig){
   var g=ig?D.gr.find(function(x){return'CH-'+x.id===c.id||x.nombre===c.nombre;}):null;
   if(g)bg=g.color||bg;
   var parts=c.participantes;if(typeof parts==='string')try{parts=JSON.parse(parts);}catch(e){parts=[];}
-  var nP=Array.isArray(parts)?parts.length:0;
+  var nP=Array.isArray(parts)?parts.filter(function(x,i,a){return x&&x!=='ADMIN'&&a.indexOf(x)===i;}).length:0;
   return'<div class="ZC'+(a?' act':'')+'" onclick="sCh(\''+E(c.id)+'\')" data-n="'+E(c.nombre.toLowerCase())+'">'
     +'<div class="ZCa'+(ig?' grp':'')+'" style="background:'+bg+'">'+I(c.nombre)+(ig?'':'<div class="ZCon" style="background:#00C9A7"></div>')+'</div>'
     +'<div class="ZCi"><div class="ZCn">'+E(c.nombre)+'</div>'
@@ -397,7 +397,7 @@ function lPanelAsesor(ch,el){
   });
 }
 function lPanelGrupo(ch,el){
-  var grpId=ch.id.replace('CH-','');
+  var grpId=ch.id==='CH-GENERAL'?'GRP-TODOS':ch.id.replace('CH-','');
   rpc('aos_metricas_grupo',{p_grupo_id:grpId},function(m){
     if(!m||!m.total_miembros)m={total_miembros:0,tareas_total:0,tareas_pendientes:0,tareas_completadas:0,tareas_vencidas:0,pct_completadas:0,por_miembro:[]};
     var h='';
