@@ -169,3 +169,65 @@ A new public booking surface was added at `app/public/agendar-v3.html` without c
 5. Run one WEB booking; verify Agenda, attribution, push/in-app, approved Zi Vital email, Google Calendar and Comercial report.
 6. Run one advisor-token V3 booking and verify `ADVISOR_LINK`.
 7. Only after PASS may V2 links/redirect be migrated to V3.
+
+
+## AGENDA-UX-V1.2 — APPROACH TAXONOMY + 4:5 VISUAL PASS · 16/09/2026
+
+Owner feedback applied to the V3 shadow surface without changing certified booking contracts.
+
+### Visual changes
+- Domain cards keep the approved look but their hero artwork now uses a **4:5 portrait ratio**.
+- On mobile, domain cards become a horizontal snap carousel to preserve portrait artwork without compressing the layout.
+- Doctor / clinical context image also uses **4:5 portrait ratio** and is larger on desktop; mobile keeps a centered portrait card.
+- Final success check is now green.
+
+### Treatment architecture
+The flat capability list was removed. Step 2 now renders only curated **parent booking categories**, grouped by governed Zi Vital approaches:
+- Facial:
+  - Skin Signature
+  - Harmony Design
+  - BioRegen Face
+- Corporal (current canonical knowledge authority):
+  - Body Reset
+  - Sculpt Body
+  - Sculpt Booty
+- Capilar (current canonical knowledge authority):
+  - Activación & Regeneración / Hair Revival
+  - Mantenimiento & Prevención / Hair Guard
+
+The UI intentionally excludes noisy child capabilities and generic `CONSULTA MEDICA` from the public treatment picker.
+
+Representative parent labels include:
+- Ácido hialurónico
+- Bioestimuladores
+- HIFU · Zi Frozen
+- Toxina
+- Mesoterapia
+- Biorevitalización
+- Radiofrecuencia fraccionada
+- Hidrofacial
+- Peelings
+- Exosomas / PRP
+- curated corporal/capilar parents backed by the existing booking catalog.
+
+Every public parent option is mapped to an existing `aos_booking_public_catalog_v2` capability; automated readback confirmed **25/25 configured capabilities are present**. Laser is not exposed because no matching active public booking capability currently exists; fail-closed behavior is intentional.
+
+### Preserved contracts
+- `aos_booking_availability_v2`
+- `aos_agendar_publica_v2`
+- patient lookup V3
+- WEB / ADVISOR_LINK attribution
+- Zi Vital confirmation email
+- Google Calendar / Contacts
+- push / in-app notifications
+- Comercial automatic report
+
+### Validation
+- Embedded V3 JavaScript syntax = PASS.
+- Parent taxonomy checks = PASS.
+- Flat category chips removed.
+- 4:5 domain + specialist image CSS checks = PASS.
+- Green success state = PASS.
+- Railway deployment `acc5233a-8140-42b7-b147-f2aaa641fec3` / commit `f25de4002fbe5c847ffff0f185c6070a4d2dc3a7` = **SUCCESS**.
+
+**Next gate:** HUMAN VISUAL CANARY V1.2 on desktop + mobile, then one doctor-route booking and one team-route booking before any V2→V3 cutover.
