@@ -97,7 +97,7 @@ button{touch-action:manipulation}
 </head>
 <body>
 <div class="loading" id="loading"><div class="spinner"></div><div style="font-size:11px;color:var(--muted)">Preparando tu agenda...</div></div>
-<div class="expired" id="expired"><div style="font-size:44px">⏳</div><h2 style="font:800 21px 'Exo 2';color:var(--pri)">Este link ya no está disponible</h2><p style="font-size:11px;color:var(--muted)">Solicita un nuevo enlace o vuelve a ingresar desde la web.</p></div>
+<div class="expired" id="expired"><div style="font-size:44px" id="errorIcon">⏳</div><h2 id="errorTitle" style="font:800 21px 'Exo 2';color:var(--pri)">Este link ya no está disponible</h2><p id="errorText" style="font-size:11px;color:var(--muted);max-width:360px">Solicita un nuevo enlace o vuelve a ingresar desde la web.</p><button id="errorRetry" class="btn btn-primary" style="display:none;max-width:220px" onclick="location.reload()">Reintentar</button></div>
 
 <header class="app-hero">
  <div class="hero-inner">
@@ -190,7 +190,7 @@ button{touch-action:manipulation}
 
 <script>
 const SB='https://ituyqwstonmhnfshnaqz.supabase.co';
-const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
 const H={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'};
 const SITE='SAN ISIDRO';
 const SITE_INFO={dir:'Av. Javier Prado Este 996 · Ofi. 501 · Edificio Capricornio',maps:'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5'};
@@ -499,7 +499,17 @@ async function init(){
   const counts=await Promise.all(docs.map(futureCount));docs.forEach(function(prof,i){AG.profileDays[prof.id]=counts[i]});
   document.getElementById('loading').style.display='none';
  }catch(e){
-  console.error(e);document.getElementById('loading').style.display='none';document.getElementById('expired').style.display='flex';
+  console.error(e);
+  document.getElementById('loading').style.display='none';
+  const box=document.getElementById('expired');
+  const isExpired=e&&e.message==='LINK_EXPIRED';
+  if(!isExpired){
+    document.getElementById('errorIcon').textContent='⚠️';
+    document.getElementById('errorTitle').textContent='No pudimos cargar la agenda';
+    document.getElementById('errorText').textContent='La agenda no está disponible en este momento. Reintenta; si continúa, el equipo de Zi Vital podrá ayudarte.';
+    document.getElementById('errorRetry').style.display='block';
+  }
+  box.style.display='flex';
  }
 }
 init();
