@@ -1,0 +1,12 @@
+'use strict'
+const fs=require('fs'),assert=require('assert')
+const m=fs.readFileSync('supabase/migrations/20260916133000_booking_v33_complete_fields_and_google.sql','utf8')
+const b=fs.readFileSync('app/booking-public-v33.js','utf8')
+const u=fs.readFileSync('app/public/agendar-v2.html','utf8')
+for(const x of ['dni,correo','source_channel','source_campaign','source_link_token','aos_google_enqueue_authorized_appointment_v1'])assert.ok(m.includes(x),'migration missing '+x)
+assert.ok(b.includes("'/rest/v1/aos_agenda_citas?select="),'public delivery must reload canonical appointment')
+assert.ok(b.includes("Clínica Zi Vital <info@zivital.pe>"),'transactional sender missing')
+assert.ok(b.includes('Agregar a Google Calendar'),'calendar CTA missing')
+assert.ok(!b.includes('SUPABASE_ANON_KEY'),'public delivery must use service role only')
+assert.ok(u.includes("rpc('aos_agendar_publica_v2'"),'booking authority missing')
+console.log('BOOKING-V3.3 contract PASS')
