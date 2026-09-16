@@ -164,7 +164,7 @@ function aRChat(){
     }else if(m.tipo_contenido==='archivo'&&m.archivo_id){
       html+='<div class="Amc"><div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(0,0,0,.04);border-radius:8px;font-size:10px;cursor:pointer" onclick="window.open(\''+SB+'/storage/v1/object/public/coordinacion/'+E(m.mensaje)+'\')">📎 '+E(m.mensaje)+'</div></div>';
     }else if(auto){
-      html+='<div class="Amc"><div class="AmAutoTag">⚡ Cita automática</div>'+E(m.mensaje).replace(/\n/g,'<br>')+'</div>';
+      html+='<div class="Amc">'+E(m.mensaje).replace(/\n/g,'<br>')+'</div>';
     }else{
       html+='<div class="Amc">'+E(m.mensaje)+(m.editado?' <span style="font-size:8px;opacity:.5">(editado)</span>':'')+'</div>';
     }
