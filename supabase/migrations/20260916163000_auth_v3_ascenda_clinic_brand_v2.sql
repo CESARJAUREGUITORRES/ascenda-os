@@ -1,0 +1,12 @@
+-- ASCENDA CLINIC — Auth V3 2FA branding V2.
+-- Applied to production Supabase on 2026-09-16.
+-- Keeps Auth V3 behavior/security unchanged; changes only transactional 2FA presentation.
+-- Canonical production function is public.aos_login_v3(text,text).
+-- Visual contract:
+--   sender: Ascenda Clinic <info@zivital.pe>
+--   subject: 🔐 Código de acceso — Ascenda Clinic
+--   header: Ascenda Clinic / ACCESO SEGURO
+--   title: Confirma que eres tú
+--   expiration: 5 minutes
+--   security copy: never share the code
+-- Full CREATE OR REPLACE was applied through governed Supabase migration auth_v3_ascenda_clinic_brand_v2.
