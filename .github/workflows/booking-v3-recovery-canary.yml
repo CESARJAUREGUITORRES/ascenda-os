@@ -1,0 +1,33 @@
+name: BOOKING-V3 Recovery Canary Gate
+on:
+  push:
+    branches:
+      - feat/booking-v3-recovery-canary-20260916
+jobs:
+  booking-v3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: BOOKING-V3 recovered UI contract
+        run: node ci/agv2/booking-v3-ui-contract.js
+      - name: Existing APP-PWA V2 contract
+        run: node ci/app-pwa-v2/contract.js
+      - name: Existing Call Center performance contract
+        run: node ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js
+      - name: Existing Sales Intelligence acceptance
+        run: node ci/rev-f6-7/static_acceptance.js
+      - name: Protect booking backend and internal agenda
+        run: |
+          git fetch origin main
+          changed="$(git diff --name-only origin/main...HEAD)"
+          echo "$changed"
+          if echo "$changed" | grep -E '^supabase/migrations/|^app/public/agenda\.html$|^app/public/admin-agenda\.html$'; then
+            echo 'Protected booking backend/internal agenda changed unexpectedly'
+            exit 1
+          fi
+      - name: Diff hygiene
+        run: git diff --check origin/main...HEAD
