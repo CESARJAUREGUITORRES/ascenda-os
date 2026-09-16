@@ -22,12 +22,12 @@ function installBookingLinkCenterV38(){
   document.head.appendChild(s);
 }
 function installCoordV7(){
-  if(window.__ASCENDA_COORD_V7_LOADER__)return;
-  window.__ASCENDA_COORD_V7_LOADER__=true;
+  if(window.__ASCENDA_COORD_V71_LOADER__)return;
+  window.__ASCENDA_COORD_V71_LOADER__=true;
   var s=document.createElement('script');
-  s.src='/coord-lock-search-v1.js?v=20260916-v1';
+  s.src='/coord-lock-search-v1.js?v=20260916-v71';
   s.async=false;
-  s.onerror=function(){window.__ASCENDA_COORD_V7_LOADER__=false;console.warn('[COORD-V7] asset unavailable');};
+  s.onerror=function(){window.__ASCENDA_COORD_V71_LOADER__=false;console.warn('[COORD-V7.1] asset unavailable');};
   document.head.appendChild(s);
 }
 function boot(){reconcileViewport();var ws=q('#workspace');if(ws){var obs=new MutationObserver(function(){applyPanelClass()});obs.observe(ws,{childList:true,subtree:false})}var timer=0;window.addEventListener('resize',function(){clearTimeout(timer);timer=setTimeout(reconcileViewport,80)});window.addEventListener('orientationchange',function(){setTimeout(reconcileViewport,120)});installBookingLinkCenterV38();installCoordV7()}
