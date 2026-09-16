@@ -2121,18 +2121,19 @@ setInterval(loadBrand, 1800000) // refresh cada 30 min
 // ═══ EMAIL TEMPLATE ENGINE — branding dinámico desde aos_configuracion ═══
 function emailShell(headerHtml, bodyHtml) {
   var logo = BRAND.logo_sin_fondo_url || BRAND.logo_con_fondo_url
-  var logoBlock = logo ? '<img src="' + logo + '" alt="' + BRAND.nombre_empresa + '" style="height:36px;margin-bottom:10px;display:block;" />' : ''
-  var hdrBg = BRAND.color_header || BRAND.color_dark || '#4a3728'
-  var hdrTxt = BRAND.color_header_texto || '#FFFFFF'
-  return '<div style="font-family:DM Sans,Arial,sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #E2E8F0">' +
-    '<div style="background:' + hdrBg + ';padding:28px 32px">' +
+  var logoBlock = logo ? '<img src="' + logo + '" alt="' + BRAND.nombre_empresa + '" style="height:42px;max-width:170px;object-fit:contain;margin-bottom:12px;display:block;" />' : ''
+  var hdrBg = BRAND.color_header || BRAND.color_primario || '#f0ebe0'
+  var hdrTxt = BRAND.color_header_texto || BRAND.color_texto || '#b89447'
+  return '<div style="margin:0;padding:26px 10px;background:#F6F7F9;font-family:DM Sans,Arial,sans-serif;color:#20314F">' +
+    '<div style="max-width:560px;margin:0 auto;background:#fff;border-radius:18px;overflow:hidden;border:1px solid #E7E3DA;box-shadow:0 12px 34px rgba(59,47,35,.10)">' +
+    '<div style="background:' + hdrBg + ';padding:26px 30px;border-bottom:1px solid #E6DDCD">' +
     logoBlock +
-    '<div style="color:' + BRAND.color_secundario + ';font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:8px">' + BRAND.nombre_empresa + '</div>' +
+    '<div style="color:' + BRAND.color_secundario + ';font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;margin-bottom:8px">' + BRAND.nombre_empresa + '</div>' +
     '<div style="color:' + hdrTxt + '">' + headerHtml + '</div>' +
     '</div>' +
-    '<div style="padding:28px 32px">' + bodyHtml + '</div>' +
-    '<div style="background:' + hdrBg + ';padding:14px 32px;text-align:center;font-size:11px;color:' + BRAND.color_secundario + '">' + BRAND.nombre_empresa + ' · info@zivital.pe</div>' +
-    '</div>'
+    '<div style="padding:28px 30px">' + bodyHtml + '</div>' +
+    '<div style="background:' + hdrBg + ';padding:14px 30px;text-align:center;font-size:10px;color:' + BRAND.color_secundario + '">' + BRAND.nombre_empresa + ' · info@zivital.pe</div>' +
+    '</div></div>'
 }
 function emailInfoBox(label, value) {
   return '<div style="margin-bottom:8px"><div style="font-size:11px;color:#94A3B8">' + label + '</div><div style="font-size:15px;font-weight:600;color:' + BRAND.color_secundario + '">' + value + '</div></div>'
