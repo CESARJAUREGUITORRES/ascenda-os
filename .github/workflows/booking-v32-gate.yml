@@ -1,0 +1,32 @@
+name: BOOKING-V3.2 Gate
+on:
+  pull_request:
+    paths:
+      - 'app/public/agendar-v2.html'
+      - 'app/public/clinic-shell-ui-v1.js'
+      - 'supabase/migrations/2026091605*.sql'
+      - 'supabase/migrations/2026091607*.sql'
+      - 'ci/booking-v3*/**'
+      - '.github/workflows/booking-v32-gate.yml'
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: BOOKING V3.1 contract
+        run: node ci/booking-v31/contract.js
+      - name: BOOKING V3.2 contract
+        run: node ci/booking-v32/contract.js
+      - name: Public booking inline JavaScript syntax
+        run: |
+          node - <<'NODE'
+          const fs=require('fs'),vm=require('vm');
+          const h=fs.readFileSync('app/public/agendar-v2.html','utf8');
+          const scripts=[...h.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(x=>x[1]);
+          if(!scripts.length)throw new Error('inline booking script missing');
+          scripts.forEach((s,i)=>new vm.Script(s,{filename:'agendar-v2-inline-'+i+'.js'}));
+          console.log('booking inline JS syntax PASS');
+          NODE

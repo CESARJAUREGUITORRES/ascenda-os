@@ -6,7 +6,7 @@ returns void language plpgsql security definer set search_path='public','pg_temp
 declare n record; f jsonb; begin
  for n in select id,event_type,metadata from public.aos_notificaciones where entity_id=p_agenda_id and event_type in ('APPOINTMENT_CREATED','ADMIN_APPOINTMENT_DIGEST') loop
   f:=public.aos_notification_format_booking_v31(n.event_type,n.metadata);
-  update public.aos_notificaciones set titulo=f->>'title',mensaje=f->>'body',updated_at=now() where id=n.id;
+  update public.aos_notificaciones set titulo=f->>'title',contenido=f->>'body',updated_at=now() where id=n.id;
  end loop;
 end $$;
 
