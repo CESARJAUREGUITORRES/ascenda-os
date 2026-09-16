@@ -1,0 +1,13 @@
+'use strict'
+const fs=require('fs'),assert=require('assert')
+const ui=fs.readFileSync('app/public/agendar-v2.html','utf8')
+const railway=fs.readFileSync('app/railway.json','utf8')
+const preload=fs.readFileSync('app/booking-v33-preload.js','utf8')
+const migration=fs.readFileSync('supabase/migrations/20260916151000_booking_v34_all_user_permanent_links.sql','utf8')
+assert(ui.includes('Agenda de Citas')&&!ui.includes('<b>ASCENDA · ZI VITAL</b>'))
+assert(ui.includes('/api/booking/public-confirmation-v33')&&!ui.includes("if(email)fetch('/api/send-template'"))
+assert(railway.includes('--require ./booking-v33-preload.js'))
+assert(preload.includes("p==='/api/booking/public-confirmation-v33'"))
+assert(migration.includes('from public.aos_usuarios u')&&migration.includes('u.activo=true'))
+assert(!migration.includes("upper(coalesce(rol,'')) in ('ASESOR','ADMIN')"))
+console.log('BOOKING-V3.4 contract PASS')
