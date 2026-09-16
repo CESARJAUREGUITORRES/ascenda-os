@@ -28,7 +28,7 @@ begin
   select * into l from public.aos_links_agenda where token=p_token and expira_at>now();
   if not found then return jsonb_build_object('source_channel','UNKNOWN','advisor_code','ORGANICO'); end if;
   ch:=upper(coalesce(nullif(trim(l.source_channel),''),case when lower(coalesce(l.tipo,'')) in ('asesor','paciente_especifico') then 'ADVISOR_LINK' else 'LINK' end));
-  camp:=nullif(trim(coalesce(l.campaign_code,l.campaign_name)), '');
+  camp:=nullif(coalesce(nullif(trim(l.campaign_code),''),nullif(trim(l.campaign_name),'')),'');
   return jsonb_build_object('source_channel',ch,'source_campaign',camp,'advisor_code',coalesce(nullif(trim(l.asesor_codigo),''),'ORGANICO'),'link_type',l.tipo);
 end;
 $$;
