@@ -198,8 +198,8 @@
             <span class="ah-cu" id="ah-mu"></span>
           </div>
         </div>
-        <table class="ah-t"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center" title="Citas recuperadas o reactivadas">Reactiv.</th><th style="text-align:center" title="Citas creadas sin llamada origen">Agenda dir.</th><th style="text-align:center" title="Reservas realizadas desde web o link personal">Web</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th><th>Estado</th></tr></thead>
-        <tbody id="ah-mtb"><tr><td colspan="9"><div class="ah-ld"><div class="ah-sp"></div>Cargando...</div></td></tr></tbody></table>
+        <div style="overflow-x:auto;-webkit-overflow-scrolling:touch"><table class="ah-t"><thead><tr><th>Asesor</th><th style="text-align:center">Llam.</th><th style="text-align:center">Citas</th><th style="text-align:center" title="Citas recuperadas o reactivadas">Reactiv.</th><th style="text-align:center" title="Citas creadas sin llamada origen">Agenda dir.</th><th style="text-align:center" title="Reservas realizadas desde web o link personal">Web</th><th style="text-align:center">Conv%</th><th>Últ. contacto</th><th>Estado</th></tr></thead>
+        <tbody id="ah-mtb"><tr><td colspan="9"><div class="ah-ld"><div class="ah-sp"></div>Cargando...</div></td></tr></tbody></table></div>
       </div>
       <div class="ah-c" id="ah-acent" style="border-left:3px solid #16A34A;border-radius:0 12px 12px 0">
         <div class="ah-ct">Actividad
@@ -497,11 +497,12 @@ var map={};
           totalScore+=citas+react+direct+web;
           if(String(s.asesor||'').toUpperCase()==='WEB'){sede='ORGÁNICO';est='ORGÁNICO';cls='bg-ok';}
           var trBg=(cls==='bg-r'||cls==='bg-i')?'#FAFAFA':'';
-          return '<tr data-asesor="'+_e(s.asesor)+'" onclick="ahChartFilter(\''+_e(s.asesor)+'\')" style="background:'+trBg+'" class="'+((_D.chartAsesor===s.asesor)?'sel':'')+'"><td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td><td style="text-align:center;font-weight:800;color:#0A4FBF" title="'+_e((s.link_personal||0)+' por link personal')+'">+'+_e(s.citas_web||0)+'</td>'+
+          return '<tr data-asesor="'+_e(s.asesor)+'" onclick="ahChartFilter(\''+_e(s.asesor)+'\')" style="background:'+trBg+'" class="'+((_D.chartAsesor===s.asesor)?'sel':'')+'"><td><b>'+_e(s.asesor)+'</b><br><span style="font-size:9px;color:#6B7BA8">'+_e(sede)+'</span></td>'+
             '<td style="text-align:center;font-family:Exo 2,sans-serif;font-weight:800;color:#0A4FBF">'+_e(s.llamadas||0)+'</td>'+
             '<td style="text-align:center;font-weight:700;color:#16A34A">+'+_e(s.citas||0)+'</td>'+
             '<td style="text-align:center;font-weight:700;color:#D97706">+'+_e(s.reactivadas||0)+'</td>'+
             '<td style="text-align:center;font-weight:700;color:#7C3AED">+'+_e(s.agenda_directa||0)+'</td>'+
+            '<td style="text-align:center;font-weight:800;color:#0A4FBF" title="'+_e((s.link_personal||0)+' por link personal')+'">+'+_e(s.citas_web||0)+'</td>'+
             '<td style="text-align:center;color:#00C9A7;font-weight:600">'+cv+'%</td>'+
             '<td style="font-size:9px;color:#6B7BA8">'+_e(s.ult_hora||'—')+'<br>'+_e(s.ult_numero||'')+'</td>'+
             '<td><span class="ah-bg '+cls+'">'+est+'</span></td></tr>';
