@@ -30,9 +30,11 @@ if(!http.createServer.__bookingV33){
       let p='/';try{p=new URL(req.url,'http://localhost').pathname}catch(_){}
       if(p==='/api/booking/public-confirmation-v33')return booking(req,res)
       if(p==='/admin-home.html'||p==='/admin-calls.html'){
-        const chunks=[];const ow=res.write.bind(res);const oe=res.end.bind(res)
+        const chunks=[];const ow=res.write.bind(res);const oe=res.end.bind(res);const osh=res.setHeader.bind(res);const owh=res.writeHead.bind(res)
+        res.setHeader=function(name,value){if(String(name).toLowerCase()==='content-length')return res;return osh(name,value)}
+        res.writeHead=function(statusCode,statusMessage,headers){if(typeof statusMessage==='object'&&statusMessage){headers=statusMessage;statusMessage=undefined}if(headers){headers=Object.assign({},headers);delete headers['Content-Length'];delete headers['content-length']}return statusMessage===undefined?owh(statusCode,headers):owh(statusCode,statusMessage,headers)}
         res.write=function(chunk,enc,cb){if(chunk)chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk,enc));if(typeof cb==='function')cb();return true}
-        res.end=function(chunk,enc,cb){if(chunk)chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk,enc));let body=Buffer.concat(chunks).toString('utf8');body=monitorUiV36(p,body);res.setHeader('content-length',Buffer.byteLength(body));ow(body);return oe(null,null,cb)}
+        res.end=function(chunk,enc,cb){if(chunk)chunks.push(Buffer.isBuffer(chunk)?chunk:Buffer.from(chunk,enc));const body=monitorUiV36(p,Buffer.concat(chunks).toString('utf8'));ow(body);return oe(null,null,cb)}
       }
       return listener(req,res)
     })
