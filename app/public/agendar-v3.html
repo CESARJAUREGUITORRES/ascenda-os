@@ -303,7 +303,7 @@ async function futureCount(prof){
  let now=new Date(),total=0,today=now.toISOString().slice(0,10);
  for(let off=0;off<3;off++){
   let x=new Date(now.getFullYear(),now.getMonth()+off,1);
-  try{let d=await rpc('aos_dias_con_turno',{p_profesional_id:prof.id,p_anio:x.getFullYear(),p_mes:x.getMonth()+1});total+=(d||[]).filter(function(v){return String(v)>=today}).length}catch(_){}
+  try{let d=await rpc('aos_booking_provider_days_v3',{p_profesional_id:String(prof.id),p_anio:x.getFullYear(),p_mes:x.getMonth()+1,p_sede:SITE});total+=(d||[]).filter(function(v){return String(v)>=today}).length}catch(_){}
  }
  return total;
 }
@@ -334,7 +334,7 @@ async function ensureDays(y,m){
  try{
   if(AG.route==='DOCTORA'){
    if(!AG.selProf)return [];
-   d=await rpc('aos_dias_con_turno',{p_profesional_id:AG.selProf.id,p_anio:y,p_mes:m});
+   d=await rpc('aos_booking_provider_days_v3',{p_profesional_id:String(AG.selProf.id),p_anio:y,p_mes:m,p_sede:SITE});
   }else{
    d=await rpc('aos_booking_pool_days_v3',{p_role:'ENFERMERIA',p_anio:y,p_mes:m,p_sede:SITE});
   }
