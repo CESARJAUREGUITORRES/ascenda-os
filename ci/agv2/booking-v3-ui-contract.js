@@ -1,0 +1,26 @@
+'use strict';
+const fs=require('fs');
+const page=fs.readFileSync('app/public/agendar-v2.html','utf8');
+const redirect=fs.readFileSync('app/public/agendar.html','utf8');
+function ok(v,m){if(!v){console.error('BOOKING-V3 UI CONTRACT FAIL:',m);process.exit(1)}}
+ok(redirect.includes('agendar-v2.html'),'legacy /agendar entry no longer routes to booking authority UI');
+ok(page.includes("p.get('t')||p.get('token')"),'personalized token compatibility missing');
+ok(page.includes('aos_links_agenda?token=eq.'),'link validation missing');
+ok(page.includes('Selecciona profesional'),'provider-first UI missing');
+ok(page.includes('aos_perfiles_profesional?visible=eq.true'),'visible professional profiles missing');
+ok(page.includes('foto_url'),'professional photo support missing');
+ok(page.includes('cmp'),'CMP support missing');
+ok(page.includes('aos_dias_con_turno'),'real schedule-day presentation missing');
+ok(page.includes('class="cg"'),'calendar grid missing');
+ok(page.includes('class="sgrid"'),'slot grid missing');
+ok(page.includes('Datos del paciente vinculados al link'),'personalized patient prefill missing');
+ok(page.includes("rpc('aos_booking_availability_v2'"),'V2 availability authority missing');
+ok(page.includes("rpc('aos_agendar_publica_v2'"),'V2 public booking write missing');
+ok(!page.includes("rpc('aos_agendar_publica',"),'legacy public booking write reintroduced');
+ok(page.includes('p_treatment_id:AG.selTreatment.id'),'booking treatment id missing');
+ok(page.includes("p_profesional_id:AG.role==='DOCTORA'"),'exact-provider booking missing');
+ok(page.includes("template:'confirmacion_cita'"),'confirmation email side effect missing');
+ok(page.includes('ASCENDA_BOOKING_V3 source='),'booking source seed missing');
+ok(page.includes('@media(max-width:560px)'),'mobile breakpoint missing');
+ok(page.includes('.pgrid{display:grid;grid-template-columns'),'professional responsive grid missing');
+console.log('BOOKING-V3 recovered public booking UI contract: PASS');
