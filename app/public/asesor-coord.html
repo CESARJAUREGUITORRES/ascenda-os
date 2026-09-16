@@ -129,9 +129,13 @@ function rACt(c){
     +'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><div class="ACt">'+A(c.ultimo_mensaje_at)+'</div>'
     +(c.no_leidos>0?'<div class="ACu">'+c.no_leidos+'</div>':'')+'</div></div>';
 }
-function aSel(id){AD.ac=id;aCL();aMs(id);rpc('aos_marcar_leido',{p_canal:id,p_usuario:ME},function(){});rpc('aos_marcar_visto',{p_canal:id,p_usuario:ME},function(){});}
+function aDraft(v){AD.drafts=AD.drafts||{};if(AD.ac)AD.drafts[AD.ac]=String(v==null?'':v);}
+function aSaveDraft(){var inp=document.getElementById('aInp');if(inp&&AD.ac)aDraft(inp.value);}
+function aSel(id){aSaveDraft();AD.ac=id;aCL();aMs(id);rpc('aos_marcar_leido',{p_canal:id,p_usuario:ME},function(){});rpc('aos_marcar_visto',{p_canal:id,p_usuario:ME},function(){});}
 function aMs(id){q('aos_mensajes','select=*&canal=eq.'+encodeURIComponent(id)+'&order=created_at.asc&limit=300',function(m){AD.ms=m||[];aRChat();});}
 function aRChat(){
+  var prev=document.getElementById('aInp'),hadFocus=prev&&document.activeElement===prev,selStart=prev&&typeof prev.selectionStart==='number'?prev.selectionStart:null,selEnd=prev&&typeof prev.selectionEnd==='number'?prev.selectionEnd:null;
+  AD.drafts=AD.drafts||{};if(prev&&AD.ac)AD.drafts[AD.ac]=prev.value;
   var cv=document.getElementById('aChat');var ch=AD.ch.find(function(c){return c.id===AD.ac;});
   if(!ch){cv.innerHTML='<div class="AEmpty"><div style="font-size:14px;font-weight:700;color:#475569">Selecciona un chat</div></div>';return;}
   var isPeer=ch.tipo==='PEER';var ig=ch.tipo==='GRUPO'||ch.tipo==='BROADCAST';
@@ -156,11 +160,12 @@ function aRChat(){
     }
     html+='<div class="Amt">'+E(m.de)+' · '+tm+'</div></div></div>';
   });
-  html+='</div><div class="AMf"><input type="file" id="aFile" style="display:none" onchange="aUpFile(this)"><button style="width:36px;height:36px;border-radius:50%;border:none;background:#f0f4fc;color:#64748b;font-size:14px;cursor:pointer;flex-shrink:0" onclick="document.getElementById(\'aFile\').click()">📎</button><input type="text" id="aInp" placeholder="Escribe o pega imagen..." onkeydown="if(event.key===\'Enter\')aSend()"><button class="ASend" onclick="aSend()">&#10148;</button></div>';
+  html+='</div><div class="AMf"><input type="file" id="aFile" style="display:none" onchange="aUpFile(this)"><button style="width:36px;height:36px;border-radius:50%;border:none;background:#f0f4fc;color:#64748b;font-size:14px;cursor:pointer;flex-shrink:0" onclick="document.getElementById(\'aFile\').click()">📎</button><input type="text" id="aInp" placeholder="Escribe o pega imagen..." oninput="aDraft(this.value)" onkeydown="if(event.key===\'Enter\')aSend()"><button class="ASend" onclick="aSend()">&#10148;</button></div>';
   cv.innerHTML=html;
   var md=document.getElementById('aMsgs');if(md)md.scrollTop=md.scrollHeight;
   // Paste → preview
   var inp=document.getElementById('aInp');
+  if(inp){inp.value=(AD.drafts&&AD.drafts[AD.ac])||'';if(hadFocus){inp.focus();try{inp.setSelectionRange(selStart==null?inp.value.length:Math.min(selStart,inp.value.length),selEnd==null?inp.value.length:Math.min(selEnd,inp.value.length));}catch(_){}}}
   if(inp)inp.addEventListener('paste',function(e){
     var items=e.clipboardData&&e.clipboardData.items;if(!items)return;
     for(var i=0;i<items.length;i++){
@@ -194,7 +199,7 @@ function aSend(){
     var el=document.getElementById('aPrev');if(el)el.style.display='none';
     return;
   }
-  var inp=document.getElementById('aInp');if(!inp||!inp.value.trim()||!AD.ac)return;var msg=inp.value.trim();inp.value='';inp.focus();rpc('aos_enviar_mensaje',{p_canal:AD.ac,p_de:ME,p_mensaje:msg},function(r){if(r&&r.ok){aMs(AD.ac);aLoad();}});
+  var inp=document.getElementById('aInp');if(!inp||!inp.value.trim()||!AD.ac)return;var msg=inp.value.trim();inp.value='';if(AD.drafts)AD.drafts[AD.ac]='';inp.focus();rpc('aos_enviar_mensaje',{p_canal:AD.ac,p_de:ME,p_mensaje:msg},function(r){if(r&&r.ok){aMs(AD.ac);aLoad();}});
 }
 function aUpFile(input){var file=input.files[0];if(!file||!AD.ac)return;aUpBlob(file,Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,''));input.value='';}
 function aUpBlob(file,name){
