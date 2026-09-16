@@ -25,7 +25,7 @@
 .Am.me .Ama{display:none}
 .Amc{padding:10px 14px;font-size:12px;line-height:1.55;word-wrap:break-word}
 .Am.me .Amc{background:#00C9A7;color:#fff;border-radius:18px 18px 4px 18px;box-shadow:0 1px 3px rgba(0,201,167,.2)}
-.Am.th .Amc{background:#fff;color:#0f172a;border-radius:18px 18px 18px 4px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.Am.th .Amc{background:#fff;color:#0f172a;border-radius:18px 18px 18px 4px;box-shadow:0 1px 3px rgba(0,0,0,.06)}.Am.auto .Amc{background:linear-gradient(135deg,#F8FBFF,#F0FDFA);color:#0f172a;border:1px solid #BFDBFE;border-left:4px solid #0A4FBF;border-radius:14px;box-shadow:0 4px 14px rgba(10,79,191,.08);max-width:560px}.Am.auto .Amt{color:#6B7BA8}.AmAutoTag{font-size:8px;font-weight:800;letter-spacing:.5px;color:#0A4FBF;text-transform:uppercase;margin-bottom:7px}
 .Amt{font-size:8px;margin-top:3px}.Am.me .Amt{color:rgba(255,255,255,.5);text-align:right}.Am.th .Amt{color:#94a3b8}
 .AMf{padding:12px 20px;background:#fff;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:10px}
 .AMf input{flex:1;padding:12px 18px;border-radius:26px;border:1.5px solid #e5e7eb;font-size:12px;font-family:'DM Sans';outline:none;color:#0f172a;background:#f7f8fc;transition:all .2s}.AMf input:focus{border-color:#00C9A7;background:#fff;box-shadow:0 0 0 4px rgba(0,201,167,.08)}
@@ -132,7 +132,15 @@ function rACt(c){
 function aDraft(v){AD.drafts=AD.drafts||{};if(AD.ac)AD.drafts[AD.ac]=String(v==null?'':v);}
 function aSaveDraft(){var inp=document.getElementById('aInp');if(inp&&AD.ac)aDraft(inp.value);}
 function aSel(id){aSaveDraft();AD.ac=id;aCL();aMs(id);rpc('aos_marcar_leido',{p_canal:id,p_usuario:ME},function(){});rpc('aos_marcar_visto',{p_canal:id,p_usuario:ME},function(){});}
-function aMs(id){q('aos_mensajes','select=*&canal=eq.'+encodeURIComponent(id)+'&order=created_at.asc&limit=300',function(m){AD.ms=m||[];aRChat();});}
+function aIsTyping(id){
+  var inp=document.getElementById('aInp');
+  if(!inp)return false;
+  var same=String(inp.getAttribute('data-canal')||'')===String(id||'');
+  if(!same)return false;
+  var draft=(AD.drafts&&AD.drafts[id])||'';
+  return document.activeElement===inp||inp.value.length>0||String(draft).length>0;
+}
+function aMs(id){q('aos_mensajes','select=*&canal=eq.'+encodeURIComponent(id)+'&order=created_at.asc&limit=300',function(m){AD.ms=m||[];if(aIsTyping(id)){AD.pendingRender=true;return;}AD.pendingRender=false;aRChat();});}
 function aRChat(){
   var prev=document.getElementById('aInp'),hadFocus=prev&&document.activeElement===prev,selStart=prev&&typeof prev.selectionStart==='number'?prev.selectionStart:null,selEnd=prev&&typeof prev.selectionEnd==='number'?prev.selectionEnd:null;
   AD.drafts=AD.drafts||{};if(prev&&AD.ac)AD.drafts[AD.ac]=prev.value;
@@ -148,19 +156,21 @@ function aRChat(){
   AD.ms.forEach(function(m){
     if(m.eliminado)return;
     var d=new Date(m.created_at);var ds=d.toLocaleDateString('es-PE',{day:'numeric',month:'short'});if(ds!==ld){html+='<div class="AMd">'+ds+'</div>';ld=ds;}
-    var me=m.de===ME;var tm=d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
-    html+='<div class="Am '+(me?'me':'th')+'">';if(!me)html+='<div class="Ama" style="background:'+C(m.de)+'">'+I(m.de)+'</div>';
+    var auto=m.tipo==='CITA_AUTO';var me=!auto&&m.de===ME;var tm=d.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'});
+    html+='<div class="Am '+(me?'me':'th')+(auto?' auto':'')+'">';if(!me)html+='<div class="Ama" style="background:'+C(m.de)+'">'+I(m.de)+'</div>';
     html+='<div>';
     if(m.tipo_contenido==='imagen'&&m.archivo_id){
       html+='<div class="Amc" style="padding:4px"><img style="max-width:200px;border-radius:10px;cursor:pointer" src="'+SB+'/storage/v1/object/public/coordinacion/'+E(m.mensaje)+'" onclick="window.open(this.src)"></div>';
     }else if(m.tipo_contenido==='archivo'&&m.archivo_id){
       html+='<div class="Amc"><div style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:rgba(0,0,0,.04);border-radius:8px;font-size:10px;cursor:pointer" onclick="window.open(\''+SB+'/storage/v1/object/public/coordinacion/'+E(m.mensaje)+'\')">📎 '+E(m.mensaje)+'</div></div>';
+    }else if(auto){
+      html+='<div class="Amc"><div class="AmAutoTag">⚡ Cita automática</div>'+E(m.mensaje).replace(/\n/g,'<br>')+'</div>';
     }else{
       html+='<div class="Amc">'+E(m.mensaje)+(m.editado?' <span style="font-size:8px;opacity:.5">(editado)</span>':'')+'</div>';
     }
     html+='<div class="Amt">'+E(m.de)+' · '+tm+'</div></div></div>';
   });
-  html+='</div><div class="AMf"><input type="file" id="aFile" style="display:none" onchange="aUpFile(this)"><button style="width:36px;height:36px;border-radius:50%;border:none;background:#f0f4fc;color:#64748b;font-size:14px;cursor:pointer;flex-shrink:0" onclick="document.getElementById(\'aFile\').click()">📎</button><input type="text" id="aInp" placeholder="Escribe o pega imagen..." oninput="aDraft(this.value)" onkeydown="if(event.key===\'Enter\')aSend()"><button class="ASend" onclick="aSend()">&#10148;</button></div>';
+  html+='</div><div class="AMf"><input type="file" id="aFile" style="display:none" onchange="aUpFile(this)"><button style="width:36px;height:36px;border-radius:50%;border:none;background:#f0f4fc;color:#64748b;font-size:14px;cursor:pointer;flex-shrink:0" onclick="document.getElementById(\'aFile\').click()">📎</button><input type="text" id="aInp" data-canal="'+E(AD.ac)+'" placeholder="Escribe o pega imagen..." oninput="aDraft(this.value)" onblur="if(AD.pendingRender){AD.pendingRender=false;setTimeout(aRChat,0)}" onkeydown="if(event.key===\'Enter\')aSend()"><button class="ASend" onclick="aSend()">&#10148;</button></div>';
   cv.innerHTML=html;
   var md=document.getElementById('aMsgs');if(md)md.scrollTop=md.scrollHeight;
   // Paste → preview
