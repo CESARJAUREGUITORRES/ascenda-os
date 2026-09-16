@@ -232,3 +232,12 @@ Canonical local routing:
 Global sibling registry: `AscendaSoftyInc/ascenda-softy/docs/operations/PROJECT_REGISTRY_CURRENT.md`.
 
 Do not reconnect providers solely because an invited project is absent from generic listings; direct canonical-ID readback is the routing proof. Do not persist publishable keys, passwords, service keys or connection strings in project memory.
+
+
+## 2026-09-16 — Agenda V3 closed; Commercial Intelligence / Audience panel resumes
+
+- Agenda V3 functional canary is complete for doctor and nursing routes, patient lookup, WEB/ADVISOR_LINK attribution, push/in-app, Coordination/Comercial report, branded confirmation email, Google Calendar/Contacts, monitoring and success auto-return.
+- Theme integration is frozen as presentation-only: WordPress/Ascenda Clinic Theme must reuse ASCENDA OS booking authority, not create a second agenda/backend.
+- Next product lane requested by owner: resume **Commercial Intelligence & Audience OS V3** and the specialized admin panel for reusable databases/audiences across Call Center and Email.
+- Resume from `docs/control/commercial-intelligence/CIA_RESUME_AFTER_BOOKING_20260916.md`; do not reconstruct the audience product from scratch.
+- Preserve Agenda lessons: canonical IDs internally + human labels in UI; one ledger/authority; source/owner/channel as separate dimensions; event-driven side effects; fail-closed unknowns; no mass source rewrites; controlled preview→mutation→readback→invariant→idempotency loop; avoid polling/query storms.
