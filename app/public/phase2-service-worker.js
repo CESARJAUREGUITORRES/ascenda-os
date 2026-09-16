@@ -154,6 +154,14 @@ self.addEventListener('fetch',function(event){
       return rpcFrom(req,'aos_booking_advisor_link_dashboard_v38',p);
     })());return;
   }
+  if(rm&&(rm[1]==='aos_coord_set_channel_lock_v1'||rm[1]==='aos_coord_search_messages_v1')){
+    event.respondWith((async function(){
+      var p=await requestJson(req),t=String(await getToken()).trim();
+      if(t.length<32)return json({ok:false,error:'COORD_APP_SESSION_REQUIRED'},401);
+      p.p_token=t;
+      return rpcFrom(req,rm[1],p);
+    })());return;
+  }
   if(rm&&rm[1]==='aos_list_notificaciones'){
     event.respondWith(notificationApi('/api/notifications/inbox?limit=30','GET'));return;
   }
