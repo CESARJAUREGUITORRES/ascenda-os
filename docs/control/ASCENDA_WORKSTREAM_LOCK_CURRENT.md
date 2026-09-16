@@ -74,3 +74,24 @@ Design rules:
 3. After owner PASS, one personal-link booking per advisor.
 
 These checks do **not** block starting `AGENDA-UX-V1`; they block only final BOOKING-V3.9 certification.
+
+
+## COORD-V7 — Chat lock + conversation search · 16/09/2026
+
+- Admin Coordination now has per-chat **Buscar** and **Bloquear/Desbloquear** controls.
+- Lock is enforced server-side, not only visually:
+  - human text/messages are rejected while locked,
+  - direct message inserts/edits/deletes are guarded,
+  - attachments are disabled in the UI and guarded by the message lock,
+  - `CITA_AUTO` remains explicitly allowed so operational appointment reports continue entering the channel.
+- Lock audit fields live on `aos_canales`: `bloqueado`, `bloqueado_por`, `bloqueado_at`.
+- Lock mutation is governed by `aos_coord_set_channel_lock_v1` and requires a valid Auth V3 app session with ADMIN role.
+- Invalid-token tests for lock/search both return `UNAUTHORIZED`.
+- Search uses governed `aos_coord_search_messages_v1` and can match sender or message content in the active channel (patient name, DNI, phone, treatment, observations, etc.), up to 100 results.
+- Advisor Coordination receives the same conversation-search capability and lock-state UI, but no unlock/lock authority.
+- `aos_mis_mensajes` now returns lock state to advisor surfaces.
+- UI runtime asset: `app/public/coord-lock-search-v1.js`; app-session injection handled in `phase2-service-worker.js`.
+- JavaScript syntax checks passed for the new runtime asset, clinic shell loader and service worker.
+- Railway deployment `b96dea33-ab91-4878-9e04-42e30442605f` / commit `b33a6c219ff489b7d4628756c6e2ad74bec1fd76`: **SUCCESS**.
+- Comercial is **not auto-locked**; owner can decide per chat. This preserves current operation while enabling a report-only mode when desired.
+- Human micro-canary: open Comercial → search `Danilo` or DNI `08325370` → lock chat → verify composer disappears/blocks messages → confirm automatic appointment reports still arrive → unlock if desired.
