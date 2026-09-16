@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#071D4A">
+<title>Agenda tu cita — Zi Vital</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Exo+2:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+ --pri:#071D4A;--blue:#0A4FBF;--cyan:#00C9A7;--cyan2:#7EF2D6;--bg:#EEF3FB;--card:#fff;--text:#10203F;--muted:#6E7D9D;
+ --border:#DDE5F3;--green:#0A9A82;--danger:#B91C1C;--gold:#D7A84F;--shadow:0 24px 70px rgba(7,29,74,.12)
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:
+ radial-gradient(circle at 12% 0%,rgba(0,201,167,.10),transparent 30%),
+ radial-gradient(circle at 88% 8%,rgba(10,79,191,.13),transparent 34%),
+ linear-gradient(180deg,#F8FBFF 0,#EEF3FB 42%,#F4F7FC 100%);
+ color:var(--text);min-height:100vh}
+button,input,select,textarea{font-family:inherit}
+button{touch-action:manipulation}
+.app-hero{position:relative;overflow:hidden;padding:22px 18px 42px;background:
+ radial-gradient(circle at 86% 20%,rgba(84,168,255,.34),transparent 28%),
+ radial-gradient(circle at 8% 100%,rgba(0,229,160,.22),transparent 26%),
+ linear-gradient(135deg,#061A43 0%,#0A3E98 52%,#0D63D6 100%);color:#fff}
+.app-hero:before,.app-hero:after{content:"";position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.10)}
+.app-hero:before{width:360px;height:360px;right:-130px;top:-230px}
+.app-hero:after{width:240px;height:240px;left:-120px;bottom:-160px}
+.hero-inner{max-width:1080px;margin:auto;position:relative;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.brandrow{display:flex;align-items:center;gap:11px}
+.brandmark{width:42px;height:42px;border-radius:14px;background:rgba(255,255,255,.13);backdrop-filter:blur(10px);display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:9px;box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 10px 28px rgba(0,0,0,.12)}
+.brandmark i{display:block;border-radius:4px}.brandmark i:nth-child(1){background:#0FE0A9}.brandmark i:nth-child(2){background:#50BCFF}.brandmark i:nth-child(3){background:#5D8BFF}.brandmark i:nth-child(4){background:#fff}
+.hero-copy small{font-size:10px;letter-spacing:.9px;text-transform:uppercase;font-weight:800;color:#8DF5DE}
+.hero-copy h1{font:800 clamp(23px,4vw,34px) 'Exo 2';line-height:1.05;margin-top:4px}
+.hero-copy p{font-size:11px;color:rgba(255,255,255,.72);margin-top:7px;max-width:540px}
+.hero-pill{padding:10px 13px;border:1px solid rgba(255,255,255,.18);border-radius:999px;background:rgba(255,255,255,.10);backdrop-filter:blur(10px);font-size:10px;font-weight:700;white-space:nowrap}
+.shell{max-width:1080px;margin:-18px auto 48px;padding:0 18px;position:relative;z-index:3}
+.progress-card{background:rgba(255,255,255,.88);border:1px solid rgba(221,229,243,.86);box-shadow:0 12px 38px rgba(7,29,74,.08);border-radius:16px;padding:11px 14px;backdrop-filter:blur(16px);display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.progress-card .pitem{display:flex;align-items:center;gap:7px;min-width:0;flex:1}
+.pnum{width:25px;height:25px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#E9EFF9;color:#8290AC;font:800 10px 'Exo 2';flex:none}
+.pitem.on .pnum{background:linear-gradient(135deg,var(--blue),var(--cyan));color:#fff;box-shadow:0 5px 14px rgba(10,79,191,.24)}
+.plabel{font-size:9px;font-weight:800;color:#92A0BA;text-transform:uppercase;letter-spacing:.45px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pitem.on .plabel{color:#18315F}.pline{height:2px;background:#E4EAF5;flex:0 0 26px}
+.step{display:none;animation:stepIn .3s ease}.step.act{display:block}
+@keyframes stepIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.panel{background:rgba(255,255,255,.94);border:1px solid rgba(221,229,243,.92);border-radius:24px;padding:clamp(16px,2.5vw,28px);box-shadow:var(--shadow);backdrop-filter:blur(16px)}
+.kicker{font:800 10px 'Exo 2';color:var(--blue);letter-spacing:1.1px;text-transform:uppercase}
+.title{font:800 clamp(22px,3vw,31px) 'Exo 2';margin-top:5px;color:#0C214B}.sub{font-size:12px;color:var(--muted);line-height:1.55;margin-top:7px}
+.domain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:22px}
+.domain-card{position:relative;overflow:hidden;min-height:265px;border-radius:22px;border:1px solid rgba(255,255,255,.66);cursor:pointer;box-shadow:0 15px 38px rgba(19,42,91,.11),inset 0 1px 0 rgba(255,255,255,.75);transform-style:preserve-3d;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease;text-align:left;background:#fff}
+.domain-card:hover{transform:translateY(-6px) rotateX(1deg);box-shadow:0 24px 55px rgba(19,42,91,.17)}
+.domain-card.sel{outline:3px solid rgba(0,201,167,.25);border-color:var(--cyan)}
+.domain-art{height:164px;position:relative;overflow:hidden}
+.domain-art:before{content:"";position:absolute;width:190px;height:190px;border-radius:50%;right:-46px;top:-66px;background:rgba(255,255,255,.32);filter:blur(1px)}
+.domain-art:after{content:"";position:absolute;width:120px;height:120px;border-radius:38px;left:28px;bottom:-62px;background:rgba(255,255,255,.2);transform:rotate(28deg)}
+.domain-art.facial{background:linear-gradient(145deg,#DFF8F2,#A4DFFF 54%,#7DA3FF)}
+.domain-art.corporal{background:linear-gradient(145deg,#F9E6E4,#E8C0F7 52%,#8EA9FF)}
+.domain-art.capilar{background:linear-gradient(145deg,#E8F7D8,#A5E5D0 50%,#61AFC8)}
+.art-orb{position:absolute;left:50%;top:50%;transform:translate(-50%,-48%);width:112px;height:112px;border-radius:38% 62% 55% 45%/46% 48% 52% 54%;background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(255,255,255,.45));box-shadow:18px 22px 38px rgba(18,50,103,.16),inset 6px 6px 18px rgba(255,255,255,.75),inset -8px -8px 20px rgba(26,88,147,.10);display:flex;align-items:center;justify-content:center;font-size:50px}
+.domain-card-body{padding:16px 17px 18px}.domain-card h3{font:800 18px 'Exo 2';color:#10244E}.domain-card p{font-size:10px;color:#6A7896;line-height:1.5;margin-top:5px}.domain-link{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:10px;color:var(--blue);font-weight:800}.domain-link span:last-child{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#EFF5FF}
+.section-top{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.back{border:0;background:#EEF4FF;color:var(--blue);border-radius:10px;padding:9px 11px;font-size:10px;font-weight:800;cursor:pointer}
+.searchbox{margin-top:18px;display:flex;align-items:center;gap:9px;padding:11px 13px;border:1px solid var(--border);background:#F8FAFE;border-radius:13px}.searchbox input{border:0;outline:0;background:transparent;flex:1;min-width:0;font-size:12px;color:var(--text)}
+.chips{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.chip{border:1px solid var(--border);background:#fff;color:#687894;border-radius:999px;padding:7px 10px;font-size:9px;font-weight:800;cursor:pointer}.chip.act{background:#EAF4FF;border-color:#B8D6FF;color:#0A4FBF}
+.treat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.treat{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--border);border-radius:15px;background:#fff;cursor:pointer;text-align:left;transition:.18s;min-width:0}.treat:hover{border-color:#AFCBFF;box-shadow:0 8px 20px rgba(10,79,191,.08);transform:translateY(-2px)}.treat.sel{border-color:var(--cyan);background:linear-gradient(135deg,#F6FFFC,#F2F8FF);box-shadow:0 8px 24px rgba(0,201,167,.10)}
+.ticon{width:46px;height:46px;flex:none;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:21px;background:linear-gradient(145deg,#F0F5FF,#E5FAF5);box-shadow:inset 0 1px 0 #fff,0 5px 12px rgba(7,29,74,.08)}
+.tinfo{min-width:0;flex:1}.tname{font-size:11px;font-weight:800;color:#14274E;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.tmeta{font-size:8px;color:#8290AC;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}.route-badge{font-size:8px;font-weight:800;border-radius:999px;padding:4px 7px;background:#EDF5FF;color:#0A4FBF;flex:none}
+.route-box{margin-top:16px;padding:14px;border:1px dashed #BFD0ED;border-radius:15px;background:#F8FBFF}.route-box h4{font-size:11px;color:#17315E}.route-box p{font-size:9px;color:#71809B;margin-top:3px}
+.route-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.route-card{border:1px solid var(--border);background:#fff;border-radius:13px;padding:12px;text-align:left;cursor:pointer}.route-card:hover,.route-card.sel{border-color:var(--cyan);background:#F0FFFB}.route-card b{display:block;font-size:11px}.route-card span{display:block;font-size:9px;color:#7886A0;margin-top:3px;line-height:1.35}
+.booking-layout{display:grid;grid-template-columns:310px minmax(0,1fr);gap:16px;align-items:start}
+.context-card{background:linear-gradient(180deg,#FFFFFF,#F5F8FE);border:1px solid var(--border);border-radius:20px;overflow:hidden;box-shadow:0 12px 30px rgba(7,29,74,.08);position:sticky;top:12px}
+.context-visual{height:210px;background:linear-gradient(145deg,#E9F2FF,#E5FCF5);position:relative;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+.context-visual img{width:100%;height:100%;object-fit:contain;object-position:center bottom;display:block;filter:drop-shadow(0 14px 18px rgba(7,29,74,.16))}
+.team-art{width:138px;height:138px;border-radius:36% 64% 55% 45%/47% 44% 56% 53%;margin-bottom:28px;background:linear-gradient(145deg,#fff,#C9F3E8);box-shadow:16px 20px 32px rgba(10,79,191,.14),inset 7px 7px 17px #fff,inset -8px -8px 20px rgba(0,150,120,.10);display:flex;align-items:center;justify-content:center;font-size:56px}
+.context-body{padding:16px}.ctx-label{font-size:8px;text-transform:uppercase;letter-spacing:.7px;color:#7B8AA4;font-weight:800}.ctx-title{font:800 18px 'Exo 2';margin-top:3px}.ctx-sub{font-size:10px;color:#6D7B98;line-height:1.5;margin-top:4px}.ctx-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:#ECFDF8;color:#087A68;font-size:8px;font-weight:800;margin-top:10px}.site-card{margin-top:11px;border-radius:12px;padding:10px;background:#EEF4FF;border:1px solid #D8E5FA;font-size:9px;color:#52617D;line-height:1.5}.site-card b{color:#17315E}
+.cal-card{background:#fff;border:1px solid var(--border);border-radius:20px;padding:17px;box-shadow:0 12px 30px rgba(7,29,74,.06)}
+.cal-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.cal-title{font:800 16px 'Exo 2'}.view-toggle{display:flex;padding:3px;background:#EEF3FA;border-radius:10px}.view-toggle button{border:0;background:transparent;color:#7A8AA5;padding:7px 10px;border-radius:8px;font-size:9px;font-weight:800;cursor:pointer}.view-toggle button.act{background:#fff;color:#0A4FBF;box-shadow:0 2px 7px rgba(7,29,74,.10)}
+.navrow{display:flex;align-items:center;justify-content:space-between;margin-top:15px}.navrow button{width:31px;height:31px;border:0;border-radius:50%;background:#EFF5FF;color:#0A4FBF;font-size:16px;font-weight:800;cursor:pointer}.navlabel{font-size:12px;font-weight:800}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px;margin-top:12px}.wday{border:1px solid var(--border);border-radius:13px;background:#FAFBFE;padding:10px 4px;text-align:center;color:#A6B1C5}.wday b{display:block;font-size:13px;color:inherit}.wday span{display:block;font-size:8px;text-transform:uppercase;margin-bottom:4px}.wday.av{background:#F1FFFB;border-color:#C7F1E6;color:#087A68;cursor:pointer}.wday.sel{background:linear-gradient(135deg,#0A4FBF,#1377E8);border-color:#0A4FBF;color:#fff;box-shadow:0 8px 17px rgba(10,79,191,.20)}.wday.today:not(.sel){box-shadow:inset 0 0 0 2px #7DAEFF}
+.month-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-top:12px;text-align:center}.mhead{font-size:8px;color:#7B89A2;font-weight:800;padding:5px}.mday{min-height:37px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#C0C8D5;border:1px solid transparent}.mday.av{cursor:pointer;color:#087A68;background:#F1FFFB;border-color:#C7F1E6}.mday.sel{background:#0A4FBF;color:#fff;border-color:#0A4FBF}.mday.today:not(.sel){border-color:#7DAEFF;color:#0A4FBF}.mday.empty{visibility:hidden}
+.slot-wrap{margin-top:16px;border-top:1px solid #EDF1F7;padding-top:14px}.slot-title{font-size:10px;font-weight:800;color:#263B66}.periods{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}.period{border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 9px;font-size:8px;color:#75849E;font-weight:800;cursor:pointer}.period.act{background:#EAF4FF;color:#0A4FBF;border-color:#C1D9FF}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}.slot{padding:9px 5px;border:1px solid var(--border);border-radius:10px;background:#fff;color:#233759;font-size:10px;font-weight:800;cursor:pointer}.slot:hover{border-color:#8BB6FF;background:#F5F9FF}.slot.sel{background:linear-gradient(135deg,#0A4FBF,#00A98C);color:#fff;border-color:transparent;box-shadow:0 7px 16px rgba(10,79,191,.18)}.slot small{display:block;font-size:7px;font-weight:600;opacity:.65;margin-top:2px}
+.status{padding:10px 11px;border-radius:10px;background:#F6F8FC;color:#7886A0;font-size:9px;margin-top:10px}.status.ok{background:#EDFCF8;color:#087A68}.status.err{background:#FFF1F2;color:#B4233A}
+.actions{display:flex;gap:9px;margin-top:15px}.btn{border:0;border-radius:13px;padding:13px 17px;font-size:11px;font-weight:800;cursor:pointer}.btn-primary{flex:1;background:linear-gradient(135deg,#071D4A,#0A5BD1);color:#fff;box-shadow:0 8px 22px rgba(10,79,191,.22)}.btn-primary:disabled{opacity:.4;cursor:not-allowed}.btn-soft{background:#EEF4FF;color:#0A4FBF}
+.identity-card{padding:14px;border:1px solid #DCE7F7;background:linear-gradient(135deg,#F8FBFF,#F2FCFA);border-radius:15px;margin-top:16px}.identity-card b{font-size:11px}.identity-card p{font-size:9px;color:#6C7A94;margin-top:3px}.identity-row{display:flex;gap:7px;margin-top:9px}.identity-row input{flex:1;min-width:0}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:15px}.field.full{grid-column:1/-1}.field label{display:block;font-size:8px;text-transform:uppercase;letter-spacing:.55px;color:#71809A;font-weight:800;margin-bottom:5px}.input{width:100%;border:1px solid var(--border);background:#fff;border-radius:11px;padding:11px 12px;font-size:11px;color:#172B52;outline:none}.input:focus{border-color:#6AA1FF;box-shadow:0 0 0 3px rgba(10,79,191,.07)}
+.found{margin-top:8px;padding:8px 10px;border-radius:9px;background:#ECFDF8;color:#087A68;font-size:9px;font-weight:700;display:none}
+.review{margin-top:14px;border:1px solid var(--border);border-radius:14px;overflow:hidden}.review-row{display:flex;justify-content:space-between;gap:12px;padding:10px 12px;font-size:10px;border-bottom:1px solid #EEF2F7}.review-row:last-child{border-bottom:0}.review-row span:first-child{color:#7D8AA2}.review-row span:last-child{text-align:right;font-weight:800}
+.overlay{position:fixed;inset:0;background:rgba(6,26,67,.68);backdrop-filter:blur(7px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}.modal{width:min(450px,100%);background:#fff;border-radius:22px;padding:22px;box-shadow:0 28px 80px rgba(0,0,0,.28)}.success{text-align:center}.success-icon{width:72px;height:72px;border-radius:24px;background:linear-gradient(145deg,#E8FFF7,#DDEBFF);display:flex;align-items:center;justify-content:center;font-size:35px;margin:0 auto 12px;box-shadow:0 12px 25px rgba(10,79,191,.12)}
+.loading,.expired{position:fixed;inset:0;background:var(--bg);z-index:10000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;text-align:center;padding:20px}.expired{display:none}.spinner{width:30px;height:30px;border:3px solid #DDE5F3;border-top-color:#0A4FBF;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.empty{padding:22px;text-align:center;color:#8290A8;font-size:10px;border:1px dashed #CFD9EA;border-radius:13px;margin-top:12px}
+@media(max-width:860px){.booking-layout{grid-template-columns:1fr}.context-card{position:relative;top:0}.context-visual{height:185px}.context-card{display:grid;grid-template-columns:180px 1fr}.context-visual{height:100%;min-height:190px}.context-body{padding:16px}}
+@media(max-width:720px){.app-hero{padding:18px 14px 38px}.hero-pill{display:none}.shell{padding:0 11px}.progress-card{overflow:auto}.pline{flex-basis:15px}.plabel{display:none}.domain-grid{grid-template-columns:1fr}.domain-card{min-height:0;display:grid;grid-template-columns:42% 58%}.domain-art{height:100%;min-height:180px}.domain-card-body{padding:17px}.treat-grid{grid-template-columns:1fr}.booking-layout{display:block}.context-card{display:grid;grid-template-columns:120px 1fr;margin-bottom:12px}.context-visual{min-height:155px}.team-art{width:96px;height:96px;font-size:40px;margin-bottom:24px}.context-body{padding:13px}.week-grid{gap:4px}.wday{padding:9px 2px}.slots{grid-template-columns:repeat(3,1fr)}.field-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.route-grid{grid-template-columns:1fr}.panel{border-radius:19px}.cal-card{border-radius:17px}}
+@media(max-width:420px){.domain-card{grid-template-columns:38% 62%}.domain-art{min-height:170px}.art-orb{width:90px;height:90px;font-size:42px}.slots{grid-template-columns:repeat(2,1fr)}.identity-row{display:grid}.context-card{grid-template-columns:105px 1fr}.ctx-title{font-size:15px}.hero-copy h1{font-size:23px}}
+</style>
+</head>
+<body>
+<div class="loading" id="loading"><div class="spinner"></div><div style="font-size:11px;color:var(--muted)">Preparando tu agenda...</div></div>
+<div class="expired" id="expired"><div style="font-size:44px">⏳</div><h2 style="font:800 21px 'Exo 2';color:var(--pri)">Este link ya no está disponible</h2><p style="font-size:11px;color:var(--muted)">Solicita un nuevo enlace o vuelve a ingresar desde la web.</p></div>
+
+<header class="app-hero">
+ <div class="hero-inner">
+  <div class="brandrow">
+   <div class="brandmark"><i></i><i></i><i></i><i></i></div>
+   <div class="hero-copy"><small>Zi Vital · San Isidro</small><h1>Agenda tu cita</h1><p>Elige qué deseas tratar y te mostraremos la atención y horarios correctos para ti.</p></div>
+  </div>
+  <div class="hero-pill">📍 Atención en San Isidro</div>
+ </div>
+</header>
+
+<main class="shell">
+ <div class="progress-card">
+  <div class="pitem on" id="pi1"><div class="pnum">1</div><div class="plabel">Área</div></div><div class="pline"></div>
+  <div class="pitem" id="pi2"><div class="pnum">2</div><div class="plabel">Tratamiento</div></div><div class="pline"></div>
+  <div class="pitem" id="pi3"><div class="pnum">3</div><div class="plabel">Fecha y hora</div></div><div class="pline"></div>
+  <div class="pitem" id="pi4"><div class="pnum">4</div><div class="plabel">Tus datos</div></div>
+ </div>
+
+ <section class="step act" id="step1">
+  <div class="panel">
+   <div class="kicker">Paso 1</div>
+   <h2 class="title">¿Qué área deseas tratar?</h2>
+   <p class="sub">Selecciona el área que más se acerca a lo que buscas. Después verás únicamente los tratamientos disponibles para esa necesidad.</p>
+   <div class="domain-grid">
+    <button class="domain-card" onclick="selectDomain('FACIAL')" data-domain="FACIAL">
+     <div class="domain-art facial"><div class="art-orb">✨</div></div>
+     <div class="domain-card-body"><h3>Facial</h3><p>Rejuvenecimiento, armonización, bioestimulación y protocolos para el rostro.</p><div class="domain-link"><span>Ver tratamientos</span><span>→</span></div></div>
+    </button>
+    <button class="domain-card" onclick="selectDomain('CORPORAL')" data-domain="CORPORAL">
+     <div class="domain-art corporal"><div class="art-orb">◌</div></div>
+     <div class="domain-card-body"><h3>Corporal</h3><p>Modelación, aparatología y tratamientos clínicos para distintas zonas del cuerpo.</p><div class="domain-link"><span>Ver tratamientos</span><span>→</span></div></div>
+    </button>
+    <button class="domain-card" onclick="selectDomain('CAPILAR')" data-domain="CAPILAR">
+     <div class="domain-art capilar"><div class="art-orb">🌿</div></div>
+     <div class="domain-card-body"><h3>Capilar</h3><p>Evaluación y tratamientos para fortalecer, regenerar y cuidar el cuero cabelludo.</p><div class="domain-link"><span>Ver tratamientos</span><span>→</span></div></div>
+    </button>
+   </div>
+  </div>
+ </section>
+
+ <section class="step" id="step2">
+  <div class="panel">
+   <div class="section-top"><div><div class="kicker">Paso 2</div><h2 class="title" id="treatTitle">Elige tu tratamiento</h2><p class="sub" id="treatSub">Mostramos las opciones disponibles para el área seleccionada.</p></div><button class="back" onclick="goStep(1)">← Cambiar área</button></div>
+   <div class="searchbox"><span>🔎</span><input id="treatSearch" placeholder="Buscar tratamiento..." oninput="renderTreatments()"></div>
+   <div class="chips" id="catChips"></div>
+   <div class="treat-grid" id="treatGrid"></div>
+   <div id="routeBox"></div>
+  </div>
+ </section>
+
+ <section class="step" id="step3">
+  <div class="booking-layout">
+   <aside class="context-card" id="contextCard"></aside>
+   <div class="cal-card">
+    <div class="cal-toolbar"><div><div class="kicker">Paso 3</div><div class="cal-title">Selecciona fecha y hora</div></div>
+     <div class="view-toggle"><button id="viewWeek" class="act" onclick="setCalView('WEEK')">7 días</button><button id="viewMonth" onclick="setCalView('MONTH')">Mes</button></div>
+    </div>
+    <div class="navrow"><button onclick="moveCalendar(-1)">‹</button><div class="navlabel" id="calLabel"></div><button onclick="moveCalendar(1)">›</button></div>
+    <div id="calendarArea"></div>
+    <div id="availability" class="status">Selecciona un día disponible.</div>
+    <div class="slot-wrap" id="slotWrap" style="display:none">
+      <div class="slot-title">Horarios disponibles · <span id="slotDate"></span></div>
+      <div class="periods" id="periods"></div>
+      <div class="slots" id="slots"></div>
+    </div>
+    <div class="actions"><button class="btn btn-soft" onclick="goStep(2)">← Tratamiento</button><button class="btn btn-primary" id="toData" disabled onclick="goStep(4)">Continuar →</button></div>
+   </div>
+  </div>
+ </section>
+
+ <section class="step" id="step4">
+  <div class="panel">
+   <div class="section-top"><div><div class="kicker">Paso 4</div><h2 class="title">Tus datos</h2><p class="sub">Si ya eres paciente, podemos completar tus datos con tu DNI o celular. Si eres nuevo, simplemente llena el formulario.</p></div><button class="back" onclick="goStep(3)">← Cambiar horario</button></div>
+   <div class="identity-card"><b>¿Ya eres paciente de Zi Vital?</b><p>Ingresa tu DNI o celular para recuperar tus datos de forma segura.</p><div class="identity-row"><input class="input" id="identity" inputmode="numeric" placeholder="DNI o celular"><button class="btn btn-soft" onclick="lookupIdentity()">Buscar mis datos</button></div><div class="found" id="found"></div></div>
+   <div class="field-grid">
+    <div class="field"><label>Nombre *</label><input class="input" id="fn"></div>
+    <div class="field"><label>Apellido</label><input class="input" id="fa"></div>
+    <div class="field"><label>Teléfono *</label><input class="input" id="ft" type="tel" inputmode="tel"></div>
+    <div class="field"><label>DNI / C.E.</label><input class="input" id="fd"></div>
+    <div class="field full"><label>Correo</label><input class="input" id="fe" type="email"></div>
+    <div class="field"><label>Tipo de cita</label><select class="input" id="ftc"><option>CONSULTA NUEVA</option><option>APLICACION</option><option>CONTROL</option><option>MANTENIMIENTO</option><option>PROCEDIMIENTO</option></select></div>
+    <div class="field"><label>Observaciones</label><input class="input" id="fno" placeholder="Opcional"></div>
+   </div>
+   <div class="review" id="review"></div>
+   <div class="actions"><button class="btn btn-soft" onclick="goStep(3)">← Volver</button><button class="btn btn-primary" onclick="showConfirm()">✓ Revisar y agendar</button></div>
+  </div>
+ </section>
+</main>
+
+<script>
+const SB='https://ituyqwstonmhnfshnaqz.supabase.co';
+const SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
+const H={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'};
+const SITE='SAN ISIDRO';
+const SITE_INFO={dir:'Av. Javier Prado Este 996 · Ofi. 501 · Edificio Capricornio',maps:'https://maps.app.goo.gl/co7ch54zHCt1Nj6w5'};
+const AG={token:'',link:null,domain:null,catalogRaw:[],treatments:[],profiles:[],profileDays:{},selTreatment:null,route:null,eligibleDoctors:[],selProf:null,selFecha:'',selHora:'',calView:'WEEK',anchor:new Date(),monthYear:0,monthIndex:0,dayCache:{},slots:[],period:'ALL',patient:null,category:'TODOS'};
+
+function E(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+async function rpc(n,p){const r=await fetch(SB+'/rest/v1/rpc/'+n,{method:'POST',headers:H,body:JSON.stringify(p||{})});const j=await r.json().catch(()=>({}));if(!r.ok)throw j;return j}
+async function q(path){const r=await fetch(SB+'/rest/v1/'+path,{headers:{apikey:SK,Authorization:'Bearer '+SK}});if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
+function norm(v){return String(v||'').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')}
+function roleOf(p){return norm(p.tipo).indexOf('ENFER')>=0?'ENFERMERIA':'DOCTORA'}
+function servicesOf(p){return Array.isArray(p.servicios)?p.servicios.map(norm):[]}
+function hasService(p,name){return servicesOf(p).indexOf(norm(name))>=0}
+function domainOf(x){
+  const c=norm(x.categoria),n=norm(x.nombre);
+  if(n.indexOf('CAPILAR')>=0||c==='CAPILAR')return 'CAPILAR';
+  if(n.indexOf('CORPORAL')>=0||n.indexOf('GLUT')>=0||n.indexOf('CRIOLIP')>=0||n.indexOf('PINK INTIMATE')>=0||c==='CORPORAL')return 'CORPORAL';
+  if(c==='APARATOLOGIA'&&n.indexOf('CORPORAL')>=0)return 'CORPORAL';
+  if(n==='OTROS'||n.indexOf('RESET -')===0)return 'HIDDEN';
+  return 'FACIAL';
+}
+function iconFor(x){
+ const n=norm(x.nombre),c=norm(x.categoria);
+ if(n.indexOf('HIALUR')>=0||c==='INYECTABLES')return '💧';
+ if(n.indexOf('TOXINA')>=0)return '✨';
+ if(n.indexOf('HIFU')>=0||n.indexOf('RADIOFRE')>=0)return '◉';
+ if(n.indexOf('CAPILAR')>=0)return '🌿';
+ if(n.indexOf('HIDRO')>=0||n.indexOf('FACIAL')>=0)return '🫧';
+ if(n.indexOf('GLUT')>=0||n.indexOf('CORPORAL')>=0)return '◌';
+ if(n.indexOf('CONSULTA')>=0)return '🩺';
+ return '✦';
+}
+function consolidateCatalog(raw){
+ const map={};
+ (raw||[]).forEach(function(x){
+  const k=norm(x.nombre);if(!k)return;
+  if(!map[k])map[k]={nombre:x.nombre,categoria:x.categoria||'GENERAL',entries:[],roles:[],domain:null};
+  map[k].entries.push(x);if(map[k].roles.indexOf(norm(x.role))<0)map[k].roles.push(norm(x.role));
+ });
+ return Object.keys(map).map(function(k){const x=map[k];x.domain=domainOf(x);return x}).filter(function(x){return x.domain!=='HIDDEN'});
+}
+function treatmentEntry(t,role){return (t.entries||[]).find(function(x){return norm(x.role)===role})||null}
+function providerSupport(t,role){
+ return AG.profiles.filter(function(p){return roleOf(p)===role&&hasService(p,t.nombre)});
+}
+function resolveRoutes(t){
+ const docs=providerSupport(t,'DOCTORA'),nurses=providerSupport(t,'ENFERMERIA');
+ let routes=[];
+ if(docs.length)routes.push('DOCTORA');
+ if(nurses.length)routes.push('ENFERMERIA');
+ if(!routes.length){
+  if(t.roles.indexOf('DOCTORA')>=0)routes.push('DOCTORA');
+  if(t.roles.indexOf('ENFERMERIA')>=0)routes.push('ENFERMERIA');
+ }
+ return routes;
+}
+function goStep(n){
+ document.querySelectorAll('.step').forEach(function(x){x.classList.remove('act')});
+ document.getElementById('step'+n).classList.add('act');
+ for(let i=1;i<=4;i++)document.getElementById('pi'+i).classList.toggle('on',i<=n);
+ if(n===2)renderTreatments();
+ if(n===3){prepareAvailability()}
+ if(n===4){prefill();renderReview()}
+ window.scrollTo({top:0,behavior:'smooth'});
+}
+function selectDomain(d){
+ AG.domain=d;AG.category='TODOS';AG.selTreatment=null;AG.route=null;AG.selProf=null;
+ goStep(2);
+}
+function domainLabel(d){return d==='FACIAL'?'Facial':d==='CORPORAL'?'Corporal':'Capilar'}
+function renderTreatments(){
+ const label=domainLabel(AG.domain);
+ document.getElementById('treatTitle').textContent='Tratamientos '+label.toLowerCase();
+ document.getElementById('treatSub').textContent='Selecciona el tratamiento que deseas agendar en Zi Vital · San Isidro.';
+ const search=norm(document.getElementById('treatSearch').value);
+ let rows=AG.treatments.filter(function(x){return x.domain===AG.domain});
+ const cats=['TODOS'].concat(Array.from(new Set(rows.map(function(x){return norm(x.categoria)}))).filter(Boolean));
+ document.getElementById('catChips').innerHTML=cats.map(function(c){return '<button class="chip '+(AG.category===c?'act':'')+'" onclick="setCategory(\''+E(c)+'\')">'+E(c==='TODOS'?'Todos':c)+'</button>'}).join('');
+ if(AG.category!=='TODOS')rows=rows.filter(function(x){return norm(x.categoria)===AG.category});
+ if(search)rows=rows.filter(function(x){return norm(x.nombre).indexOf(search)>=0||norm(x.categoria).indexOf(search)>=0});
+ document.getElementById('treatGrid').innerHTML=rows.map(function(t){
+  const routes=resolveRoutes(t),badge=routes.length>1?'2 opciones':routes[0]==='DOCTORA'?'Especialista':'Equipo clínico';
+  return '<button class="treat '+(AG.selTreatment&&norm(AG.selTreatment.nombre)===norm(t.nombre)?'sel':'')+'" onclick="selectTreatment(\''+E(norm(t.nombre))+'\')"><div class="ticon">'+iconFor(t)+'</div><div class="tinfo"><div class="tname">'+E(t.nombre)+'</div><div class="tmeta">'+E(t.categoria||label)+'</div></div><span class="route-badge">'+E(badge)+'</span></button>';
+ }).join('')||'<div class="empty" style="grid-column:1/-1">No encontramos tratamientos con ese filtro.</div>';
+}
+function setCategory(c){AG.category=c;renderTreatments()}
+function selectTreatment(key){
+ const t=AG.treatments.find(function(x){return norm(x.nombre)===key});if(!t)return;
+ AG.selTreatment=t;AG.route=null;AG.selProf=null;AG.selFecha='';AG.selHora='';
+ renderTreatments();
+ const routes=resolveRoutes(t);
+ if(routes.length===1){AG.route=routes[0];enterAvailability();return}
+ if(routes.length>1){
+  document.getElementById('routeBox').innerHTML='<div class="route-box"><h4>¿Cómo deseas atenderte?</h4><p>Este tratamiento puede realizarse por más de una ruta clínica. Elige la experiencia que prefieras.</p><div class="route-grid"><button class="route-card" onclick="chooseRoute(\'DOCTORA\')"><b>👩‍⚕️ Consulta con especialista</b><span>Selecciona un médico habilitado y agenda según sus turnos.</span></button><button class="route-card" onclick="chooseRoute(\'ENFERMERIA\')"><b>✨ Equipo clínico especializado</b><span>Agenda directamente con el equipo disponible en San Isidro.</span></button></div></div>';
+  document.getElementById('routeBox').scrollIntoView({behavior:'smooth',block:'nearest'});
+  return;
+ }
+ document.getElementById('routeBox').innerHTML='<div class="status err">Este tratamiento todavía no tiene una ruta de agenda configurada.</div>';
+}
+function chooseRoute(r){AG.route=r;enterAvailability()}
+async function enterAvailability(){
+ document.getElementById('routeBox').innerHTML='';
+ if(AG.route==='DOCTORA'){
+  AG.eligibleDoctors=providerSupport(AG.selTreatment,'DOCTORA').filter(function(p){return Number(AG.profileDays[p.id]||0)>0});
+  if(!AG.eligibleDoctors.length){document.getElementById('routeBox').innerHTML='<div class="status err">No hay especialistas con turnos futuros publicados para este tratamiento.</div>';return}
+  AG.selProf=AG.eligibleDoctors.length===1?AG.eligibleDoctors[0]:null;
+ }else{AG.selProf=null}
+ goStep(3);
+}
+async function futureCount(prof){
+ let now=new Date(),total=0,today=now.toISOString().slice(0,10);
+ for(let off=0;off<3;off++){
+  let x=new Date(now.getFullYear(),now.getMonth()+off,1);
+  try{let d=await rpc('aos_dias_con_turno',{p_profesional_id:prof.id,p_anio:x.getFullYear(),p_mes:x.getMonth()+1});total+=(d||[]).filter(function(v){return String(v)>=today}).length}catch(_){}
+ }
+ return total;
+}
+function contextHtml(){
+ if(AG.route==='DOCTORA'){
+  if(!AG.selProf){
+   return '<div class="context-body"><div class="ctx-label">Especialistas disponibles</div><div class="ctx-title">Elige tu especialista</div><div class="ctx-sub">Solo mostramos profesionales habilitados para '+E(AG.selTreatment.nombre)+' con turnos futuros publicados.</div><div id="doctorPicker" style="margin-top:12px"></div><div class="site-card"><b>📍 Zi Vital · San Isidro</b><br>'+E(SITE_INFO.dir)+'</div></div>';
+  }
+  const p=AG.selProf;
+  return '<div class="context-visual">'+(p.foto_url?'<img src="'+E(p.foto_url)+'" alt="'+E(p.nombre_publico)+'">':'<div class="team-art">👩‍⚕️</div>')+'</div><div class="context-body"><div class="ctx-label">Especialista seleccionado</div><div class="ctx-title">'+E(p.nombre_publico)+'</div><div class="ctx-sub">'+E(p.especialidad||'Medicina estética')+(p.cmp?' · CMP '+E(p.cmp):'')+'</div><div class="ctx-chip">✓ Habilitado para '+E(AG.selTreatment.nombre)+'</div><div class="site-card"><b>📍 Zi Vital · San Isidro</b><br>'+E(SITE_INFO.dir)+'</div></div>';
+ }
+ return '<div class="context-visual"><div class="team-art">'+iconFor(AG.selTreatment)+'</div></div><div class="context-body"><div class="ctx-label">Atención clínica</div><div class="ctx-title">'+E(AG.selTreatment.nombre)+'</div><div class="ctx-sub">Tu cita será atendida por nuestro equipo clínico especializado disponible en ese horario.</div><div class="ctx-chip">✓ Equipo clínico Zi Vital</div><div class="site-card"><b>📍 Zi Vital · San Isidro</b><br>'+E(SITE_INFO.dir)+'</div></div>';
+}
+function renderContext(){
+ const el=document.getElementById('contextCard');el.innerHTML=contextHtml();
+ if(AG.route==='DOCTORA'&&!AG.selProf){
+  const pick=document.getElementById('doctorPicker');
+  pick.innerHTML=AG.eligibleDoctors.map(function(p){
+   return '<button onclick="pickDoctor(\''+E(p.id)+'\')" style="width:100%;display:flex;align-items:center;gap:9px;padding:9px;border:1px solid var(--border);border-radius:12px;background:#fff;margin-bottom:7px;cursor:pointer;text-align:left"><img src="'+E(p.foto_url||'')+'" onerror="this.style.display=\'none\'" style="width:42px;height:52px;border-radius:9px;object-fit:cover;background:#EEF4FF"><span><b style="display:block;font-size:10px">'+E(p.nombre_publico)+'</b><small style="font-size:8px;color:#7A89A4">'+E(p.especialidad||'Medicina estética')+' · '+E(String(AG.profileDays[p.id]||0))+' días con turno</small></span></button>';
+  }).join('');
+ }
+}
+function pickDoctor(id){AG.selProf=AG.eligibleDoctors.find(function(p){return String(p.id)===String(id)})||null;AG.selFecha='';AG.selHora='';renderContext();prepareCalendar()}
+function cacheKey(y,m){return AG.route+'|'+(AG.selProf?AG.selProf.id:'POOL')+'|'+y+'|'+m}
+async function ensureDays(y,m){
+ const key=cacheKey(y,m);if(AG.dayCache[key])return AG.dayCache[key];
+ let d=[];
+ try{
+  if(AG.route==='DOCTORA'){
+   if(!AG.selProf)return [];
+   d=await rpc('aos_dias_con_turno',{p_profesional_id:AG.selProf.id,p_anio:y,p_mes:m});
+  }else{
+   d=await rpc('aos_booking_pool_days_v3',{p_role:'ENFERMERIA',p_anio:y,p_mes:m,p_sede:SITE});
+  }
+ }catch(_){d=[]}
+ AG.dayCache[key]=Array.isArray(d)?d:[];
+ return AG.dayCache[key];
+}
+async function prepareAvailability(){
+ renderContext();
+ AG.selFecha='';AG.selHora='';AG.slots=[];document.getElementById('toData').disabled=true;
+ document.getElementById('slotWrap').style.display='none';
+ const now=new Date();AG.anchor=new Date(now.getFullYear(),now.getMonth(),now.getDate());AG.monthYear=now.getFullYear();AG.monthIndex=now.getMonth();
+ await prepareCalendar();
+}
+async function prepareCalendar(){
+ if(AG.route==='DOCTORA'&&!AG.selProf){document.getElementById('calendarArea').innerHTML='<div class="empty">Selecciona primero un especialista.</div>';document.getElementById('availability').textContent='Elige un especialista para ver sus fechas.';return}
+ if(AG.calView==='WEEK'){
+  const dates=[];for(let i=0;i<7;i++){let x=new Date(AG.anchor);x.setDate(x.getDate()+i);dates.push(x)}
+  const keys={};dates.forEach(function(x){keys[x.getFullYear()+'-'+(x.getMonth()+1)]=[x.getFullYear(),x.getMonth()+1]});
+  await Promise.all(Object.values(keys).map(function(k){return ensureDays(k[0],k[1])}));
+  renderWeek(dates);
+ }else{
+  await ensureDays(AG.monthYear,AG.monthIndex+1);renderMonth();
+ }
+}
+function isoDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function availableSet(y,m){const arr=AG.dayCache[cacheKey(y,m)]||[];const set={};arr.forEach(function(v){set[String(v).slice(0,10)]=1});return set}
+function renderWeek(dates){
+ const a=dates[0],b=dates[dates.length-1],months=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+ document.getElementById('calLabel').textContent=a.getDate()+' '+months[a.getMonth()]+' — '+b.getDate()+' '+months[b.getMonth()];
+ const today=isoDate(new Date()),dn=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+ document.getElementById('calendarArea').innerHTML='<div class="week-grid">'+dates.map(function(x){
+  const iso=isoDate(x),set=availableSet(x.getFullYear(),x.getMonth()+1),av=!!set[iso]&&iso>=today,cl='wday'+(av?' av':'')+(AG.selFecha===iso?' sel':'')+(iso===today?' today':'');
+  return '<button class="'+cl+'" '+(av?'onclick="selectDate(\''+iso+'\')"':'disabled')+'><span>'+dn[x.getDay()]+'</span><b>'+x.getDate()+'</b></button>';
+ }).join('')+'</div>';
+}
+function renderMonth(){
+ const y=AG.monthYear,m=AG.monthIndex,months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+ document.getElementById('calLabel').textContent=months[m]+' '+y;
+ const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),today=isoDate(new Date()),set=availableSet(y,m+1);
+ let html='<div class="month-grid">';['Do','Lu','Ma','Mi','Ju','Vi','Sá'].forEach(function(d){html+='<div class="mhead">'+d+'</div>'});
+ for(let i=0;i<first;i++)html+='<div class="mday empty">.</div>';
+ for(let d=1;d<=days;d++){const iso=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0'),av=!!set[iso]&&iso>=today,cl='mday'+(av?' av':'')+(AG.selFecha===iso?' sel':'')+(iso===today?' today':'');html+='<button class="'+cl+'" '+(av?'onclick="selectDate(\''+iso+'\')"':'disabled')+'>'+d+'</button>'}
+ html+='</div>';document.getElementById('calendarArea').innerHTML=html;
+}
+function setCalView(v){AG.calView=v;document.getElementById('viewWeek').classList.toggle('act',v==='WEEK');document.getElementById('viewMonth').classList.toggle('act',v==='MONTH');prepareCalendar()}
+function moveCalendar(delta){
+ AG.selFecha='';AG.selHora='';document.getElementById('slotWrap').style.display='none';document.getElementById('toData').disabled=true;
+ if(AG.calView==='WEEK'){AG.anchor.setDate(AG.anchor.getDate()+delta*7)}
+ else{AG.monthIndex+=delta;if(AG.monthIndex>11){AG.monthIndex=0;AG.monthYear++}if(AG.monthIndex<0){AG.monthIndex=11;AG.monthYear--}}
+ prepareCalendar();
+}
+async function selectDate(iso){
+ AG.selFecha=iso;AG.selHora='';document.getElementById('toData').disabled=true;await prepareCalendar();
+ const st=document.getElementById('availability');st.className='status';st.textContent='Validando horarios reales...';
+ document.getElementById('slotWrap').style.display='block';document.getElementById('slotDate').textContent=iso;document.getElementById('slots').innerHTML='<div class="spinner" style="grid-column:1/-1;margin:auto"></div>';
+ const entry=treatmentEntry(AG.selTreatment,AG.route);if(!entry){st.className='status err';st.textContent='No encontramos la referencia activa de este tratamiento.';return}
+ try{
+  const a=await rpc('aos_booking_availability_v2',{p_treatment_id:entry.id,p_fecha:iso,p_sede:SITE,p_profesional_id:AG.route==='DOCTORA'&&AG.selProf?String(AG.selProf.id):null});
+  let slots=(a&&a.slots||[]).filter(function(s){return s.disponible!==false});
+  if(AG.route==='DOCTORA'&&AG.selProf)slots=slots.filter(function(s){return String(s.professional_id)===String(AG.selProf.id)});
+  AG.slots=slots;AG.period='ALL';
+  if(!a||!a.ok||!slots.length){st.className='status err';st.textContent='No quedan horarios disponibles para este día.';renderSlots();return}
+  st.className='status ok';st.textContent='Disponibilidad confirmada en tiempo real · Zi Vital San Isidro.';renderPeriods();renderSlots();
+ }catch(e){AG.slots=[];st.className='status err';st.textContent='No pudimos consultar los horarios. Intenta nuevamente.';renderSlots()}
+}
+function periodOf(h){const n=parseInt(String(h||'0').slice(0,2),10);return n<12?'AM':n<17?'PM':'EVE'}
+function renderPeriods(){
+ const present=new Set(AG.slots.map(function(s){return periodOf(s.hora)}));let rows=[['ALL','Todos'],['AM','Mañana'],['PM','Tarde'],['EVE','Noche']].filter(function(x){return x[0]==='ALL'||present.has(x[0])});
+ document.getElementById('periods').innerHTML=rows.map(function(x){return '<button class="period '+(AG.period===x[0]?'act':'')+'" onclick="setPeriod(\''+x[0]+'\')">'+x[1]+'</button>'}).join('');
+}
+function setPeriod(p){AG.period=p;renderPeriods();renderSlots()}
+function renderSlots(){
+ const rows=AG.slots.filter(function(s){return AG.period==='ALL'||periodOf(s.hora)===AG.period});
+ document.getElementById('slots').innerHTML=rows.map(function(s){return '<button class="slot '+(AG.selHora===s.hora?'sel':'')+'" onclick="selectSlot(\''+E(s.hora)+'\')">'+E(s.hora)+'<small>'+(s.libres==null?'Disponible':E(s.libres)+' cupo'+(Number(s.libres)===1?'':'s'))+'</small></button>'}).join('')||'<div class="empty" style="grid-column:1/-1">Sin horarios en este bloque.</div>';
+}
+function selectSlot(h){AG.selHora=h;renderSlots();document.getElementById('toData').disabled=false}
+function prefill(){
+ if(!AG.patient)return;
+ document.getElementById('fn').value=AG.patient.nombre||'';document.getElementById('fa').value=AG.patient.apellido||'';document.getElementById('ft').value=AG.patient.numero||'';document.getElementById('fd').value=AG.patient.documento||'';document.getElementById('fe').value=AG.patient.email||'';
+}
+async function lookupIdentity(){
+ const raw=document.getElementById('identity').value.trim(),box=document.getElementById('found');
+ box.style.display='block';box.textContent='Buscando...';
+ try{
+  const r=await rpc('aos_booking_patient_lookup_v3',{p_identity:raw});
+  if(r&&r.ok&&r.found&&r.patient){AG.patient=r.patient;prefill();box.textContent='✓ Encontramos tu ficha. Revisa que tus datos estén correctos.'}
+  else{AG.patient=null;box.textContent='No encontramos una ficha con ese dato. Puedes continuar como paciente nuevo.'}
+ }catch(_){box.textContent='No pudimos consultar tu ficha. Puedes completar los datos manualmente.'}
+}
+function routeLabel(){return AG.route==='DOCTORA'?(AG.selProf?AG.selProf.nombre_publico:'Especialista médico'):'Equipo clínico especializado'}
+function renderReview(){
+ const el=document.getElementById('review');el.innerHTML=
+ '<div class="review-row"><span>Tratamiento</span><span>'+E(AG.selTreatment&&AG.selTreatment.nombre)+'</span></div>'+
+ '<div class="review-row"><span>Atención</span><span>'+E(routeLabel())+'</span></div>'+
+ '<div class="review-row"><span>Sede</span><span>Zi Vital · San Isidro</span></div>'+
+ '<div class="review-row"><span>Fecha</span><span>'+E(AG.selFecha)+'</span></div>'+
+ '<div class="review-row"><span>Hora</span><span>'+E(AG.selHora)+'</span></div>';
+}
+function summaryHtml(){return '<div class="review">'+
+ '<div class="review-row"><span>Área</span><span>'+E(domainLabel(AG.domain))+'</span></div>'+
+ '<div class="review-row"><span>Tratamiento</span><span>'+E(AG.selTreatment&&AG.selTreatment.nombre)+'</span></div>'+
+ '<div class="review-row"><span>Atención</span><span>'+E(routeLabel())+'</span></div>'+
+ '<div class="review-row"><span>Fecha</span><span>'+E(AG.selFecha)+'</span></div>'+
+ '<div class="review-row"><span>Hora</span><span>'+E(AG.selHora)+'</span></div>'+
+ '<div class="review-row"><span>Sede</span><span>SAN ISIDRO</span></div></div>'}
+function showConfirm(){
+ const n=document.getElementById('fn').value.trim(),phone=document.getElementById('ft').value.trim();
+ if(!n||phone.replace(/\D/g,'').length<7){alert('Completa al menos tu nombre y teléfono.');return}
+ const d=document.createElement('div');d.className='overlay';d.innerHTML='<div class="modal"><div class="kicker">Último paso</div><h3 style="font:800 20px Exo 2;margin-top:4px">Confirma tu cita</h3><p style="font-size:10px;color:var(--muted);margin:5px 0 13px">Validaremos nuevamente el horario antes de guardar.</p>'+summaryHtml()+'<div class="actions"><button class="btn btn-soft" onclick="this.closest(\'.overlay\').remove()">Editar</button><button class="btn btn-primary" id="bookBtn" onclick="book()">Confirmar cita</button></div></div>';document.body.appendChild(d);
+}
+async function book(){
+ const b=document.getElementById('bookBtn');b.disabled=true;b.textContent='Agendando...';
+ const entry=treatmentEntry(AG.selTreatment,AG.route);
+ try{
+  let note=document.getElementById('fno').value.trim();if(note)note+='\n';note+='[ASCENDA_BOOKING_V3]';
+  const r=await rpc('aos_agendar_publica_v2',{
+   p_token:AG.token||'__permanent__',
+   p_nombre:document.getElementById('fn').value.trim(),
+   p_apellido:document.getElementById('fa').value.trim(),
+   p_telefono:document.getElementById('ft').value.trim(),
+   p_treatment_id:entry.id,p_fecha:AG.selFecha,p_hora:AG.selHora,p_sede:SITE,
+   p_profesional_id:AG.route==='DOCTORA'&&AG.selProf?AG.selProf.id:null,
+   p_dni:document.getElementById('fd').value.trim(),p_email:document.getElementById('fe').value.trim(),
+   p_nota:note,p_tipo_cita:document.getElementById('ftc').value
+  });
+  if(!r||!r.ok)throw r||{};
+  document.querySelector('.overlay').remove();success(r);
+  const email=document.getElementById('fe').value.trim();
+  if(email&&r.agenda_id)fetch('/api/booking/public-confirmation-v33',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appointment_id:r.agenda_id})}).catch(function(){});
+ }catch(e){b.disabled=false;b.textContent='Confirmar cita';alert((e&&e.error)||'El horario ya no está disponible o no se pudo agendar.')}
+}
+function success(r){
+ const d=document.createElement('div');d.className='overlay';d.innerHTML='<div class="modal success"><div class="success-icon">✓</div><h2 style="font:800 22px Exo 2;color:#087A68">¡Cita agendada!</h2><p style="font-size:11px;color:var(--muted);margin:5px 0 14px">Tu reserva quedó registrada correctamente.</p>'+summaryHtml()+'<p style="font-size:9px;color:#8190A8;margin-top:12px">Revisa tu correo para la confirmación y acceso a Google Calendar.</p></div>';document.body.appendChild(d);
+}
+async function loadBrand(){
+ try{
+  const rows=await q('aos_configuracion?select=clave,valor&clave=in.(nombre_empresa,color_primario,color_secundario,color_header,color_header_texto)');
+  const m={};(rows||[]).forEach(function(x){m[x.clave]=x.valor});
+  if(m.color_secundario)document.documentElement.style.setProperty('--gold',m.color_secundario);
+ }catch(_){}
+}
+async function init(){
+ const p=new URLSearchParams(location.search);AG.token=p.get('t')||p.get('token')||'';
+ const now=new Date();AG.anchor=new Date(now.getFullYear(),now.getMonth(),now.getDate());AG.monthYear=now.getFullYear();AG.monthIndex=now.getMonth();
+ try{
+  if(AG.token){
+   const links=await q('aos_links_agenda?token=eq.'+encodeURIComponent(AG.token)+'&select=*');
+   if(!links.length||(links[0].expira_at&&new Date(links[0].expira_at)<new Date()))throw new Error('LINK_EXPIRED');
+   AG.link=links[0];
+   if(AG.link.paciente_numero){
+    try{const r=await rpc('aos_booking_patient_lookup_v3',{p_identity:AG.link.paciente_numero});if(r&&r.ok&&r.found)AG.patient=r.patient}catch(_){}
+   }
+  }else AG.link={tipo:'general'};
+  const data=await Promise.all([
+    q('aos_perfiles_profesional?visible=eq.true&order=orden&select=*'),
+    rpc('aos_booking_public_catalog_v2',{}),
+    loadBrand()
+  ]);
+  AG.profiles=data[0]||[];AG.catalogRaw=Array.isArray(data[1])?data[1]:[];AG.treatments=consolidateCatalog(AG.catalogRaw);
+  const docs=AG.profiles.filter(function(x){return roleOf(x)==='DOCTORA'});
+  const counts=await Promise.all(docs.map(futureCount));docs.forEach(function(prof,i){AG.profileDays[prof.id]=counts[i]});
+  document.getElementById('loading').style.display='none';
+ }catch(e){
+  console.error(e);document.getElementById('loading').style.display='none';document.getElementById('expired').style.display='flex';
+ }
+}
+init();
+</script>
+</body>
+</html>
