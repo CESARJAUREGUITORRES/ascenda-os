@@ -1,15 +1,30 @@
-// COORD-V7.1 — stable chat lock/search + collapsible drawers.
+// COORD-V7.2 — same-origin lock/search + stable collapsible drawers.
 // No MutationObserver. No render loop. Hooks are installed idempotently.
 (function(){
 'use strict';
-if(window.__AOS_COORD_V71__)return;
-window.__AOS_COORD_V71__=1;
+if(window.__AOS_COORD_V72__)return;
+window.__AOS_COORD_V72__=1;
 
 var S={open:false,q:'',matches:[],timer:null,channel:null};
 var HOOKS={};
 
 function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
-function api(name,p,cb){if(typeof window.rpc==='function'){window.rpc(name,p,cb);return;}cb&&cb({ok:false,error:'RPC_UNAVAILABLE'});}
+function strongToken(){try{return String(sessionStorage.getItem('aos_app_token')||sessionStorage.getItem('aos_si_token')||'').trim();}catch(_){return '';}}
+function coordApi(path,body,cb){
+  var h=new Headers({'Accept':'application/json','Content-Type':'application/json'}),t=strongToken();
+  if(t.length>=32)h.set('X-AOS-App-Token',t);
+  fetch(path,{method:'POST',headers:h,body:JSON.stringify(body||{}),cache:'no-store',credentials:'same-origin'})
+    .then(function(r){return r.text().then(function(txt){var d={};try{d=txt?JSON.parse(txt):{};}catch(_){d={};}d.__status=r.status;if(!r.ok&&d.ok!==false)d.ok=false;if(!r.ok&&!d.error)d.error='HTTP_'+r.status;return d;});})
+    .then(function(d){if(cb)cb(d);})
+    .catch(function(){if(cb)cb({ok:false,error:'NETWORK_ERROR',__status:0});});
+}
+function notice(msg,type){
+  var old=document.getElementById('cv71-notice');if(old)old.remove();
+  var n=document.createElement('div');n.id='cv71-notice';
+  var ok=type!=='error';
+  n.style.cssText='position:fixed;top:72px;left:50%;transform:translateX(-50%);z-index:10050;max-width:min(440px,90vw);padding:12px 16px;border-radius:12px;background:'+(ok?'#ECFDF5':'#FFF1F2')+';border:1px solid '+(ok?'#A7F3D0':'#FECDD3')+';color:'+(ok?'#065F46':'#9F1239')+';box-shadow:0 10px 28px rgba(15,23,42,.16);font:700 11px "DM Sans",sans-serif';
+  n.textContent=(ok?'✓ ':'⚠ ')+msg;document.body.appendChild(n);setTimeout(function(){if(n.parentNode)n.remove();},4200);
+}
 function isAdmin(){return !!document.getElementById('zChat');}
 function isAdvisor(){return !!document.getElementById('aChat');}
 function chAdmin(){try{return window.D&&D.ch&&D.ch.find(function(x){return x.id===D.ac;});}catch(_){return null;}}
@@ -38,17 +53,17 @@ function style(){
   '.cv71-meta{font-size:8px;color:#94a3b8;margin-bottom:3px}.cv71-text{font-size:10px;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
   '.cv71-locked{padding:13px 18px;background:#fff7ed;border-top:1px solid #fed7aa;color:#9a3412;font-size:10px;font-weight:700;text-align:center}',
   '.cv71-drawer-btn{position:absolute;z-index:30;width:28px;height:28px;border-radius:50%;border:1px solid #dbe3ef;background:#fff;box-shadow:0 3px 12px rgba(15,23,42,.12);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#0a4fbf;font-size:12px}',
-  '.ZL,.ZR,.AL,.AR{transition:width .18s ease;position:relative}',
+  '.ZL,.ZR,.AL,.AR{transition:width .18s ease,flex-basis .18s ease;position:relative;min-width:0}.ZM,.AM{min-width:0;overflow:hidden}',
   '.cv71-left-collapsed .ZL{width:72px!important}.cv71-left-collapsed .AL{width:72px!important}',
   '.cv71-left-collapsed .ZLh,.cv71-left-collapsed .ALh{display:none!important}',
   '.cv71-left-collapsed .ZLl,.cv71-left-collapsed .ALl{padding-top:40px!important}',
   '.cv71-left-collapsed .ZCi,.cv71-left-collapsed .ZCmeta,.cv71-left-collapsed .ZLsec,.cv71-left-collapsed .ACi,.cv71-left-collapsed .ACt,.cv71-left-collapsed .ACu{display:none!important}',
   '.cv71-left-collapsed .ZC,.cv71-left-collapsed .AC{justify-content:center;padding:9px 0!important;border-left-color:transparent!important}',
   '.cv71-left-collapsed .ZCa,.cv71-left-collapsed .ACa{margin:0!important}',
-  '.cv71-right-collapsed .ZR{width:42px!important}.cv71-right-collapsed .AR{width:42px!important}',
+  '.ZR{flex:0 0 340px!important;width:340px!important;background:#fff;z-index:3}.AR{flex:0 0 340px!important;width:340px!important;background:#fff;z-index:3}.ZM,.AM{flex:1 1 auto!important;z-index:1}.cv71-right-collapsed .ZR{flex:0 0 52px!important;width:52px!important;min-width:52px!important}.cv71-right-collapsed .AR{flex:0 0 52px!important;width:52px!important;min-width:52px!important}',
   '.cv71-right-collapsed .ZR>*:not(.cv71-right-toggle),.cv71-right-collapsed .AR>*:not(.cv71-right-toggle){display:none!important}',
-  '.cv71-left-toggle{right:-14px;top:10px}.cv71-right-toggle{left:-14px;top:10px}',
-  '.cv71-left-collapsed .cv71-left-toggle{right:-14px}.cv71-right-collapsed .cv71-right-toggle{left:-14px}',
+  '.cv71-left-toggle{right:-14px;top:10px}.cv71-right-toggle{left:8px;top:10px}.ZR>.ZRh,.AR>.ARh{padding-left:44px!important}',
+  '.cv71-left-collapsed .cv71-left-toggle{right:-14px}.cv71-right-collapsed .cv71-right-toggle{left:12px;top:12px}',
   '@media(max-width:980px){.ZR,.AR{width:300px}.ZL{width:250px}.AL{width:220px}}'
   ].join('');
   document.head.appendChild(s);
@@ -88,8 +103,9 @@ function searchRun(v){
   S.channel=x.id;S.q=String(v||'');clearTimeout(S.timer);
   if(S.q.trim().length<2){S.matches=[];results();return;}
   S.timer=setTimeout(function(){
-    api('aos_coord_search_messages_v1',{p_token:'__worker__',p_canal:x.id,p_query:S.q.trim()},function(r){
-      S.matches=(r&&r.ok&&Array.isArray(r.matches))?r.matches:[];results();
+    coordApi('/api/coord/search',{channel_id:x.id,query:S.q.trim()},function(r){
+      if(!r||!r.ok){S.matches=[];results();notice(r&&r.error==='COORD_APP_SESSION_REQUIRED'?'Tu sesión necesita renovarse para buscar.':'No se pudo completar la búsqueda.','error');return;}
+      S.matches=Array.isArray(r.matches)?r.matches:[];results();
     });
   },220);
 }
@@ -122,10 +138,15 @@ function mountSearch(head){
 function lockToggle(){
   var x=chAdmin();if(!x)return;var next=!x.bloqueado;
   var msg=next?'¿Bloquear este chat? Nadie podrá escribir ni adjuntar archivos; solo seguirán entrando reportes automáticos de citas.':'¿Desbloquear este chat y permitir mensajes nuevamente?';
-  var go=function(){api('aos_coord_set_channel_lock_v1',{p_token:'__worker__',p_canal:x.id,p_locked:next},function(r){
-    if(!r||!r.ok){alert(r&&r.error==='FORBIDDEN_SUPERADMIN_ONLY'?'Solo el superadmin puede bloquear o desbloquear chats.':'No se pudo cambiar el estado del chat.');return;}
+  var go=function(){coordApi('/api/coord/channel-lock',{channel_id:x.id,locked:next},function(r){
+    if(!r||!r.ok){
+      var e=r&&r.error||'';
+      var msg=e==='FORBIDDEN_SUPERADMIN_ONLY'?'Solo el superadmin puede bloquear o desbloquear chats.':e==='COORD_APP_SESSION_REQUIRED'?'Tu sesión de Ascenda Clinic debe renovarse antes de cambiar el bloqueo.':e==='CHANNEL_NOT_FOUND'?'No se encontró este chat.':'No se pudo cambiar el estado del chat. Intenta recargar la app.';
+      notice(msg,'error');return;
+    }
     x.bloqueado=!!r.locked;x.bloqueado_por=r.locked_by||null;x.bloqueado_at=r.locked_at||null;
     if(window.D&&D.drafts&&x.bloqueado)D.drafts[x.id]='';
+    notice(x.bloqueado?'Chat bloqueado: ahora funciona en modo solo reportes.':'Chat desbloqueado: los mensajes vuelven a estar habilitados.','ok');
     if(typeof window.rChat==='function')window.rChat();if(typeof window.rCL==='function')window.rCL();
   });};
   if(typeof window.aosConfirm==='function')window.aosConfirm(msg,go);else if(confirm(msg))go();
