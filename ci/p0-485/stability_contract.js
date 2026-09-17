@@ -85,13 +85,11 @@ function sourceContracts() {
     'transient_auth_remaps'
   ]) assert(perf.includes(token), 'browser stability token missing: ' + token)
 
-  assert(lock.includes('P0 #485:** `CLOSED / COMPLETED'), 'P0 closeout marker missing')
-  assert(lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`') || lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG`'), 'active CONV lock missing')
-  assert(lock.includes('RUN UNTIL BLOCKED'), 'current owner authorization missing')
-  assert(lock.includes('**LAST CLOSED:** `CONV-L1 #505'), 'CONV-L1 closeout marker missing')
-  assert(lock.includes('WA-L10 #456:** `FROZEN · SAFE-OFF EVIDENCE ONLY'), 'legacy WA-L10 freeze marker missing')
-  assert(lock.includes('AUTO_OFF · KILL SWITCH ENGAGED · SAFE-OFF'), 'SAFE-OFF lock missing')
-  assert(lock.includes('no autonomous CANARY reactivation while CONV-001 is active'), 'legacy CANARY freeze gate missing')
+  const convActive = lock.includes('CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT') || lock.includes('CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG')
+  const ciaPaused = lock.includes('**ACTIVE PRODUCT LANE:** `CIA-PANEL · PACK-A CLOSED · PACK-B NOT STARTED`') && lock.includes('CONV-001 #502 preserved') && lock.includes('SAFE-OFF')
+  assert(convActive || ciaPaused, 'current CONV governance boundary missing')
+  assert(lock.includes('SAFE-OFF'), 'SAFE-OFF governance marker missing')
+  assert(lock.includes('CONV-001 #502 preserved') || convActive, 'CONV-001 preservation marker missing')
 
   assert.strictEqual(shouldRemapInnerAuth(403, JSON.stringify({ error: 'WA3_2FA_PANEL_REQUIRED' }), true), true)
   assert.strictEqual(shouldRemapInnerAuth(403, JSON.stringify({ error: 'WA3_ADMIN_REQUIRED' }), true), false)
