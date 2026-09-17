@@ -10,7 +10,7 @@ on:
       - '.github/workflows/booking-v32-gate.yml'
 jobs:
   contract:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
