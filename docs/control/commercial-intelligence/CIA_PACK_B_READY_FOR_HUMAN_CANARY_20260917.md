@@ -16,14 +16,26 @@
 - Reuses the existing 73-filter resolver and 10 governed presets.
 - Reuses existing Audience Library persistence; no duplicate audience engine.
 - Supports explicit count, preview, save and reopen/select from library.
-- Uses the current Auth V3 strong app session through `aos_cia_control_center_app_v1`.
+- Uses the current Auth V3 strong app session through `aos_cia_control_center_app_v2`.
+- Advisor selector is restricted to active advisors with `advisor-calls` access.
+- Human Canary activation uses a two-step inline confirmation; no native browser `confirm()` dialog.
 
 ## Controlled assignment and Call Center
 
-- Human Canary action is bounded to one saved Audience → one advisor → one CALL/BATCH activation → ONE assignment strategy → source_limit=1 by UI default.
-- `aos_siguiente_lead_v3` is now the advisor selector authority at the compatibility wrapper.
-- V3 routing remains fail-closed/reversible: while global routing is OFF or advisor mode is V2_ONLY, certified V2 remains the result; V3 canary uses exact assigned work; unavailable V3 falls back to V2.
+- Human Canary action is hard-bounded in DB to one saved Audience → one advisor → one CALL/BATCH activation → ONE assignment strategy → exactly `source_limit=1`.
+- Only one PACK-B canary may be open at a time; start is blocked unless routing is at the V2 baseline.
+- The selected advisor is armed as `V3_CANARY` while global routing is still OFF; only after that succeeds can the global V3 router be enabled.
+- `aos_siguiente_lead_v3` is the advisor selector authority at the compatibility wrapper.
+- Any advisor without explicit V3 mode remains `V2_ONLY` even while the global router is ON.
+- V3 routing remains fail-closed: unavailable V3 falls back to certified V2.
 - Global Logic remains a compatibility fallback.
+
+## Reversible canary guard
+
+- Control Center exposes `Verificar readback técnico` after activation.
+- Control Center exposes `Revertir Canary · volver a V2`.
+- Rollback sequence is fail-closed: global router OFF first → selected advisor route cleared → active plan cancelled/released → activation cancelled.
+- `STOP_CANARY_ASSIGNMENT` validates that the supplied plan is a PACK-B canary and belongs to the selected advisor before cleanup.
 
 ## Production safety readback before human canary
 
@@ -32,7 +44,8 @@
 - authenticated UPDATE: false.
 - legacy queue advisors still in `global`: 4.
 - `aos_cia_call_routing_control.global_enabled`: false.
-- `aos_cia_control_center_app_v1`: present.
+- no advisor-specific routing rows were present before canary hardening.
+- `aos_cia_control_center_app_v2`: deployed additively; V1 remains available as compatibility authority for non-canary actions.
 - invalid app token: UNAUTHORIZED.
 - Human Canary #1 has NOT been executed by the assistant.
 
@@ -42,9 +55,11 @@ Owner flow after final deploy:
 1. Admin → Panel de Llamadas → `🎯 Audiencias`.
 2. Select one governed preset; run Apply/Count and Preview 25.
 3. Save the audience; reopen/select it from Library.
-4. Select exactly one advisor.
-5. `Iniciar Canary con 1 contacto`.
+4. Select exactly one Call Center-enabled advisor.
+5. Click `Preparar Canary con 1 contacto`; review the audience/advisor, then click `Confirmar Canary · 1 contacto` within 15 seconds.
 6. Open the advisor Call Center and request next lead.
-7. Read back plan/assignment/advisor work and verify no duplication; confirm Global/V2 fallback remains for other/default workload.
+7. Return to Audience Control Center and run `Verificar readback técnico`.
+8. After evidence is captured, use `Revertir Canary · volver a V2` unless the next explicitly authorized gate requires the canary to remain active.
+9. Confirm routing global OFF and no residual active PACK-B plan/assignment before closing PACK-B.
 
 **PACK-B is not CLOSED until this human canary passes. PACK-C remains blocked.**
