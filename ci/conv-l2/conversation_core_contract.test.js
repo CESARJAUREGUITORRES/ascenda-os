@@ -40,7 +40,9 @@ assert(multi.includes("'aos:wa3-core-event'"),'supervisor panel must consume cor
 assert(multi.includes('scheduleRefresh(45000)'),'supervisor bounded fallback must be 45s');
 assert(!multi.includes('X.pollDelayMs=8000'),'legacy 8s supervisor baseline still active');
 
-assert(lock.includes('CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT')||lock.includes('CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG'),'CONV workstream lock missing after L2 closeout');
+const convActive=lock.includes('CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT')||lock.includes('CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG');
+const ciaPaused=lock.includes('**ACTIVE PRODUCT LANE:** `CIA-PANEL · PACK-A CLOSED · PACK-B NOT STARTED`')&&lock.includes('CONV-001 #502 preserved')&&lock.includes('SAFE-OFF');
+assert(convActive||ciaPaused,'CONV governance state missing after L2 closeout');
 assert(l2.includes('CONV-L2 #506'),'L2 readiness missing');
 assert(l2.includes('**AI autonomy:** SAFE-OFF'),'L2 safety boundary missing');
 

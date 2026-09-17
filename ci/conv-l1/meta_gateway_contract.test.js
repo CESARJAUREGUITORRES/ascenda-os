@@ -54,8 +54,10 @@ assert(wa3.includes('/api/wa/meta/reconcile-internal'),'WA3 post-persist status 
 assert(gateway.includes("['image','document','audio','video']"),'governed media payloads must include video support');
 assert(gateway.includes('provider_timestamp:row.provider_timestamp'),'status event must retain provider timestamp for race reconciliation');
 assert(l1.includes('CLOSED · PROVIDER CERTIFIED'),'CONV-L1 provider certification marker missing');
-assert(lock.includes('CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT')||lock.includes('CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG'),'post-L1 CONV workstream lock missing');
-assert(lock.includes('RUN UNTIL BLOCKED'),'owner execution mode missing');
+const convActive=lock.includes('CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT')||lock.includes('CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG');
+const ciaPaused=lock.includes('**ACTIVE PRODUCT LANE:** `CIA-PANEL · PACK-A CLOSED · PACK-B NOT STARTED`')&&lock.includes('CONV-001 #502 preserved')&&lock.includes('SAFE-OFF');
+assert(convActive||ciaPaused,'post-L1 CONV governance state missing');
+if(convActive)assert(lock.includes('RUN UNTIL BLOCKED'),'active CONV owner execution mode missing');
 assert(l0.includes('L1 OWNER AUTHORIZATION RECEIVED / ACTIVE'),'historical L0->L1 authorization transition missing');
 
 console.log('CONV_L1_META_GATEWAY_CONTRACT_PASS');

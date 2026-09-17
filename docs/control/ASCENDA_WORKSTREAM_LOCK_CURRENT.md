@@ -1,20 +1,23 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-16 America/Lima  
-**ACTIVE PRODUCT LANE:** `CIA-PANEL · PACK-A → PACK-B — AUDIENCE CONTROL CENTER`  
+**ACTIVE PRODUCT LANE:** `CIA-PANEL · PACK-A CLOSED · PACK-B NOT STARTED`  
 **BOOKING CLOSEOUT STATUS:** `AGENDA V3 — HUMAN CANARY PASS · CORE FROZEN · THEME HANDOFF READY`  
-**OWNER AUTHORIZATION:** `ejecutar CIA en 4 macro-loops autónomos; continuar PACK-A→PACK-B sin pedir confirmación intermedia y detenerse en Human Canary #1`  
-**PAUSED HIGH/CRITICAL LANE:** `CONV-L4 #508 — preserved; resume only by explicit owner reprioritization`  
+**OWNER AUTHORIZATION:** `finish CIA PACK-A Foundation & Live Reconciliation; freeze PACK-B delta; stop before PACK-B implementation`  
+**PARALLEL/PAUSED CONVERSATIONS STATE:** `CONV-001 #502 preserved; CONV-L4 #508 closed; legacy WA-L10 #456 remains SAFE-OFF / separately gated`  
 **Production safety:** Conversations autonomy remains `SAFE-OFF`.
 
-## CIA-PANEL autonomous execution lock · 16/09/2026
+## CIA-PANEL execution lock · 16/09/2026
 
-- Agenda V3 is now treated as a frozen certified dependency; do not reopen its core while CIA-PANEL is active unless a regression is proven.
+- Agenda V3 remains a frozen certified dependency; do not reopen its core while CIA-PANEL work is active unless a regression is proven.
 - Current CIA execution authority: `docs/control/commercial-intelligence/CIA_EXECUTION_PACKS_CURRENT.md`.
-- Execution is grouped into 4 macro-packs with 3 owner canaries.
-- PACK-A is autonomous. If its invariants are green, proceed directly into PACK-B implementation.
-- First required owner stop: Human Canary #1 for Audience Builder + Call Center assignment.
-- CONV-L4 remains paused unless the owner explicitly reprioritizes it.
+- PACK-A authoritative closeout: `docs/control/commercial-intelligence/CIA_PACK_A_CLOSEOUT_20260916.md`.
+- PACK-A = `CLOSED · PASS WITH EXPLICIT PACK-B PREREQUISITES`.
+- The previous automatic PACK-A → PACK-B continuation is superseded by the current owner scope.
+- PACK-B is **NOT STARTED** and requires an explicit owner start.
+- When PACK-B is started, prerequisite order is `P1 segment freshness → P2 governed queue-config gateway/RLS migration → P3 resolver UX/performance → Audience Builder/Library → controlled assignment`.
+- First human stop inside PACK-B remains Human Canary #1 for one saved Audience → one advisor → exact assigned work/readback.
+- No PACK-C channel activation is authorized by this lock.
 
 ## Stable functional baseline
 
@@ -60,9 +63,10 @@
 
 ## Production runtime
 
-- Current Railway production deployment `719a621f-442e-499a-87fc-367e92a8301f`
-- Commit: `395ef1dd90e6d3a51e9f41d5d9d3a3bcfa1ae14f`
+- Current Railway production deployment `b40cb55e-cc4d-4502-b0f2-0b466ad868da`
+- Commit: `ed20fab28ddebf917a9de660dacb2cbf14daaedb`
 - Status: **SUCCESS**.
+- CIA PACK-A made no production runtime/database mutation; its branch is control/docs-only.
 
 ## Agenda redesign authorization
 
@@ -261,3 +265,20 @@ Human-facing attribution formatting is now normalized before the final canary.
 - Readback on the prior personal-link canary resolves `AD4FC2AC-...` → `CESAR`; admin notification now reads `Nueva cita · Link Cesar`.
 
 **Next gate:** one complete human V3 flow and confirm Agenda + push/in-app + Comercial + patient email + Google Calendar.
+
+
+## CIA-PANEL · PACK-A CLOSEOUT · 16/09/2026
+
+- Reconciled exact base: `main@ed20fab28ddebf917a9de660dacb2cbf14daaedb`.
+- Railway production on that base: `b40cb55e-cc4d-4502-b0f2-0b466ad868da` = **SUCCESS**.
+- Canonical CIA contact population: **13,238**.
+- Governed Audience filter registry: **73/73 PASS**; 10 existing presets validate/resolve.
+- PACK-A discovered material segmentation-cache drift: **1,692 missing contacts + 2,454 lifecycle mismatches** versus current live calculation. Freshness claim must fail closed until P1 repair/readback.
+- Current Audience resolver is functionally valid but not safe for naive keystroke-driven counts: observed ~2.91 s count and ~1.66 s preview on `LEADS_UNWORKED_7D`; PACK-B must use bounded interactive semantics and optimize rather than inflate timeouts.
+- Current Call Center still relies on legacy `tipo_cola`/Global Logic compatibility; production retains four advisors in `global` mode.
+- `admin-calls.html` still mutates `aos_cola_config` directly from browser under broad compatibility RLS. PACK-B must introduce gateway → migrate UI → smoke → harden RLS, never revoke first.
+- CIA WhatsApp bridge evidence remains insufficient as a reusable audience identity base; transport/conversation authority stays separate and autonomous WhatsApp remains SAFE-OFF.
+- PACK-A changed **no runtime/database/business data**. Closeout is control/docs only.
+- Full evidence and frozen implementation delta: `docs/control/commercial-intelligence/CIA_PACK_A_CLOSEOUT_20260916.md`.
+
+**LOCK RESULT:** `PACK-A CLOSED · PACK-B NOT STARTED`. No automatic pack transition is authorized by this file.
