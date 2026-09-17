@@ -1,6 +1,7 @@
 'use strict'
 const http=require('http')
 const {createBookingPublicV33}=require('./booking-public-v33')
+const {createBookingConnectV1,PREFIX:BOOKING_CONNECT_PREFIX}=require('./ascenda-connect-booking-v1')
 const original=http.createServer
 function transform(path,html){
  if(path==='/admin-home.html'){
@@ -28,4 +29,20 @@ function transform(path,html){
  }
  return html
 }
-if(!http.createServer.__bookingV33){http.createServer=function(listener){const booking=createBookingPublicV33({supabaseUrl:process.env.SUPABASE_URL,serviceRoleKey:process.env.SUPABASE_SERVICE_ROLE_KEY,resendApiKey:process.env.RESEND_API_KEY});return original.call(http,function(req,res){let p='/';try{p=new URL(req.url,'http://localhost').pathname}catch(_){};if(p==='/api/booking/public-confirmation-v33')return booking(req,res);if(p==='/admin-home.html'||p==='/admin-calls.html'||p==='/asesor-coord.html'||p==='/app.html'||p==='/app'){const chunks=[],ow=res.write.bind(res),oe=res.end.bind(res),osh=res.setHeader.bind(res),owh=res.writeHead.bind(res);res.setHeader=function(n,v){if(String(n).toLowerCase()==='content-length')return res;return osh(n,v)};res.writeHead=function(sc,sm,h){if(typeof sm==='object'&&sm){h=sm;sm=undefined}if(h){h=Object.assign({},h);delete h['Content-Length'];delete h['content-length']}return sm===undefined?owh(sc,h):owh(sc,sm,h)};res.write=function(c,e,cb){if(c)chunks.push(Buffer.isBuffer(c)?c:Buffer.from(c,e));if(typeof cb==='function')cb();return true};res.end=function(c,e,cb){if(c)chunks.push(Buffer.isBuffer(c)?c:Buffer.from(c,e));ow(transform(p,Buffer.concat(chunks).toString('utf8')));return oe(null,null,cb)}}return listener(req,res)})};http.createServer.__bookingV33=true}
+if(!http.createServer.__bookingV33){http.createServer=function(listener){
+ const booking=createBookingPublicV33({supabaseUrl:process.env.SUPABASE_URL,serviceRoleKey:process.env.SUPABASE_SERVICE_ROLE_KEY,resendApiKey:process.env.RESEND_API_KEY});
+ const connect=createBookingConnectV1({supabaseUrl:process.env.SUPABASE_URL,serviceRoleKey:process.env.SUPABASE_SERVICE_ROLE_KEY,confirmationHandler:booking});
+ return original.call(http,function(req,res){
+  let p='/';try{p=new URL(req.url,'http://localhost').pathname}catch(_){}
+  if(p==='/api/booking/public-confirmation-v33')return booking(req,res);
+  if(p===BOOKING_CONNECT_PREFIX||p.indexOf(BOOKING_CONNECT_PREFIX+'/')===0)return connect(req,res);
+  if(p==='/admin-home.html'||p==='/admin-calls.html'||p==='/asesor-coord.html'||p==='/app.html'||p==='/app'){
+   const chunks=[],ow=res.write.bind(res),oe=res.end.bind(res),osh=res.setHeader.bind(res),owh=res.writeHead.bind(res);
+   res.setHeader=function(n,v){if(String(n).toLowerCase()==='content-length')return res;return osh(n,v)};
+   res.writeHead=function(sc,sm,h){if(typeof sm==='object'&&sm){h=sm;sm=undefined}if(h){h=Object.assign({},h);delete h['Content-Length'];delete h['content-length']}return sm===undefined?owh(sc,h):owh(sc,sm,h)};
+   res.write=function(c,e,cb){if(c)chunks.push(Buffer.isBuffer(c)?c:Buffer.from(c,e));if(typeof cb==='function')cb();return true};
+   res.end=function(c,e,cb){if(c)chunks.push(Buffer.isBuffer(c)?c:Buffer.from(c,e));ow(transform(p,Buffer.concat(chunks).toString('utf8')));return oe(null,null,cb)}
+  }
+  return listener(req,res)
+ })
+};http.createServer.__bookingV33=true}
