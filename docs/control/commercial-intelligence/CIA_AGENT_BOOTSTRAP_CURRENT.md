@@ -12,7 +12,8 @@ For CIA work, read in this order:
 
 1. `AGENTS.md` for global ASCENDA safety rules.
 2. `CIA_RESUME_AFTER_BOOKING_20260916.md` for the September resumption checkpoint and Agenda V3 lessons.
-3. this file.
+3. `CIA_EXECUTION_PACKS_CURRENT.md` for the current 4-pack autonomous execution strategy.
+4. this file.
 3. `CIA_MASTER_ALIGNMENT_CURRENT.md`.
 4. `CIA_EXECUTION_PLAYBOOK_V1.md`.
 5. `ROADMAP_STATUS.md`.
