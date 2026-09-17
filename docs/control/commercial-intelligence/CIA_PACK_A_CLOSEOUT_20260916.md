@@ -6,7 +6,7 @@
 **Base reconciled:** `main@ed20fab28ddebf917a9de660dacb2cbf14daaedb`  
 **Production Railway at observation:** deployment `b40cb55e-cc4d-4502-b0f2-0b466ad868da` · `SUCCESS` · exact SHA `ed20fab28ddebf917a9de660dacb2cbf14daaedb`  
 **PACK-A status:** `PASS · CLOSED WITH EXPLICIT PACK-B PREREQUISITES`  
-**Mutation scope:** control/docs only. No production SQL, frontend, runtime, transport or assignment mutation was applied by PACK-A.
+**Mutation scope:** control/docs + CI contract hygiene only. No production SQL, frontend, runtime, transport or assignment mutation was applied by PACK-A.
 
 ## 1. Executive result
 
@@ -183,7 +183,17 @@ When PACK-B is explicitly started, its first implementation loop must be prerequ
 
 No PACK-C channel-send implementation is included in this delta.
 
-## 11. Exit gate readback
+## 11. CI hygiene discovered during closeout
+
+The exact-head closeout exposed repository-level CI drift, repaired without changing product behavior:
+
+- Booking V3.2 gate + production smoke used prohibited `ubuntu-latest`; both now use the canonical self-hosted Zero-Cost runner.
+- CONV L0/L1/L2 and P0 governance tests assumed Conversations must always own the active mutable lock; they now accept an explicit transfer to CIA only when `CONV-001` is preserved and SAFE-OFF remains explicit.
+- Booking V3.2 still asserted the retired advisor-link modal; it now validates the current `booking-link-center-v37.js` / `aos_booking_advisor_link_dashboard_v38` authority.
+
+These are CI/control repairs only: no booking runtime, Conversations runtime, provider dispatch, database state or customer data was changed.
+
+## 12. Exit gate readback
 
 - Current-state map: **PASS**.
 - Canonical identity authority: **PASS**.
@@ -196,7 +206,7 @@ No PACK-C channel-send implementation is included in this delta.
 - Exact PACK-B delta: **FROZEN**.
 - Production mutation residue from PACK-A: **0**.
 
-## 12. Final PACK-A decision
+## 13. Final PACK-A decision
 
 **PACK-A = CLOSED / PASS WITH EXPLICIT PREREQUISITES.**
 
