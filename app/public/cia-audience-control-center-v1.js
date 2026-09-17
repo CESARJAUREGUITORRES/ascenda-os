@@ -59,5 +59,6 @@ function bind(){
   document.getElementById('cia-canary-stop').onclick=function(){if(!state.canary)return;var btn=this,st=document.getElementById('cia-canary-state');btn.disabled=true;btn.textContent='Revirtiendo…';rpc('STOP_CANARY_ASSIGNMENT',{plan_id:state.canary.plan_id,advisor_user_id:state.canary.advisor_user_id}).then(function(){state.canary=null;state.armedUntil=0;st.innerHTML='<b>Rollback PASS.</b> Routing global OFF; asesor vuelve a V2; plan/activación canary cerrados.';btn.textContent='Revertir Canary · volver a V2';refreshCanary();toast('Canary revertido a V2')}).catch(function(e){btn.textContent='Revertir Canary · volver a V2';setBtn('cia-canary-stop',true);toast(e.message,true)})};
 }
 function open(){shell();bind();rpc('BOOTSTRAP',{}).then(function(d){state.boot=d;return rpc('LIST_AUDIENCES',{limit:20,offset:0,include_archived:false})}).then(function(lib){state.boot.library=lib;renderBoot()}).catch(function(e){document.getElementById('cia-count').textContent='Error: '+e.message;toast(e.message,true)})}
-var observer=new MutationObserver(function(){installButton()});observer.observe(document.documentElement,{childList:true,subtree:true});installButton();
+window.__AOS_CIA_INSTALL_AUDIENCE_BUTTON_V1__=installButton;
+installButton();
 })();
