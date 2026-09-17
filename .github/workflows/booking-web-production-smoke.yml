@@ -1,0 +1,39 @@
+name: BOOKING WEB · Production Smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/ascenda-connect-booking-v1.js'
+      - 'app/booking-v33-preload.js'
+      - '.github/workflows/booking-web-production-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Health + bootstrap · no write
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Wait for Railway rollout
+        run: sleep 35
+      - name: Health
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(curl --fail --silent --show-error --retry 8 --retry-delay 8 --max-time 20 \
+            -H 'Origin: https://zivital.pe' \
+            'https://ascenda-os-production.up.railway.app/api/ascenda-connect/booking/v1/health')"
+          printf '%s\n' "$body"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true||x.service!=="ascenda-connect-booking") process.exit(1)' "$body"
+      - name: Bootstrap
+        shell: bash
+        run: |
+          set -euo pipefail
+          body="$(curl --fail --silent --show-error --retry 8 --retry-delay 8 --max-time 25 \
+            -H 'Origin: https://zivital.pe' \
+            'https://ascenda-os-production.up.railway.app/api/ascenda-connect/booking/v1/bootstrap')"
+          node -e 'const x=JSON.parse(process.argv[1]); if(x.ok!==true||!Array.isArray(x.domains)||x.domains.length<3||x.attribution_default?.source_channel!=="WEB") process.exit(1); console.log(JSON.stringify({ok:x.ok,site:x.site,domains:x.domains.map(d=>d.code),attribution:x.attribution_default}))' "$body"
