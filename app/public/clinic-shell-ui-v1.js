@@ -1,8 +1,9 @@
 /* ASCENDA CLINIC — SHELL UI V1.3
-   Presentation-only adapter. Existing drawer navigation and business behavior remain authoritative. */
+   Shared responsive shell plus governed compatibility bridge loaders. */
 (function(){
 'use strict';
 if(window.__ASCENDA_CLINIC_UI_V13__)return;
+window.__ASCENDA_CLINIC_UI_V13__=true;
 window.__ASCENDA_CLINIC_UI_V11__=true;
 function q(s,r){return (r||document).querySelector(s)}
 function isCompactDevice(){if(!window.matchMedia)return innerWidth<=820;var narrow=window.matchMedia('(max-width:820px)').matches;var touchLandscape=window.matchMedia('(max-width:1200px)').matches&&(window.matchMedia('(pointer:coarse)').matches||window.matchMedia('(hover:none)').matches);return narrow||touchLandscape}
@@ -12,6 +13,15 @@ function ensureHomeHero(){var root=q('#workspace .ah');var existing=root&&q('.cl
 function applyPanelClass(){var ws=q('#workspace');if(!ws)return;var active=(window.AOS&&AOS.activeView)?String(AOS.activeView):'';if(active)ws.setAttribute('data-active-view',active);else ws.removeAttribute('data-active-view');var child=ws.firstElementChild;if(child)child.classList.add('clinic-responsive-panel');ensureHomeHero()}
 function mobileDefault(){if(!isCompactDevice())return;var sb=q('#sidebar'),brand=q('#tb-brand');if(!sb||!brand)return;if(!sessionStorage.getItem('aos_mobile_drawer_initialized_v11')){sessionStorage.setItem('aos_mobile_drawer_initialized_v11','1');if(!sb.classList.contains('col')){sb.classList.add('col');brand.classList.add('col');if(window.AOS)AOS.collapsed=true}}}
 function reconcileViewport(){setDeviceClasses();canonicalBrand();if(isCompactDevice())mobileDefault();applyPanelClass()}
+function installCiaQueueGatewayV1(){
+  if(window.__ASCENDA_CIA_QUEUE_GATEWAY_LOADER_V1__)return;
+  window.__ASCENDA_CIA_QUEUE_GATEWAY_LOADER_V1__=true;
+  var s=document.createElement('script');
+  s.src='/cia-queue-gateway-v1.js?v=20260917-1';
+  s.async=false;
+  s.onerror=function(){window.__ASCENDA_CIA_QUEUE_GATEWAY_LOADER_V1__=false;console.warn('[CIA-P2] queue gateway asset unavailable');};
+  document.head.appendChild(s);
+}
 function installBookingLinkCenterV38(){
   if(window.__ASCENDA_BOOKING_V38_LOADER__)return;
   window.__ASCENDA_BOOKING_V38_LOADER__=true;
@@ -31,5 +41,6 @@ function installCoordV7(){
   document.head.appendChild(s);
 }
 function boot(){reconcileViewport();var ws=q('#workspace');if(ws){var obs=new MutationObserver(function(){applyPanelClass()});obs.observe(ws,{childList:true,subtree:false})}var timer=0;window.addEventListener('resize',function(){clearTimeout(timer);timer=setTimeout(reconcileViewport,80)});window.addEventListener('orientationchange',function(){setTimeout(reconcileViewport,120)});installBookingLinkCenterV38();installCoordV7()}
+installCiaQueueGatewayV1();
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })();
