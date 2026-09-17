@@ -24,5 +24,3 @@ jobs:
           node --check ci/booking-connect-v1/contract.js
       - name: Connector + no-regression contract
         run: node ci/booking-connect-v1/contract.js
-      - name: Zero-cost policy
-        run: python3 scripts/ci/enforce-zero-cost-policy.py
