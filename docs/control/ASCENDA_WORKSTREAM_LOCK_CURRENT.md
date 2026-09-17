@@ -1,11 +1,20 @@
 # ASCENDA OS — WORKSTREAM EXECUTION LOCK CURRENT
 
 **Captured:** 2026-09-16 America/Lima  
-**ACTIVE PRODUCT LANE:** `AGENDA-UX-V1 — DESIGN MAY START ON STABLE BOOKING CORE`  
-**BOOKING CLOSEOUT STATUS:** `BOOKING-V3.9 / COORD-CITAS-V1.1 — TECHNICAL PASS · HUMAN CLOSEOUT PARTIAL`  
-**OWNER AUTHORIZATION:** `validar baseline y comenzar diseño nuevo de Agenda sin alterar el core`  
+**ACTIVE PRODUCT LANE:** `CIA-PANEL · PACK-A → PACK-B — AUDIENCE CONTROL CENTER`  
+**BOOKING CLOSEOUT STATUS:** `AGENDA V3 — HUMAN CANARY PASS · CORE FROZEN · THEME HANDOFF READY`  
+**OWNER AUTHORIZATION:** `ejecutar CIA en 4 macro-loops autónomos; continuar PACK-A→PACK-B sin pedir confirmación intermedia y detenerse en Human Canary #1`  
 **PAUSED HIGH/CRITICAL LANE:** `CONV-L4 #508 — preserved; resume only by explicit owner reprioritization`  
 **Production safety:** Conversations autonomy remains `SAFE-OFF`.
+
+## CIA-PANEL autonomous execution lock · 16/09/2026
+
+- Agenda V3 is now treated as a frozen certified dependency; do not reopen its core while CIA-PANEL is active unless a regression is proven.
+- Current CIA execution authority: `docs/control/commercial-intelligence/CIA_EXECUTION_PACKS_CURRENT.md`.
+- Execution is grouped into 4 macro-packs with 3 owner canaries.
+- PACK-A is autonomous. If its invariants are green, proceed directly into PACK-B implementation.
+- First required owner stop: Human Canary #1 for Audience Builder + Call Center assignment.
+- CONV-L4 remains paused unless the owner explicitly reprioritizes it.
 
 ## Stable functional baseline
 
