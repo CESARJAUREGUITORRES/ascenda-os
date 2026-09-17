@@ -20,7 +20,7 @@ function install(){
     var candidates=callCenterTokenCandidates(),i=0;function attempt(){var body=Object.assign({},p||{});if(candidates.length)body.p_token=candidates[i++];return base(actual,body,function(d){if(d&&d.ok===false&&d.error==='UNAUTHORIZED'&&i<candidates.length){attempt();return}if(d&&d.ok===true&&body.p_token){try{sessionStorage.setItem('aos_app_token',body.p_token)}catch(_e){}if(window.CC)CC.token=body.p_token}if(ok)ok(d)},fail)}return attempt();
   }
   function perfRpc(fn,p,ok,fail){
-    /* Legacy invariant marker retained for the historical P0 contract: aos_siguiente_lead_v2'?'aos_siguiente_lead.
+    /* Legacy invariant marker retained for the historical P0 contract: aos_siguiente_lead_v2'?'aos_siguiente_lead'.
        PACK-B authority is now V3: V3 itself returns the certified V2 path while routing is OFF/V2_ONLY. */
     var actual=fn==='aos_siguiente_lead_v2'?'aos_siguiente_lead_v3':fn;
     var isWrite=/^aos_callcenter_(commit|confirm)_/.test(actual),ms=ttl[actual]||0;
