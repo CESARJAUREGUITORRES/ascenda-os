@@ -4,6 +4,7 @@ const https = require('https')
 
 const VERSION = '1.0.0'
 const SITE = 'SAN ISIDRO'
+const PREFIX = '/api/ascenda-connect/booking/v1'
 const ALLOWED_ORIGINS = new Set(['https://zivital.pe', 'https://www.zivital.pe'])
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
@@ -63,6 +64,10 @@ function normalize(v) {
   return String(v || '').trim().toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
 
+function cleanText(v, max) {
+  return String(v == null ? '' : v).trim().replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, max)
+}
+
 function roleOfProfile(p) {
   return normalize(p && p.tipo).includes('ENFER') ? 'ENFERMERIA' : 'DOCTORA'
 }
@@ -77,11 +82,11 @@ function profileSupports(p, treatmentName) {
 
 function publicProvider(p) {
   return {
-    id: String(p.id || ''),
-    nombre: String(p.nombre_publico || ''),
-    foto_url: String(p.foto_url || ''),
-    especialidad: String(p.especialidad || ''),
-    cmp: String(p.cmp || ''),
+    id: cleanText(p && p.id, 80),
+    nombre: cleanText(p && p.nombre_publico, 100),
+    foto_url: cleanText(p && p.foto_url, 500),
+    especialidad: cleanText(p && p.especialidad, 120),
+    cmp: cleanText(p && p.cmp, 30),
     role: roleOfProfile(p)
   }
 }
@@ -91,9 +96,9 @@ function consolidateCatalog(raw) {
   ;(raw || []).forEach(x => {
     const key = normalize(x && x.nombre)
     if (!key || !x || !UUID_RE.test(String(x.id || ''))) return
-    if (!map[key]) map[key] = { nombre: String(x.nombre || ''), categoria: String(x.categoria || 'GENERAL'), entries: [], roles: [] }
+    if (!map[key]) map[key] = { nombre: cleanText(x.nombre, 160), categoria: cleanText(x.categoria || 'GENERAL', 80), entries: [], roles: [] }
     const role = normalize(x.role)
-    map[key].entries.push({ id: String(x.id), role, nombre: String(x.nombre || ''), categoria: String(x.categoria || '') })
+    map[key].entries.push({ id: String(x.id), role, nombre: cleanText(x.nombre, 160), categoria: cleanText(x.categoria, 80) })
     if (role && !map[key].roles.includes(role)) map[key].roles.push(role)
   })
   return Object.values(map)
@@ -148,15 +153,29 @@ function buildBootstrap(catalogRaw, profiles) {
   }
 }
 
-function json(res, status, payload, origin) {
-  const headers = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }
-  if (origin && ALLOWED_ORIGINS.has(origin)) {
-    headers['Access-Control-Allow-Origin'] = origin
-    headers['Access-Control-Allow-Methods'] = 'GET,POST,OPTIONS'
-    headers['Access-Control-Allow-Headers'] = 'Content-Type'
-    headers['Vary'] = 'Origin'
+function corsHeaders(origin) {
+  if (!origin || !ALLOWED_ORIGINS.has(origin)) return {}
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    Vary: 'Origin'
   }
+}
+
+function applyCors(res, origin) {
+  const headers = corsHeaders(origin)
+  Object.keys(headers).forEach(k => res.setHeader(k, headers[k]))
+}
+
+function json(res, status, payload, origin) {
+  const headers = Object.assign({
+    'Content-Type': 'application/json; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff'
+  }, corsHeaders(origin))
   res.writeHead(status, headers)
+  if (status === 204) return res.end()
   res.end(JSON.stringify(payload))
 }
 
@@ -170,9 +189,18 @@ function supabaseRequest(baseUrl, key, path, method, payload) {
       headers['Content-Length'] = Buffer.byteLength(body)
     }
     const req = https.request({ hostname: u.hostname, port: 443, path, method, timeout: 12000, headers }, r => {
-      let data = ''
-      r.on('data', c => { data += c; if (data.length > 1024 * 1024) req.destroy(new Error('UPSTREAM_TOO_LARGE')) })
+      let data = '', settled = false
+      r.on('data', c => {
+        if (settled) return
+        data += c
+        if (Buffer.byteLength(data) > 1024 * 1024) {
+          settled = true
+          req.destroy(new Error('UPSTREAM_TOO_LARGE'))
+        }
+      })
       r.on('end', () => {
+        if (settled) return
+        settled = true
         let parsed = null
         try { parsed = data ? JSON.parse(data) : null } catch (_) { return reject(new Error('UPSTREAM_INVALID_JSON')) }
         if (r.statusCode >= 300) return reject(new Error('UPSTREAM_' + r.statusCode))
@@ -188,21 +216,29 @@ function supabaseRequest(baseUrl, key, path, method, payload) {
 
 function readBody(req, maxBytes) {
   return new Promise((resolve, reject) => {
-    let body = ''
+    let body = '', settled = false
+    function fail(error) {
+      if (settled) return
+      settled = true
+      reject(error)
+    }
     req.on('data', c => {
+      if (settled) return
       body += c
-      if (Buffer.byteLength(body) > maxBytes) reject(new Error('PAYLOAD_TOO_LARGE'))
+      if (Buffer.byteLength(body) > maxBytes) fail(new Error('PAYLOAD_TOO_LARGE'))
     })
     req.on('end', () => {
+      if (settled) return
+      settled = true
       try { resolve(body ? JSON.parse(body) : {}) } catch (_) { reject(new Error('INVALID_JSON')) }
     })
-    req.on('error', reject)
+    req.on('error', fail)
   })
 }
 
 const buckets = new Map()
 function clientIp(req) {
-  return String(req.headers['x-forwarded-for'] || req.socket && req.socket.remoteAddress || '').split(',')[0].trim().slice(0, 80)
+  return cleanText(String(req.headers['x-forwarded-for'] || (req.socket && req.socket.remoteAddress) || '').split(',')[0], 80)
 }
 function rateAllowed(req, bucketName, limit, windowMs) {
   const now = Date.now(), key = bucketName + ':' + clientIp(req)
@@ -216,9 +252,6 @@ function rateAllowed(req, bucketName, limit, windowMs) {
   return row.count <= limit
 }
 
-function cleanText(v, max) {
-  return String(v == null ? '' : v).trim().replace(/[\u0000-\u001f\u007f]/g, ' ').slice(0, max)
-}
 function validYearMonth(year, month) {
   const y = Number(year), m = Number(month), now = new Date().getFullYear()
   return Number.isInteger(y) && Number.isInteger(m) && y >= now && y <= now + 2 && m >= 1 && m <= 12
@@ -228,6 +261,7 @@ function createBookingConnectV1(opts) {
   opts = opts || {}
   const sb = opts.supabaseUrl || process.env.SUPABASE_URL
   const key = opts.serviceRoleKey || process.env.SUPABASE_SERVICE_ROLE_KEY
+  const confirmationHandler = typeof opts.confirmationHandler === 'function' ? opts.confirmationHandler : null
   const rpc = opts.rpc || ((name, payload) => supabaseRequest(sb, key, '/rest/v1/rpc/' + encodeURIComponent(name), 'POST', payload || {}))
   const get = opts.get || (path => supabaseRequest(sb, key, '/rest/v1/' + path, 'GET'))
 
@@ -248,19 +282,18 @@ function createBookingConnectV1(opts) {
   return async function handle(req, res) {
     const origin = String(req.headers.origin || '')
     if (origin && !ALLOWED_ORIGINS.has(origin)) return json(res, 403, { ok: false, error: 'ORIGIN_NOT_ALLOWED' })
-    if (req.method === 'OPTIONS') return json(res, 204, {}, origin)
-    if (!sb || !key) return json(res, 503, { ok: false, error: 'CONNECTOR_NOT_CONFIGURED' }, origin)
+    if (req.method === 'OPTIONS') return json(res, 204, null, origin)
 
     let path = '/'
     try { path = new URL(req.url, 'http://localhost').pathname } catch (_) {}
-    const prefix = '/api/ascenda-connect/booking/v1'
-    const op = path.startsWith(prefix) ? path.slice(prefix.length) || '/' : '/'
+    const op = path.startsWith(PREFIX) ? path.slice(PREFIX.length) || '/' : '/'
+
+    if (op === '/health' && req.method === 'GET') {
+      return json(res, 200, { ok: true, service: 'ascenda-connect-booking', version: VERSION }, origin)
+    }
+    if (!sb || !key) return json(res, 503, { ok: false, error: 'CONNECTOR_NOT_CONFIGURED' }, origin)
 
     try {
-      if (op === '/health' && req.method === 'GET') {
-        return json(res, 200, { ok: true, service: 'ascenda-connect-booking', version: VERSION }, origin)
-      }
-
       if (op === '/bootstrap' && req.method === 'GET') {
         if (!rateAllowed(req, 'bootstrap', 90, 60 * 1000)) return json(res, 429, { ok: false, error: 'RATE_LIMIT' }, origin)
         const [catalog, profiles] = await Promise.all([loadCatalog(), loadProfiles()])
@@ -306,7 +339,7 @@ function createBookingConnectV1(opts) {
       }
 
       if (op === '/patient-lookup' && req.method === 'POST') {
-        if (!rateAllowed(req, 'patient', 24, 60 * 1000)) return json(res, 429, { ok: false, error: 'RATE_LIMIT' }, origin)
+        if (!rateAllowed(req, 'patient', 18, 60 * 1000)) return json(res, 429, { ok: false, error: 'RATE_LIMIT' }, origin)
         const d = await readBody(req, 6000), identity = cleanText(d.identity, 32)
         if (!identity || identity.replace(/\D/g, '').length < 7) return json(res, 400, { ok: false, error: 'IDENTITY_REQUIRED' }, origin)
         const r = await rpc('aos_booking_patient_lookup_v3', { p_identity: identity })
@@ -355,13 +388,20 @@ function createBookingConnectV1(opts) {
           p_nota: note,
           p_tipo_cita: appointmentType
         })
-        if (!r || !r.ok) return json(res, 409, { ok: false, error: cleanText(r && r.error || 'BOOKING_REJECTED', 120) }, origin)
+        if (!r || !r.ok) return json(res, 409, { ok: false, error: cleanText((r && r.error) || 'BOOKING_REJECTED', 120) }, origin)
         return json(res, 200, { ok: true, agenda_id: cleanText(r.agenda_id, 80), source_channel: cleanText(r.source_channel, 40), source_campaign: cleanText(r.source_campaign, 100), advisor_code: cleanText(r.advisor_code, 100) }, origin)
+      }
+
+      if (op === '/confirmation' && req.method === 'POST') {
+        if (!confirmationHandler) return json(res, 503, { ok: false, error: 'CONFIRMATION_NOT_CONFIGURED' }, origin)
+        if (!rateAllowed(req, 'confirmation', 12, 10 * 60 * 1000)) return json(res, 429, { ok: false, error: 'RATE_LIMIT' }, origin)
+        applyCors(res, origin)
+        return confirmationHandler(req, res)
       }
 
       return json(res, 404, { ok: false, error: 'CONNECTOR_ROUTE_NOT_FOUND' }, origin)
     } catch (e) {
-      const code = String(e && e.message || 'CONNECTOR_ERROR')
+      const code = String((e && e.message) || 'CONNECTOR_ERROR')
       if (code === 'PAYLOAD_TOO_LARGE') return json(res, 413, { ok: false, error: code }, origin)
       if (code === 'INVALID_JSON') return json(res, 400, { ok: false, error: code }, origin)
       console.error('[ascenda-connect-booking-v1]', code)
@@ -370,4 +410,4 @@ function createBookingConnectV1(opts) {
   }
 }
 
-module.exports = { createBookingConnectV1, buildBootstrap, consolidateCatalog, resolveRoutes, PUBLIC_TAXONOMY }
+module.exports = { createBookingConnectV1, buildBootstrap, consolidateCatalog, resolveRoutes, PUBLIC_TAXONOMY, PREFIX }
