@@ -3,6 +3,7 @@
 (function(){
 'use strict';
 if(window.__ASCENDA_CLINIC_UI_V13__)return;
+window.__ASCENDA_CLINIC_UI_V13__=true;
 window.__ASCENDA_CLINIC_UI_V11__=true;
 function q(s,r){return (r||document).querySelector(s)}
 function isCompactDevice(){if(!window.matchMedia)return innerWidth<=820;var narrow=window.matchMedia('(max-width:820px)').matches;var touchLandscape=window.matchMedia('(max-width:1200px)').matches&&(window.matchMedia('(pointer:coarse)').matches||window.matchMedia('(hover:none)').matches);return narrow||touchLandscape}
@@ -17,7 +18,7 @@ function installCiaQueueGatewayBridgeV1(){
   window.__ASCENDA_CIA_QUEUE_GATEWAY_V1__=true;
   var nativeFetch=window.fetch.bind(window);
   function token(){try{return String(sessionStorage.getItem('aos_app_token')||'').trim()}catch(_){return''}}
-  function headersFor(input,init){var h=new Headers((init&&init.headers)||((input&&input.headers)||{}));h.set('Content-Type','application/json');h.set('Accept','application/json');return h}
+  function headersFor(input,init){var h=new Headers((init&&init.headers)||((input&&input.headers)||{}));h.set('Content-Type','application/json');h.set('Accept','application/json');h.delete('Prefer');return h}
   function queueTarget(input){try{var raw=typeof input==='string'?input:(input&&input.url)||'';var u=new URL(raw,location.href);return u.hostname==='ituyqwstonmhnfshnaqz.supabase.co'&&u.pathname==='/rest/v1/aos_cola_config'?u:null}catch(_){return null}}
   function fail(status,msg){return new Response(JSON.stringify({ok:false,error:msg||'CIA_QUEUE_GATEWAY_ERROR'}),{status:status||503,headers:{'Content-Type':'application/json'}})}
   window.fetch=function(input,init){
