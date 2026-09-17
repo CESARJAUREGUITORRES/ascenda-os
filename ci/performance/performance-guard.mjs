@@ -17,7 +17,7 @@ expect('CENSUS_SCHEMA',census.schema==='asc-perf-runtime-census/v1','unexpected 
 // sees its installer setTimeout + RPC helper in the same file and classifies it as recurrent,
 // although no network call is timer-driven. September Booking/Agenda/Coord releases also added
 // three already-certified CURRENT-main candidates. Baseline them explicitly; any 60th owner
-// still fails closed. CIA queue gateway is isolated from recurrent shell code and adds no owner.
+// still fails closed. CIA Audience Control Center reuses the shell observer and adds no recurrent owner.
 expect('RECURRENT_FILE_BUDGET',Number(census.recurrentNetworkCandidateCount)<=59,`recurrent network candidate files ${census.recurrentNetworkCandidateCount} > 59`);
 expect('FAST_INTERVAL_BUDGET',Number(census.fastIntervalCandidateCount)<=10,`literal intervals <5s ${census.fastIntervalCandidateCount} > 10`);
 expect('BROAD_READ_BUDGET',Number(census.broadReadCandidateCount)<=61,`broad read signals ${census.broadReadCandidateCount} > 61`);
@@ -48,7 +48,7 @@ expect('CALLS_SINGLE_PANEL_OWNER',count(calls,/_rpc\('aos_panel_asesor'/g)===1,'
 expect('CALLS_SHARED_HELPER',calls.includes('function _panelAsesorShared('),'Calls shared snapshot helper missing');
 const callsPerf=read('app/public/calls-performance-v1.js');
 try{new Function(callsPerf);}catch(e){fail('CALLS_PERF_SYNTAX',e.message);}
-expect('CALLS_LEAD_SINGLE_FLIGHT',callsPerf.includes("var coalesceOnly=actual==='aos_siguiente_lead'"),'Call Center lead selector is not single-flight');
+expect('CALLS_LEAD_SINGLE_FLIGHT',callsPerf.includes("var coalesceOnly=actual==='aos_siguiente_lead_v3'"),'governed V3 Call Center lead selector is not single-flight');
 expect('CALLS_LEAD_NO_TTL_CACHE',callsPerf.includes('if(ms)cache.set(key,{at:Date.now(),data:d});'),'mutable lead selector can be TTL-cached');
 expect('CALLS_POSTLOAD_DUP_GUARD',callsPerf.includes('__ccPerfLeadGuardV1')&&callsPerf.includes('suppressed duplicate postload lead request'),'postload duplicate lead guard missing');
 
