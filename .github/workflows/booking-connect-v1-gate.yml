@@ -1,0 +1,39 @@
+name: BOOKING-CONNECT-V1 Gate
+on:
+  pull_request:
+    paths:
+      - 'app/ascenda-connect-booking-v1.js'
+      - 'app/booking-v33-preload.js'
+      - 'ci/booking-connect-v1/**'
+      - 'docs/control/WEB_BOOKING_CONNECT_V1_CURRENT.md'
+      - '.github/workflows/booking-connect-v1-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fast-contract:
+    name: FAST · Booking Connect syntax + contract
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node syntax
+        run: |
+          node --check app/ascenda-connect-booking-v1.js
+          node --check app/booking-v33-preload.js
+          node --check ci/booking-connect-v1/contract.js
+      - name: Connector + no-regression contract
+        run: node ci/booking-connect-v1/contract.js
+  zero-cost-contract:
+    name: ZERO-COST · Booking Connect contract
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Node syntax
+        run: |
+          node --check app/ascenda-connect-booking-v1.js
+          node --check app/booking-v33-preload.js
+          node --check ci/booking-connect-v1/contract.js
+      - name: Connector + no-regression contract
+        run: node ci/booking-connect-v1/contract.js
