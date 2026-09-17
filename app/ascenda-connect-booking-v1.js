@@ -2,11 +2,11 @@
 
 const https = require('https')
 
-const VERSION = '1.0.0'
+const VERSION = '1.0.1'
 const SITE = 'SAN ISIDRO'
 const PREFIX = '/api/ascenda-connect/booking/v1'
 const ALLOWED_ORIGINS = new Set(['https://zivital.pe', 'https://www.zivital.pe'])
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const TIME_RE = /^\d{2}:\d{2}(?::\d{2})?$/
 
