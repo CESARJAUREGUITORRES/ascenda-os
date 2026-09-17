@@ -15,7 +15,7 @@ permissions:
 jobs:
   smoke:
     name: Health + complete bootstrap · no write
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
     timeout-minutes: 5
     steps:
       - name: Wait for Railway rollout
