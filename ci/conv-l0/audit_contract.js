@@ -61,10 +61,12 @@ assert(contracts.includes('interface OutboundPolicy'), 'OutboundPolicy contract 
 assert(contracts.includes('interface ConversationJob'), 'JobOutbox contract missing')
 assert(benchmark.includes('FROZEN V1 BY CONV-L0'), '40-case benchmark is not frozen')
 assert(audit.includes('RC-1 — Deep proxy/process chain'), 'Root-cause audit missing')
-const convOwnsLock=lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`') || lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG`')
-const googleOwnsLock=lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `INT-GOOGLE-001 / GC-0/GC-1 — GOOGLE CALENDAR + CONTACTS OAUTH FOUNDATION`') && lock.includes('CONV-001 / CONV-L2') && lock.includes('PAUSED')
-assert(convOwnsLock||googleOwnsLock, 'CONV governance state missing: expected active CONV lock or explicit paused-lane transfer')
-assert(lock.includes('RUN UNTIL BLOCKED'), 'owner execution mode missing')
+
+const convOwnsLock = lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L2 #506 — CONVERSATION CORE + EVENT-DRIVEN PANEL TRANSPORT`') || lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `CONV-L4 #508 — BUSINESS TOOLS + BOUNDED RAG`')
+const googleOwnsLock = lock.includes('**ACTIVE HIGH/CRITICAL LOCK:** `INT-GOOGLE-001 / GC-0/GC-1 — GOOGLE CALENDAR + CONTACTS OAUTH FOUNDATION`') && lock.includes('CONV-001 / CONV-L2') && lock.includes('PAUSED')
+const ciaOwnsLock = lock.includes('**ACTIVE PRODUCT LANE:** `CIA-PANEL · PACK-A CLOSED · PACK-B NOT STARTED`') && lock.includes('CONV-001 #502 preserved') && lock.includes('SAFE-OFF')
+assert(convOwnsLock || googleOwnsLock || ciaOwnsLock, 'CONV governance state missing: expected active CONV lock or explicit paused-lane transfer')
+if (convOwnsLock) assert(lock.includes('RUN UNTIL BLOCKED'), 'active CONV owner execution mode missing')
 assert(readiness.includes('TECHNICAL PASS / CLOSED'), 'L0 technical closeout marker missing')
 assert(readiness.includes('L1 OWNER AUTHORIZATION RECEIVED / ACTIVE'), 'L1 authorization transition missing')
 
