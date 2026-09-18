@@ -3,12 +3,12 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'app/public/cia-audience-control-center-v1.js'
+      - 'app/public/cia-audience-workspace-v3.js'\n      - 'app/public/cia-audience-control-center-v1.js'
       - 'app/public/cia-queue-gateway-v1.js'
       - 'app/public/calls-performance-v1.js'
       - 'app/public/clinic-shell-ui-v1.js'
       - 'ci/cia-pack-b/**'
-      - 'supabase/migrations/20260917171321*.sql'
+      - 'supabase/migrations/20260917171321*.sql'\n      - 'supabase/migrations/20260918015000_cia_audience_workspace_v3.sql'
       - '.github/workflows/cia-pack-b-gate.yml'
   workflow_dispatch:
 permissions:
