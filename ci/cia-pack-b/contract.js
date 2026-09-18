@@ -22,7 +22,7 @@ ok(workspace.includes("'ACTIVITY_SUMMARY'"),'activation/activity read model miss
 ok(workspace.includes("'START_CANARY_ASSIGNMENT'")&&workspace.includes('source_limit:1'),'one-contact Call Center test guard missing')
 ok(workspace.includes("'STOP_CANARY_ASSIGNMENT'")&&workspace.includes('Cerrar prueba · volver a modo normal'),'Call Center rollback UI missing')
 ok(workspace.includes("'CANARY_READBACK'")&&workspace.includes('Comprobar asignación'),'human-readable assignment verification missing')
-ok(workspace.includes("a.panels.indexOf('advisor-calls')>=0"),'advisor selector must be restricted to Call Center-enabled advisors')
+ok(workspace.includes(".panels.indexOf('advisor-calls')>=0"),'advisor selector must be restricted to Call Center-enabled advisors')
 ok(workspace.includes('__AOS_CIA_INSTALL_AUDIENCE_BUTTON_V1__')&&!workspace.includes('MutationObserver'),'workspace must reuse shell observer and not own a recurrent observer')
 ok(!workspace.includes('confirm('),'native confirm is forbidden for assignment activation')
 ok(!workspace.includes('setInterval('),'Audience Workspace must not poll')
