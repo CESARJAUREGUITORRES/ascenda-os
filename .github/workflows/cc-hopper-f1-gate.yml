@@ -1,0 +1,29 @@
+name: CC-HOPPER-F1 Gate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260918013500_cc_hopper_f1_claim_hotpath.sql'
+      - 'docs/control/commercial-intelligence/CC_HOPPER_F1_ARCHITECTURE_20260917.md'
+      - 'ci/cc-hopper-f1/**'
+      - 'app/public/calls-performance-v1.js'
+      - '.github/workflows/cc-hopper-f1-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: CC-HOPPER-F1 contract
+        shell: powershell
+        run: |
+          node --check app/public/calls-performance-v1.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node ci/cc-hopper-f1/contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
