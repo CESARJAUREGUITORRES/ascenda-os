@@ -40,6 +40,8 @@ function silent(e){var m=String(e&&e.message||'');return m==='STALE_RESPONSE'||m
 function friendly(e){var m=String(e&&e.message||'Error inesperado'),x={
   HTTP_500:'No se pudo completar la consulta. Intenta nuevamente.',
   CONTROL_CENTER_V3_ERROR:'No se pudo completar la operación.',
+  CONTROL_CENTER_V5_ERROR:'No se pudo completar la operación del panel.',
+  CONTEXT_BIND_FAILED:'No se pudo preparar el contexto seguro de Call Center. No se creó ninguna asignación.',
   CATALOG_REFRESH_FAILED:'No se pudieron actualizar los conteos. El catálogo anterior sigue disponible.',
   UNAUTHORIZED:'Tu sesión venció. Vuelve a ingresar.',
   FORBIDDEN_ADMIN_CALLS_2FA_REQUIRED:'Esta acción requiere sesión de administrador verificada.',
@@ -56,7 +58,7 @@ function rpc(action,payload,opt){
   var key=opt.key||String(action||'main');
   if(opt.replace!==false&&state.controllers[key])try{state.controllers[key].abort('REQUEST_REPLACED')}catch(_e){}
   var ctl=new AbortController();state.controllers[key]=ctl;state.seq[key]=(state.seq[key]||0)+1;var seq=state.seq[key];
-  return fetch(c.sb+'/rest/v1/rpc/aos_cia_control_center_app_v4',{
+  return fetch(c.sb+'/rest/v1/rpc/aos_cia_control_center_app_v5',{
     method:'POST',signal:ctl.signal,cache:'no-store',
     headers:{apikey:c.key,Authorization:'Bearer '+c.key,'Content-Type':'application/json','Cache-Control':'no-store'},
     body:JSON.stringify({p_app_token:t,p_action:action,p_payload:payload||{}})
@@ -198,17 +200,32 @@ function refreshCatalog(){
   }).catch(function(e){report(e)}).then(function(){if(b){b.disabled=false;b.textContent='↻ Actualizar conteos'}});
 }
 function loadPreview(){
-  var s=state.selected;if(!s)return;var b=document.getElementById('aw-preview-btn');if(b){b.disabled=true;b.textContent='Cargando…'}
-  var req=s.__all?rpc('PREVIEW_ALL',{limit:25,offset:0},{key:'preview'}):rpc('PREVIEW',{filter:s.dsl,limit:25,offset:0},{key:'preview'});
-  req.then(function(d){state.preview=d.items||[];if(!s.__all&&d.count!=null){s.count_cache=Number(d.count);s.count_refreshed_at=d.observed_at||new Date().toISOString()}renderAudiences()}).catch(report).then(function(){var x=document.getElementById('aw-preview-btn');if(x){x.disabled=false;x.textContent='Ver 25 contactos'}});
+  var s=state.selected;if(!s)return;
+  var b=document.getElementById('aw-preview-btn'),pane=document.getElementById('aw-preview');
+  if(b){b.disabled=true;b.textContent='Cargando 25…'}
+  if(pane)pane.innerHTML='<div class="aw-empty">Consultando miembros actuales…</div>';
+  rpc('PREVIEW_CATALOG',{all_contacts:!!s.__all,filter:s.__all?null:s.dsl,limit:25,offset:0},{key:'preview'}).then(function(d){
+    state.preview=d.items||[];
+    if(!s.__all&&d.count!=null){s.count_cache=Number(d.count);s.count_refreshed_at=d.observed_at||new Date().toISOString()}
+    renderAudiences();
+    toast(fmt(state.preview.length)+' contactos cargados');
+  }).catch(function(e){
+    if(!silent(e)){
+      var p=document.getElementById('aw-preview');
+      if(p)p.innerHTML='<div class="aw-empty" style="color:#9a3412"><b>No se pudo cargar la vista previa.</b><br>'+esc(friendly(e))+'</div>';
+      report(e);
+    }
+  }).then(function(){var x=document.getElementById('aw-preview-btn');if(x){x.disabled=false;x.textContent='Ver 25 contactos'}});
 }
 function downloadSelected(){
-  var s=state.selected;if(!s)return;var name=s.__all?'todos-los-contactos':slug(s.name);toast('Preparando CSV…');
-  rpc('EXPORT_CSV',{all_contacts:!!s.__all,filter:s.__all?null:s.dsl,filename:name},{key:'export'}).then(function(d){
+  var s=state.selected;if(!s)return;
+  var name=s.__all?'todos-los-contactos':slug(s.name),b=document.getElementById('aw-export-btn');
+  if(b){b.disabled=true;b.textContent='Preparando CSV…'}
+  rpc('EXPORT_CSV_FAST',{all_contacts:!!s.__all,filter:s.__all?null:s.dsl,filename:name},{key:'export'}).then(function(d){
     var blob=new Blob(['\uFEFF'+String(d.csv||'')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download=d.filename||name+'.csv';document.body.appendChild(a);a.click();a.remove();requestAnimationFrame(function(){URL.revokeObjectURL(url)});
     toast(fmt(d.row_count)+' contactos exportados');
-  }).catch(report);
+  }).catch(report).then(function(){var x=document.getElementById('aw-export-btn');if(x){x.disabled=false;x.textContent='Descargar CSV'}});
 }
 
 function normalizeAudience(a){
@@ -270,7 +287,7 @@ function startTest(){
   state.armedUntil=0;b.disabled=true;b.textContent='Activando…';
   ensurePersisted().then(function(a){return rpc('START_CANARY_ASSIGNMENT',{audience_id:a.id,version:a.version||1,advisor_user_id:state.advisor,source_limit:1,name:'Prueba segura Call Center'},{key:'test'})}).then(function(d){
     state.canary={plan_id:d.plan&&d.plan.plan_id,activation_id:d.activation&&d.activation.activation_id,advisor_user_id:state.advisor};toast('Prueba activada con 1 contacto');renderDistribution();
-  }).catch(function(e){state.armedUntil=0;report(e,'aw-test-state');renderDistribution()});
+  }).catch(function(e){state.armedUntil=0;renderDistribution();report(e,'aw-test-state')});
 }
 function checkTest(){
   if(!state.canary)return;var st=document.getElementById('aw-test-state');st.className='aw-state';st.textContent='Comprobando…';

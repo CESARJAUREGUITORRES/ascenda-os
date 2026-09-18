@@ -5,7 +5,7 @@ function ok(v,m){if(!v){console.error('CIA DISTRIBUTION PLANNER V1 FAIL:',m);pro
 const ui=read('app/public/cia-audience-workspace-v3.js')
 const sql=read('supabase/migrations/20260918022500_cia_distribution_planner_v1.sql')
 
-ok(ui.includes('/rpc/aos_cia_control_center_app_v4'),'UI must use additive V4 gateway')
+ok(ui.includes('/rpc/aos_cia_control_center_app_v5'),'UI must use additive V5 reliability gateway')
 ok(ui.includes("'DISTRIBUTION_RELEASE_STATE'"),'release state read missing')
 ok(ui.includes("'DISTRIBUTION_PREVIEW'"),'distribution preview missing')
 ok(ui.includes('Simular distribución'),'planner CTA missing')

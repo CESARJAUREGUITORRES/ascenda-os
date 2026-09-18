@@ -3,12 +3,15 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'app/public/cia-audience-workspace-v3.js'\n      - 'app/public/cia-audience-control-center-v1.js'
+      - 'app/public/cia-audience-workspace-v3.js'
+      - 'app/public/cia-audience-control-center-v1.js'
       - 'app/public/cia-queue-gateway-v1.js'
       - 'app/public/calls-performance-v1.js'
       - 'app/public/clinic-shell-ui-v1.js'
       - 'ci/cia-pack-b/**'
-      - 'supabase/migrations/20260917171321*.sql'\n      - 'supabase/migrations/20260918015000_cia_audience_workspace_v3.sql'
+      - 'supabase/migrations/20260917171321*.sql'
+      - 'supabase/migrations/20260918015000_cia_audience_workspace_v3.sql'
+      - 'supabase/migrations/20260918231000_cia_workspace_canary_io_v1.sql'
       - '.github/workflows/cia-pack-b-gate.yml'
   workflow_dispatch:
 permissions:
@@ -22,14 +25,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: CIA PACK-B contract
+      - name: CIA PACK-B syntax
         shell: powershell
         run: |
+          node --check app/public/cia-audience-workspace-v3.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check app/public/cia-audience-control-center-v1.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check app/public/cia-queue-gateway-v1.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check app/public/calls-performance-v1.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: CIA PACK-B contract
+        shell: powershell
+        run: |
           node ci/cia-pack-b/contract.js
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
