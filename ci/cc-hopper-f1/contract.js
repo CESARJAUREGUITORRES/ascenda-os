@@ -15,6 +15,6 @@ ok(calls.includes("fn==='aos_siguiente_lead_v2'?'aos_siguiente_lead_v3':fn"),'Ca
 ok(/Audience != Activation != Assignment != Advisor Work/.test(doc),'core operating-model separation missing');
 ok(/aos_cia_assignments/.test(doc) && /hopper/i.test(doc),'existing assignments table is not documented as hopper');
 ok(/No parallel CRM/.test(doc),'parallel-store prohibition missing');
-ok(/Human Canary: NOT EXECUTED/.test(doc),'human canary safety status missing');
+ok(/Human canary:\s*NOT EXECUTED/i.test(doc),'human canary safety status missing');
 
 console.log('CC-HOPPER-F1 contract: PASS');
