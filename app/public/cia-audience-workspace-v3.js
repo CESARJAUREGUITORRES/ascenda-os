@@ -206,7 +206,7 @@ function downloadSelected(){
   var s=state.selected;if(!s)return;var name=s.__all?'todos-los-contactos':slug(s.name);toast('Preparando CSV…');
   rpc('EXPORT_CSV',{all_contacts:!!s.__all,filter:s.__all?null:s.dsl,filename:name},{key:'export'}).then(function(d){
     var blob=new Blob(['\uFEFF'+String(d.csv||'')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;a.download=d.filename||name+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url)},1500);
+    a.href=url;a.download=d.filename||name+'.csv';document.body.appendChild(a);a.click();a.remove();requestAnimationFrame(function(){URL.revokeObjectURL(url)});
     toast(fmt(d.row_count)+' contactos exportados');
   }).catch(report);
 }
