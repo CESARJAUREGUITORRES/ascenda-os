@@ -58,7 +58,8 @@ function rpc(action,payload,opt){
   var key=opt.key||String(action||'main');
   if(opt.replace!==false&&state.controllers[key])try{state.controllers[key].abort('REQUEST_REPLACED')}catch(_e){}
   var ctl=new AbortController();state.controllers[key]=ctl;state.seq[key]=(state.seq[key]||0)+1;var seq=state.seq[key];
-  return fetch(c.sb+'/rest/v1/rpc/aos_cia_control_center_app_v6',{
+  var endpoint=String(action||'').toUpperCase()==='DISTRIBUTION_PREVIEW'?'aos_cia_control_center_app_v6':'aos_cia_control_center_app_v5';
+  return fetch(c.sb+'/rest/v1/rpc/'+endpoint,{
     method:'POST',signal:ctl.signal,cache:'no-store',
     headers:{apikey:c.key,Authorization:'Bearer '+c.key,'Content-Type':'application/json','Cache-Control':'no-store'},
     body:JSON.stringify({p_app_token:t,p_action:action,p_payload:payload||{}})
