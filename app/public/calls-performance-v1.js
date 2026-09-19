@@ -19,16 +19,26 @@ function install(){
     var governed=/^aos_callcenter_(prepare_action_v1|commit_action_v1|confirm_queue_appointment_v1)$/.test(actual);if(!governed)return base(actual,p,ok,fail);
     var candidates=callCenterTokenCandidates(),i=0;function attempt(){var body=Object.assign({},p||{});if(candidates.length)body.p_token=candidates[i++];return base(actual,body,function(d){if(d&&d.ok===false&&d.error==='UNAUTHORIZED'&&i<candidates.length){attempt();return}if(d&&d.ok===true&&body.p_token){try{sessionStorage.setItem('aos_app_token',body.p_token)}catch(_e){}if(window.CC)CC.token=body.p_token}if(ok)ok(d)},fail)}return attempt();
   }
+  function notifyCanaryAssignment(d){
+    try{
+      var r=d&&d.routingV3;if(!r||r.route!=='V3'||String(r.mode||'').toUpperCase()!=='V3_CANARY')return;
+      var id=String(r.assignmentId||r.contactKey||'canary'),k='aos_cia_canary_notice_'+id;
+      try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(_e){}
+      var msg='🧪 Prueba controlada · 1 contacto asignado. Atiéndelo normalmente.';
+      if(window.AOS_showToast)window.AOS_showToast(msg,'','');
+      else console.log('[ASCENDA][CIA-CANARY]',msg);
+    }catch(_e){}
+  }
   function perfRpc(fn,p,ok,fail){
     /* Legacy invariant marker retained for the historical P0 contract: aos_siguiente_lead_v2'?'aos_siguiente_lead'.
        PACK-B authority is now V3: V3 itself returns the certified V2 path while routing is OFF/V2_ONLY. */
     var actual=fn==='aos_siguiente_lead_v2'?'aos_siguiente_lead_v3':fn;
     var isWrite=/^aos_callcenter_(commit|confirm)_/.test(actual),ms=ttl[actual]||0;
     var coalesceOnly=actual==='aos_siguiente_lead_v3';
-    if(!ms&&!coalesceOnly)return callBase(actual,p,function(d){if(isWrite&&d&&d.ok===true)clearOperationalCache();if(ok)ok(d)},fail);
+    if(!ms&&!coalesceOnly)return callBase(actual,p,function(d){if(actual==='aos_siguiente_lead_v3')notifyCanaryAssignment(d);if(isWrite&&d&&d.ok===true)clearOperationalCache();if(ok)ok(d)},fail);
     var key=actual+'|'+stable(p||{}),now=Date.now(),hit=cache.get(key);if(ms&&hit&&now-hit.at<=ms){Promise.resolve().then(function(){if(ok)ok(hit.data)});return}
     var inflight=pending.get(key);if(inflight){inflight.push({ok:ok,fail:fail});return}
-    var waiters=[{ok:ok,fail:fail}];pending.set(key,waiters);return callBase(actual,p,function(d){pending.delete(key);if(ms)cache.set(key,{at:Date.now(),data:d});deliver(waiters,'ok',d)},function(e){pending.delete(key);deliver(waiters,'fail',e)});
+    var waiters=[{ok:ok,fail:fail}];pending.set(key,waiters);return callBase(actual,p,function(d){pending.delete(key);if(actual==='aos_siguiente_lead_v3')notifyCanaryAssignment(d);if(ms)cache.set(key,{at:Date.now(),data:d});deliver(waiters,'ok',d)},function(e){pending.delete(key);deliver(waiters,'fail',e)});
   }
   perfRpc.__ccPerfV1=true;perfRpc.__base=base;window._rpc=perfRpc;
   if(typeof window.loadLead==='function'&&!window.loadLead.__ccPerfLeadGuardV1){var baseLoadLead=window.loadLead,installedAt=Date.now();function guardedLoadLead(_retried){if(!_retried&&Date.now()-installedAt<350){console.log('[ASCENDA][CC-PERF] suppressed duplicate postload lead request');return}return baseLoadLead.apply(this,arguments)}guardedLoadLead.__ccPerfLeadGuardV1=true;guardedLoadLead.__base=baseLoadLead;window.loadLead=guardedLoadLead}
