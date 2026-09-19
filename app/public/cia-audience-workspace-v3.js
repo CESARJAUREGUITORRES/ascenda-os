@@ -10,7 +10,7 @@ window.__ASCENDA_CIA_AUDIENCE_WORKSPACE_V3__=true;
 var state={
   meta:null,boot:null,library:null,tab:'audiences',category:'ALL',query:'',
   selected:null,preview:[],advisor:null,canary:null,armedUntil:0,
-  activity:null,release:null,planner:null,plannerTargets:[],plannerStrategy:'EQUAL',plannerLimit:50,controllers:{},seq:{}
+  activity:null,release:null,planner:null,plannerTargets:[],plannerStrategy:'EQUAL',plannerLimit:100,plannerAll:false,testOpen:false,controllers:{},seq:{}
 };
 
 var CAT={
@@ -58,7 +58,7 @@ function rpc(action,payload,opt){
   var key=opt.key||String(action||'main');
   if(opt.replace!==false&&state.controllers[key])try{state.controllers[key].abort('REQUEST_REPLACED')}catch(_e){}
   var ctl=new AbortController();state.controllers[key]=ctl;state.seq[key]=(state.seq[key]||0)+1;var seq=state.seq[key];
-  return fetch(c.sb+'/rest/v1/rpc/aos_cia_control_center_app_v5',{
+  return fetch(c.sb+'/rest/v1/rpc/aos_cia_control_center_app_v6',{
     method:'POST',signal:ctl.signal,cache:'no-store',
     headers:{apikey:c.key,Authorization:'Bearer '+c.key,'Content-Type':'application/json','Cache-Control':'no-store'},
     body:JSON.stringify({p_app_token:t,p_action:action,p_payload:payload||{}})
@@ -101,8 +101,29 @@ function styles(){
 .aw-detail{background:#fff;border-left:1px solid var(--line);padding:15px;overflow:auto}.aw-detail-empty{height:100%;display:grid;place-items:center;text-align:center;color:#8999b5;font-size:10px;padding:30px}.aw-detail-title{font-size:17px;font-weight:900;color:var(--ink)}.aw-detail-copy{font-size:10px;line-height:1.45;color:var(--muted);margin:5px 0 12px}.aw-detail-count{font-size:34px;font-weight:900;color:var(--navy)}.aw-detail-count small{font-size:9px;color:#8997b0;font-weight:700}.aw-detail-meta{font-size:8px;color:#8997b0;margin:2px 0 10px}.aw-detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0}.aw-detail-actions .wide{grid-column:1/-1}.aw-preview{border:1px solid #edf1f6;border-radius:11px;overflow:auto;max-height:400px}.aw-preview table{width:100%;border-collapse:collapse;font-size:8px}.aw-preview th{text-align:left;background:#f7f9fc;padding:7px;position:sticky;top:0}.aw-preview td{padding:7px;border-top:1px solid #edf1f6}.aw-muted{font-size:7px;color:#8b99b1;margin-top:2px}
 .aw-panel{height:100%;overflow:auto;padding:14px}.aw-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}.aw-panel-title{font-size:15px;font-weight:900;color:var(--ink)}.aw-panel-copy{font-size:10px;line-height:1.45;color:var(--muted);margin-top:4px}.aw-dist-grid{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:12px}.aw-selection{margin:10px 0;background:#f7faff;border:1px solid #dce6f3;border-radius:11px;padding:10px}.aw-selection b{display:block;color:var(--ink);font-size:11px}.aw-selection span{font-size:9px;color:var(--muted)}.aw-channels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.aw-channel{border:1px solid var(--line);border-radius:12px;padding:10px}.aw-channel b{font-size:11px}.aw-channel p{font-size:9px;line-height:1.4;color:var(--muted);min-height:38px}.aw-state{font-size:9px;line-height:1.45;border:1px solid #e1e8f2;background:#f8fafc;border-radius:10px;padding:9px;margin-top:8px;color:#657797}.aw-state-warn{background:#fff8e8;border-color:#efdba5;color:#765815}.aw-state-good{background:#eafaf5;border-color:#b9e8d9;color:#086a58}.aw-label{display:block;font-size:9px;font-weight:800;color:#617394;margin:10px 0 4px}.aw-select{width:100%;border:1px solid #cfd8e7;border-radius:10px;padding:9px 10px;background:#fff}.aw-plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.aw-advisor-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:7px}.aw-advisor-check{display:flex;align-items:center;gap:7px;border:1px solid #e0e7f1;border-radius:9px;padding:8px;background:#fff;font-size:9px;color:#405578;cursor:pointer}.aw-advisor-check input{margin:0}.aw-projection{margin-top:8px;border:1px solid #dbe5f2;border-radius:10px;overflow:hidden}.aw-projection-row{display:grid;grid-template-columns:1fr 90px;gap:8px;padding:8px 9px;border-top:1px solid #edf1f6;font-size:9px}.aw-projection-row:first-child{border-top:0}.aw-projection-row b:last-child{text-align:right}.aw-lock{margin-top:8px;padding:9px;border-radius:9px;background:#fff7e7;border:1px solid #edd69b;color:#755912;font-size:9px;line-height:1.4}
 .aw-activity{margin-top:10px}.aw-activity-row{display:grid;grid-template-columns:minmax(180px,1.2fr) 110px 100px 100px 100px 100px;gap:8px;align-items:center;padding:10px;border-top:1px solid #edf1f6;font-size:9px}.aw-activity-row.head{font-weight:900;color:#697b9c;background:#f7f9fc;border-top:0}.aw-activity-row b{font-size:10px}.aw-filter-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}.aw-filter-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px}.aw-filter-card b{font-size:11px}.aw-filter-card p{font-size:8px;color:var(--muted)}.aw-field{display:inline-block;font-size:8px;padding:4px 6px;border-radius:999px;background:#f0f4fa;color:#566b90;margin:2px}
+
+.aw-distribution-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.aw-test-launch{border:1px solid #b8c8df;background:#fff;color:#264d83;border-radius:10px;padding:9px 12px;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap}
+.aw-test-launch.active{background:#fff8e7;border-color:#e6c76e;color:#725300}
+.aw-quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.aw-quick button{border:1px solid #d9e1ec;background:#fff;border-radius:999px;padding:5px 9px;font-size:8px;font-weight:800;color:#536a8f;cursor:pointer}
+.aw-quick button:hover,.aw-quick button.active{border-color:#77a4e6;background:#edf5ff;color:#164f9e}
+.aw-quantity-note{font-size:8px;color:#7c8ba7;margin-top:5px}
+.aw-plan-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:8px}
+.aw-plan-summary>div{background:#f7faff;border:1px solid #e1e8f2;border-radius:9px;padding:8px}
+.aw-plan-summary span{display:block;font-size:7px;color:#8795ac;text-transform:uppercase}
+.aw-plan-summary b{display:block;font-size:13px;color:#102d5f;margin-top:2px}
+.aw-test-overlay{position:fixed;inset:0;z-index:15050;background:rgba(7,29,74,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px}
+.aw-test-dialog{width:min(440px,96vw);background:#fff;border:1px solid #dce5f1;border-radius:16px;box-shadow:0 24px 80px rgba(6,27,64,.30);padding:16px}
+.aw-test-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.aw-test-dialog-title{font-size:15px;font-weight:900;color:var(--ink)}
+.aw-test-dialog-copy{font-size:9px;color:var(--muted);line-height:1.45;margin-top:4px}
+.aw-test-close{width:32px;height:32px;border:0;border-radius:9px;background:#f1f4f8;color:#526887;cursor:pointer}
+.aw-test-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:9px}
+.aw-test-actions .wide{grid-column:1/-1}
+
 @media(max-width:1100px){.aw-audience-grid{grid-template-columns:170px 1fr}.aw-detail{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);max-height:45vh}.aw-dist-grid{grid-template-columns:1fr}.aw-filter-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:760px){#cia-aw{padding:0!important}.aw-shell{width:100%;height:100vh;border-radius:0}.aw-head-stat{display:none}.aw-tabs{overflow:auto}.aw-tab{padding:0 11px}.aw-audience-grid{display:block;overflow:auto}.aw-side{border-right:0;border-bottom:1px solid var(--line);display:flex;gap:4px;overflow:auto;padding:8px}.aw-side-title{display:none}.aw-cat{width:auto;white-space:nowrap}.aw-cat-count{display:none}.aw-center,.aw-detail{overflow:visible}.aw-info,.aw-channels,.aw-filter-grid,.aw-detail-actions{grid-template-columns:1fr;display:grid}.aw-detail-actions .wide{grid-column:auto}.aw-activity-row{grid-template-columns:1fr 80px 70px}.aw-activity-row span:nth-child(n+4){display:none}}
+@media(max-width:760px){.aw-plan-summary{grid-template-columns:repeat(2,1fr)}.aw-distribution-head{align-items:stretch;flex-direction:column}.aw-test-launch{width:100%}#cia-aw{padding:0!important}.aw-shell{width:100%;height:100vh;border-radius:0}.aw-head-stat{display:none}.aw-tabs{overflow:auto}.aw-tab{padding:0 11px}.aw-audience-grid{display:block;overflow:auto}.aw-side{border-right:0;border-bottom:1px solid var(--line);display:flex;gap:4px;overflow:auto;padding:8px}.aw-side-title{display:none}.aw-cat{width:auto;white-space:nowrap}.aw-cat-count{display:none}.aw-center,.aw-detail{overflow:visible}.aw-info,.aw-channels,.aw-filter-grid,.aw-detail-actions{grid-template-columns:1fr;display:grid}.aw-detail-actions .wide{grid-column:auto}.aw-activity-row{grid-template-columns:1fr 80px 70px}.aw-activity-row span:nth-child(n+4){display:none}}
 `;
   document.head.appendChild(s);
 }
@@ -258,48 +279,114 @@ function plannerTargetPayload(){
   return state.plannerTargets.map(function(id,i){return {advisor_user_id:id,priority:(i+1)*10}});
 }
 function plannerProjectionHtml(){
-  var p=state.planner;if(!p)return '<div class="aw-state">Selecciona asesores y pulsa <b>Simular distribución</b>. La simulación no crea asignaciones.</div>';
+  var p=state.planner;
+  if(!p)return '<div class="aw-state">Selecciona asesores y pulsa <b>Simular distribución</b>. La simulación no crea asignaciones.</div>';
   var adv=advisors();
-  return '<div class="aw-state aw-state-good"><b>Simulación lista:</b> '+fmt(p.projected_assigned)+' de '+fmt(p.candidate_count)+' contactos elegibles.</div><div class="aw-projection">'+(p.quotas||[]).map(function(q){var a=adv.find(function(x){return String(x.id)===String(q.advisor_user_id)});return '<div class="aw-projection-row"><span>'+esc(a&&(a.name||a.nombre)||q.advisor_user_id)+'</span><b>'+fmt(q.projected_quantity)+'</b></div>'}).join('')+'</div>';
+  return '<div class="aw-state aw-state-good"><b>Simulación lista.</b> Revisa el reparto antes de ejecutar una distribución real.</div>'+
+    '<div class="aw-plan-summary"><div><span>Audiencia</span><b>'+fmt(p.candidate_count)+'</b></div><div><span>Solicitados</span><b>'+fmt(p.requested_count!=null?p.requested_count:p.projected_assigned)+'</b></div><div><span>Proyectados</span><b>'+fmt(p.projected_assigned)+'</b></div><div><span>Quedan fuera</span><b>'+fmt(p.remaining_after_plan!=null?p.remaining_after_plan:Math.max(0,(p.candidate_count||0)-(p.projected_assigned||0)))+'</b></div></div>'+
+    '<div class="aw-projection">'+(p.quotas||[]).map(function(q){var a=adv.find(function(x){return String(x.id)===String(q.advisor_user_id)});return '<div class="aw-projection-row"><span>'+esc(a&&(a.name||a.nombre)||q.advisor_user_id)+'</span><b>'+fmt(q.projected_quantity)+'</b></div>'}).join('')+'</div>';
+}
+function selectedAudienceTotal(){
+  var n=Number(currentCount(state.selected));
+  return Number.isFinite(n)&&n>0?n:null;
+}
+function quickQuantityHtml(){
+  var total=selectedAudienceTotal(),vals=[25,50,100,250,500];
+  return '<div class="aw-quick">'+vals.map(function(n){var dis=total&&n>total?' disabled':'';return '<button type="button" data-quick="'+n+'" '+dis+' class="'+(!state.plannerAll&&state.plannerLimit===n?'active':'')+'">'+fmt(n)+'</button>'}).join('')+
+    '<button type="button" data-quick="ALL" class="'+(state.plannerAll?'active':'')+'">Todo disponible'+(total?' · '+fmt(total):'')+'</button></div>';
 }
 function renderDistribution(){
-  var root=document.getElementById('aw-view-distribution');if(!root)return;var s=state.selected,adv=advisors(),rel=releaseCall();
-  root.innerHTML='<div class="aw-panel"><div class="aw-dist-grid"><section class="aw-card"><div class="aw-panel-title">Distribución</div><div class="aw-panel-copy">La audiencia define quién califica. Aquí se planifica cómo repartir ese trabajo. La simulación es de solo lectura; no envía mensajes ni crea asignaciones.</div><div class="aw-selection"><b>'+(s?esc(s.name):'Ninguna audiencia seleccionada')+'</b><span>'+(s?'Fuente elegida para esta distribución.':'Vuelve a Audiencias y usa “Usar en distribución”.')+'</span></div><div class="aw-channels"><article class="aw-channel"><b>☎ Call Center</b><p>Usará el hopper gobernado de assignments cuando termine el gate humano.</p><span class="aw-badge">'+esc(rel.stage||'HUMAN_CANARY_REQUIRED')+'</span></article><article class="aw-channel"><b>@ Email</b><p>Consumirá la misma audiencia sin duplicar la base comercial.</p><span class="aw-badge">Fuente compartida</span></article><article class="aw-channel"><b>◉ WhatsApp</b><p>Consumirá la misma audiencia cuando el canal esté habilitado.</p><span class="aw-badge">Sin envío desde aquí</span></article></div><hr class="cia-divider" style="margin:14px 0;border:0;border-top:1px solid #edf1f6"><div class="aw-panel-title">Planificador Call Center</div><div class="aw-panel-copy">Proyecta cantidad y reparto antes de activar una ejecución real.</div><div class="aw-plan-grid"><div><label class="aw-label">Cantidad máxima</label><input id="aw-plan-limit" class="aw-select" type="number" min="1" max="10000" value="'+esc(state.plannerLimit)+'"></div><div><label class="aw-label">Reparto</label><select id="aw-plan-strategy" class="aw-select"><option value="EQUAL">Equitativo</option><option value="PERCENTAGE">Por porcentaje</option><option value="FIXED">Cantidad fija</option></select></div></div><label class="aw-label">Asesores incluidos</label><div class="aw-advisor-list">'+adv.map(function(a){var id=String(a.id),checked=state.plannerTargets.indexOf(id)>=0?' checked':'';return '<label class="aw-advisor-check"><input type="checkbox" data-plan-adv="'+esc(id)+'"'+checked+'><span>'+esc(a.name||a.nombre||'Asesor')+(a.code||a.codigo_asesor?' · '+esc(a.code||a.codigo_asesor):'')+'</span></label>'}).join('')+'</div><button id="aw-plan-preview" class="aw-btn aw-primary" style="margin-top:9px;width:100%" '+(!s||s.__all?'disabled':'')+'>Simular distribución</button><div id="aw-plan-result">'+plannerProjectionHtml()+'</div><button class="aw-btn aw-secondary" disabled style="width:100%;margin-top:8px">Activar distribución</button><div class="aw-lock"><b>Ejecución masiva bloqueada.</b> Se habilitará por etapas después de validar 1 contacto real en Call Center. Release actual: '+esc(rel.stage||'HUMAN_CANARY_REQUIRED')+'.</div></section><aside class="aw-card"><div class="aw-panel-title">Prueba segura · 1 contacto</div><div class="aw-panel-copy">Este es el gate previo al rollout. Comprueba el recorrido audiencia → assignment → asesor → resultado sin afectar a los demás.</div><label class="aw-label">Asesor de Call Center</label><select id="aw-advisor" class="aw-select"><option value="">Selecciona asesor</option>'+adv.map(function(a){return '<option value="'+esc(a.id)+'">'+esc(a.name||a.nombre||'Asesor')+(a.code||a.codigo_asesor?' · '+esc(a.code||a.codigo_asesor):'')+'</option>'}).join('')+'</select><button id="aw-test" class="aw-btn aw-primary" style="width:100%;margin-top:9px" '+(!s||s.__all?'disabled':'')+'>Preparar prueba · 1 contacto</button><button id="aw-check" class="aw-btn aw-secondary" style="width:100%;margin-top:7px" '+(state.canary?'':'disabled')+'>Comprobar asignación</button><button id="aw-stop" class="aw-btn aw-danger" style="width:100%;margin-top:7px" '+(state.canary?'':'disabled')+'>Cerrar prueba · volver a modo normal</button><div id="aw-test-state" class="aw-state">'+canaryText()+'</div></aside></div></div>';
-  var sel=document.getElementById('aw-advisor');sel.value=state.advisor||'';sel.onchange=function(){state.advisor=this.value||null;state.armedUntil=0;renderDistribution()};
+  var root=document.getElementById('aw-view-distribution');if(!root)return;
+  var s=state.selected,adv=advisors(),rel=releaseCall(),total=selectedAudienceTotal();
+  root.innerHTML='<div class="aw-panel"><section class="aw-card"><div class="aw-distribution-head"><div><div class="aw-panel-title">Distribución</div><div class="aw-panel-copy">Elige cuántos contactos quieres trabajar y cómo repartirlos. La simulación es de solo lectura.</div></div><button id="aw-open-test" class="aw-test-launch '+(state.canary?'active':'')+'" '+(!s||s.__all?'disabled':'')+'>'+(state.canary?'🧪 Prueba activa':'🧪 Probar con 1 contacto')+'</button></div>'+
+    '<div class="aw-selection"><b>'+(s?esc(s.name):'Ninguna audiencia seleccionada')+'</b><span>'+(s?(total?fmt(total)+' contactos en el último conteo. ':'')+'Puedes asignar cualquier cantidad hasta el total elegible.':'Vuelve a Audiencias y usa “Usar en distribución”.')+'</span></div>'+
+    '<div class="aw-channels"><article class="aw-channel"><b>☎ Call Center</b><p>Reparte trabajo entre asesores desde el hopper gobernado.</p><span class="aw-badge">'+esc(rel.stage||'HUMAN_CANARY_REQUIRED')+'</span></article><article class="aw-channel"><b>@ Email</b><p>Consumirá la misma audiencia sin duplicar la base comercial.</p><span class="aw-badge">Fuente compartida</span></article><article class="aw-channel"><b>◉ WhatsApp</b><p>Consumirá la misma audiencia cuando el canal esté habilitado.</p><span class="aw-badge">Sin envío desde aquí</span></article></div>'+
+    '<hr class="cia-divider" style="margin:14px 0;border:0;border-top:1px solid #edf1f6"><div class="aw-panel-title">Planificador Call Center</div><div class="aw-panel-copy">No hay un límite comercial de 35 o 50. Ingresa la cantidad que quieras mientras la audiencia tenga suficientes contactos elegibles.</div>'+
+    '<div class="aw-plan-grid"><div><label class="aw-label">Cantidad a asignar</label><input id="aw-plan-limit" class="aw-select" type="number" min="1" max="100000" value="'+esc(state.plannerLimit)+'" '+(state.plannerAll?'disabled':'')+'>'+quickQuantityHtml()+'<div class="aw-quantity-note">'+(state.plannerAll?'Se usará todo lo elegible de esta audiencia.':'Si pides más de lo disponible, la simulación ajustará la cantidad al máximo elegible.')+'</div></div><div><label class="aw-label">Reparto</label><select id="aw-plan-strategy" class="aw-select"><option value="EQUAL">Equitativo</option><option value="PERCENTAGE">Por porcentaje</option><option value="FIXED">Cantidad fija</option></select><div class="aw-quantity-note">Por ahora la prueba funcional usa reparto equitativo; los otros modos permanecen visibles para la siguiente fase.</div></div></div>'+
+    '<label class="aw-label">Asesores incluidos</label><div class="aw-advisor-list">'+adv.map(function(a){var id=String(a.id),checked=state.plannerTargets.indexOf(id)>=0?' checked':'';return '<label class="aw-advisor-check"><input type="checkbox" data-plan-adv="'+esc(id)+'"'+checked+'><span>'+esc(a.name||a.nombre||'Asesor')+(a.code||a.codigo_asesor?' · '+esc(a.code||a.codigo_asesor):'')+'</span></label>'}).join('')+'</div>'+
+    '<button id="aw-plan-preview" class="aw-btn aw-primary" style="margin-top:9px;width:100%" '+(!s||s.__all?'disabled':'')+'>Simular distribución</button><div id="aw-plan-result">'+plannerProjectionHtml()+'</div>'+
+    '<button class="aw-btn aw-secondary" disabled style="width:100%;margin-top:8px">Activar distribución</button><div class="aw-lock"><b>Ejecución real todavía bloqueada.</b> Primero cerramos la prueba de 1 contacto y luego habilitamos rollout limitado. La simulación sí puede usar cualquier cantidad.</div></section></div>';
+
   var strat=document.getElementById('aw-plan-strategy');strat.value=state.plannerStrategy;strat.onchange=function(){state.plannerStrategy=this.value;state.planner=null};
-  var limit=document.getElementById('aw-plan-limit');limit.onchange=function(){state.plannerLimit=Math.max(1,Math.min(10000,Number(this.value)||1));state.planner=null};
+  var limit=document.getElementById('aw-plan-limit');if(limit)limit.onchange=function(){state.plannerAll=false;state.plannerLimit=Math.max(1,Math.min(100000,Number(this.value)||1));state.planner=null;renderDistribution()};
+  root.querySelectorAll('[data-quick]').forEach(function(b){b.onclick=function(){
+    var v=b.dataset.quick;
+    if(v==='ALL'){state.plannerAll=true;if(total)state.plannerLimit=total}
+    else{state.plannerAll=false;state.plannerLimit=Number(v)||1}
+    state.planner=null;renderDistribution();
+  }});
   root.querySelectorAll('[data-plan-adv]').forEach(function(x){x.onchange=function(){var id=String(x.dataset.planAdv);if(x.checked&&state.plannerTargets.indexOf(id)<0)state.plannerTargets.push(id);if(!x.checked)state.plannerTargets=state.plannerTargets.filter(function(v){return v!==id});state.planner=null}});
   document.getElementById('aw-plan-preview').onclick=previewDistribution;
-  document.getElementById('aw-test').onclick=startTest;document.getElementById('aw-check').onclick=checkTest;document.getElementById('aw-stop').onclick=stopTest;
+  var test=document.getElementById('aw-open-test');if(test)test.onclick=openTestModal;
+  renderTestModal();
 }
 function previewDistribution(){
   var s=state.selected;if(!s||s.__all)return;
   var btn=document.getElementById('aw-plan-preview'),strategy=state.plannerStrategy,targets=plannerTargetPayload();
   if(!targets.length){toast('Selecciona al menos un asesor',true);return}
-  if(strategy!=='EQUAL'){toast('Porcentaje y cantidad fija se habilitarán cuando definamos valores por asesor. Usa reparto equitativo por ahora.',true);return}
+  if(strategy!=='EQUAL'){toast('Porcentaje y cantidad fija se habilitarán en el siguiente gate. Usa reparto equitativo por ahora.',true);return}
   btn.disabled=true;btn.textContent='Simulando…';
-  rpc('DISTRIBUTION_PREVIEW',{filter:s.dsl,strategy:strategy,source_limit:state.plannerLimit,targets:targets},{key:'distribution-preview'}).then(function(d){state.planner=d;renderDistribution();toast('Distribución simulada sin crear asignaciones')}).catch(function(e){report(e,'aw-plan-result')}).then(function(){var x=document.getElementById('aw-plan-preview');if(x){x.disabled=false;x.textContent='Simular distribución'}});
+  rpc('DISTRIBUTION_PREVIEW',{filter:s.dsl,strategy:strategy,source_limit:state.plannerAll?null:state.plannerLimit,all_available:!!state.plannerAll,targets:targets},{key:'distribution-preview'}).then(function(d){
+    state.planner=d;renderDistribution();toast('Distribución simulada sin crear asignaciones');
+  }).catch(function(e){report(e,'aw-plan-result')}).then(function(){var x=document.getElementById('aw-plan-preview');if(x){x.disabled=false;x.textContent='Simular distribución'}});
+}
+function openTestModal(){
+  if(!state.selected||state.selected.__all)return;
+  state.testOpen=true;state.armedUntil=0;renderTestModal();
+}
+function closeTestModal(){
+  state.testOpen=false;var old=document.getElementById('aw-test-overlay');if(old)old.remove();
+}
+function renderTestModal(){
+  var old=document.getElementById('aw-test-overlay');if(old)old.remove();
+  if(!state.testOpen)return;
+  var host=document.getElementById('cia-aw');if(!host)return;
+  var adv=advisors(),s=state.selected,overlay=document.createElement('div');overlay.id='aw-test-overlay';overlay.className='aw-test-overlay';
+  var active=!!state.canary;
+  overlay.innerHTML='<div class="aw-test-dialog"><div class="aw-test-dialog-head"><div><div class="aw-test-dialog-title">🧪 Prueba controlada · 1 contacto</div><div class="aw-test-dialog-copy">'+(active?'La prueba está activa. El asesor debe solicitar su siguiente contacto en Call Center.':'Comprueba el recorrido con un solo contacto antes de habilitar distribuciones reales.')+'</div></div><button id="aw-test-close" class="aw-test-close">✕</button></div>'+
+    '<div class="aw-selection"><b>'+esc(s&&s.name||'Audiencia')+'</b><span>La cantidad de prueba siempre es 1. No modifica el volumen configurado en el planificador.</span></div>'+
+    '<label class="aw-label">Asesor de Call Center</label><select id="aw-advisor" class="aw-select" '+(active?'disabled':'')+'><option value="">Selecciona asesor</option>'+adv.map(function(a){return '<option value="'+esc(a.id)+'">'+esc(a.name||a.nombre||'Asesor')+(a.code||a.codigo_asesor?' · '+esc(a.code||a.codigo_asesor):'')+'</option>'}).join('')+'</select>'+
+    '<div class="aw-test-actions">'+
+      '<button id="aw-test" class="aw-btn aw-primary wide" '+(active?'disabled':'')+'>'+(active?'Prueba activa':'Preparar prueba · 1 contacto')+'</button>'+
+      '<button id="aw-check" class="aw-btn aw-secondary" '+(active?'':'disabled')+'>Comprobar</button>'+
+      '<button id="aw-stop" class="aw-btn aw-danger" '+(active?'':'disabled')+'>Cerrar prueba</button>'+
+    '</div><div id="aw-test-state" class="aw-state">'+canaryText()+'</div></div>';
+  host.appendChild(overlay);
+  var sel=document.getElementById('aw-advisor');if(sel){sel.value=state.advisor||'';sel.onchange=function(){state.advisor=this.value||null;state.armedUntil=0;renderTestModal()}};
+  document.getElementById('aw-test-close').onclick=closeTestModal;
+  overlay.onclick=function(e){if(e.target===overlay)closeTestModal()};
+  document.getElementById('aw-test').onclick=startTest;
+  document.getElementById('aw-check').onclick=checkTest;
+  document.getElementById('aw-stop').onclick=stopTest;
 }
 function startTest(){
   if(state.canary||!state.selected||state.selected.__all||!state.advisor)return;
   var now=Date.now(),b=document.getElementById('aw-test'),st=document.getElementById('aw-test-state');
-  if(now>state.armedUntil){state.armedUntil=now+15000;b.textContent='Confirmar · asignar 1 contacto';st.className='aw-state aw-state-warn';st.innerHTML='<b>Revisión final:</b> 1 contacto de <b>'+esc(state.selected.name)+'</b> será asignado al asesor elegido. Pulsa otra vez dentro de 15 segundos.';return}
+  if(now>state.armedUntil){
+    state.armedUntil=now+15000;b.textContent='Confirmar · asignar 1 contacto';st.className='aw-state aw-state-warn';
+    st.innerHTML='<b>Revisión final:</b> 1 contacto de <b>'+esc(state.selected.name)+'</b> será asignado al asesor elegido. Pulsa otra vez dentro de 15 segundos.';
+    return;
+  }
   state.armedUntil=0;b.disabled=true;b.textContent='Activando…';
   ensurePersisted().then(function(a){return rpc('START_CANARY_ASSIGNMENT',{audience_id:a.id,version:a.version||1,advisor_user_id:state.advisor,source_limit:1,name:'Prueba segura Call Center'},{key:'test'})}).then(function(d){
-    state.canary={plan_id:d.plan&&d.plan.plan_id,activation_id:d.activation&&d.activation.activation_id,advisor_user_id:state.advisor};toast('Prueba activada con 1 contacto');renderDistribution();
-  }).catch(function(e){state.armedUntil=0;renderDistribution();report(e,'aw-test-state')});
+    state.canary={plan_id:d.plan&&d.plan.plan_id,activation_id:d.activation&&d.activation.activation_id,advisor_user_id:state.advisor};
+    toast('Prueba activada con 1 contacto');renderDistribution();state.testOpen=true;renderTestModal();
+  }).catch(function(e){state.armedUntil=0;report(e,'aw-test-state')});
 }
 function checkTest(){
-  if(!state.canary)return;var st=document.getElementById('aw-test-state');st.className='aw-state';st.textContent='Comprobando…';
+  if(!state.canary)return;
+  var st=document.getElementById('aw-test-state');if(st){st.className='aw-state';st.textContent='Comprobando…'}
   rpc('CANARY_READBACK',{plan_id:state.canary.plan_id,advisor_user_id:state.canary.advisor_user_id},{key:'test-readback'}).then(function(d){
     var ai=d.assignments&&d.assignments.items,wi=d.advisor_work&&d.advisor_work.items,ac=Array.isArray(ai)?ai.length:0,wc=Array.isArray(wi)?wi.length:0;
-    st.className='aw-state aw-state-good';st.innerHTML='<b>Comprobado:</b> '+ac+' asignación(es) · '+wc+' trabajo(s) visibles para el asesor.';toast('Asignación comprobada');
+    var x=document.getElementById('aw-test-state');if(x){x.className='aw-state aw-state-good';x.innerHTML='<b>Comprobado:</b> '+ac+' asignación(es) · '+wc+' trabajo(s) visibles para el asesor.'}
+    toast('Asignación comprobada');
   }).catch(function(e){report(e,'aw-test-state')});
 }
 function stopTest(){
-  if(!state.canary)return;var st=document.getElementById('aw-test-state');st.textContent='Cerrando prueba…';
+  if(!state.canary)return;
+  var st=document.getElementById('aw-test-state');if(st)st.textContent='Cerrando prueba…';
   rpc('STOP_CANARY_ASSIGNMENT',{plan_id:state.canary.plan_id,advisor_user_id:state.canary.advisor_user_id},{key:'test-stop'}).then(function(){
-    state.canary=null;state.armedUntil=0;toast('Prueba cerrada; Call Center volvió a modo normal');renderDistribution();if(state.tab==='activity')loadActivity(true);
+    state.canary=null;state.armedUntil=0;toast('Prueba cerrada; Call Center volvió a modo normal');closeTestModal();renderDistribution();if(state.tab==='activity')loadActivity(true);
   }).catch(function(e){report(e,'aw-test-state')});
 }
 
