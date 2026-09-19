@@ -12,6 +12,7 @@ on:
       - 'supabase/migrations/20260917171321*.sql'
       - 'supabase/migrations/20260918015000_cia_audience_workspace_v3.sql'
       - 'supabase/migrations/20260918231000_cia_workspace_canary_io_v1.sql'
+      - 'supabase/migrations/20260919003000_cia_distribution_ux_v2.sql'
       - '.github/workflows/cia-pack-b-gate.yml'
   workflow_dispatch:
 permissions:
