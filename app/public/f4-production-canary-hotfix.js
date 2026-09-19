@@ -151,7 +151,7 @@ function loadCallCenterPerformance(){
   var old=document.getElementById('aos-cc-performance-v1');if(old)old.remove();
   var p=document.createElement('script');
   p.id='aos-cc-performance-v1';
-  p.src='/calls-performance-v1.js?v=20260901-p0-v1';
+  p.src='/calls-performance-v1.js?v=20260918-cia-test-v2';
   p.async=false;
   p.onerror=function(){console.error('[ASCENDA][CC-PERF] runtime failed');};
   (document.head||document.documentElement).appendChild(p);
