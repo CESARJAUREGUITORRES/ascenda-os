@@ -11,11 +11,11 @@ const catalog=read('supabase/migrations/20260918015000_cia_audience_workspace_v3
 const reliability=read('supabase/migrations/20260918231000_cia_workspace_canary_io_v1.sql')
 const distUx=read('supabase/migrations/20260919003000_cia_distribution_ux_v2.sql')
 
-ok(shell.includes('/cia-audience-workspace-v3.js?v=20260918-3'),'Audience Workspace V3 loader/cache-bust missing')
+ok(shell.includes('/cia-audience-workspace-v3.js?v=20260918-4'),'Audience Workspace V3 loader/cache-bust missing')
 ok(!shell.includes('/cia-audience-control-center-v1.js?v=20260917-3'),'legacy Audience Center must not be the active shell asset')
 ok(shell.includes('__AOS_CIA_INSTALL_AUDIENCE_BUTTON_V1__'),'shared shell observer must own CIA button install')
 
-ok(workspace.includes('/rpc/aos_cia_control_center_app_v6'),'Audience Workspace must use Distribution UX gateway V6')
+ok(workspace.includes("DISTRIBUTION_PREVIEW'?'aos_cia_control_center_app_v6':'aos_cia_control_center_app_v5'"),'Workspace must isolate V6 to distribution preview and keep stable V5 for catalog/library/canary')
 ok(workspace.includes("'CATALOG_META'")&&workspace.includes("'REFRESH_CATALOG'"),'catalog-first metadata/count refresh missing')
 ok(workspace.includes("'PREVIEW_CATALOG'")&&workspace.includes('limit:25'),'bounded cached preview path missing')
 ok(workspace.includes("'EXPORT_CSV_FAST'"),'governed cached CSV export missing')

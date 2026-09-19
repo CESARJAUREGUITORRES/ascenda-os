@@ -6,7 +6,7 @@ const ui=read('app/public/cia-audience-workspace-v3.js')
 const sql=read('supabase/migrations/20260918022500_cia_distribution_planner_v1.sql')
 const ux=read('supabase/migrations/20260919003000_cia_distribution_ux_v2.sql')
 
-ok(ui.includes('/rpc/aos_cia_control_center_app_v6'),'UI must use additive V6 distribution UX gateway')
+ok(ui.includes("DISTRIBUTION_PREVIEW'?'aos_cia_control_center_app_v6':'aos_cia_control_center_app_v5'"),'UI must isolate V6 to planner preview only')
 ok(ui.includes("'DISTRIBUTION_RELEASE_STATE'"),'release state read missing')
 ok(ui.includes("'DISTRIBUTION_PREVIEW'"),'distribution preview missing')
 ok(ui.includes('Simular distribución'),'planner CTA missing')
