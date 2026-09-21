@@ -120,9 +120,12 @@ jobs:
         run: |
           set -euo pipefail
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f supabase/rollback/20260912220000_google_integration_v1_rollback.sql
-          test "$(psql "$DB_URL" -X -qAt -c \"select to_regclass('public.aos_google_connections_v1') is null\")" = "t"
-          test "$(psql "$DB_URL" -X -qAt -c \"select to_regclass('public.aos_google_sync_outbox_v1') is null\")" = "t"
-          test "$(psql "$DB_URL" -X -qAt -c \"select count(*) from pg_trigger where tgname in ('trg_aos_google_enqueue_agenda_v1','trg_aos_google_enqueue_patient_v1') and not tgisinternal\")" = "0"
+          connections_gone=$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_google_connections_v1') is null")
+          outbox_gone=$(psql "$DB_URL" -X -qAt -c "select to_regclass('public.aos_google_sync_outbox_v1') is null")
+          trigger_count=$(psql "$DB_URL" -X -qAt -c "select count(*) from pg_trigger where tgname in ('trg_aos_google_enqueue_agenda_v1','trg_aos_google_enqueue_patient_v1') and not tgisinternal")
+          test "$connections_gone" = "t"
+          test "$outbox_gone" = "t"
+          test "$trigger_count" = "0"
           echo GOOGLE_INTEGRATION_V1_ROLLBACK=PASS
       - name: Cleanup
         if: always()
