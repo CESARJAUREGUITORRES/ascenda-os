@@ -1,0 +1,36 @@
+name: CC72 + Workspace IO V2 Gate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/public/calls-loop6.js'
+      - 'app/public/calls.html'
+      - 'app/public/cia-audience-workspace-v3.js'
+      - 'app/public/clinic-shell-ui-v1.js'
+      - 'supabase/migrations/20260921193000_cc_rolling_72h_workspace_io_v2.sql'
+      - 'ci/cc72-workspace-v2/**'
+      - '.github/workflows/cc72-workspace-v2-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contract:
+    runs-on: [self-hosted, Windows, X64, ascenda-fast]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Runtime syntax
+        shell: powershell
+        run: |
+          node --check app/public/calls-loop6.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --check app/public/cia-audience-workspace-v3.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Contract
+        shell: powershell
+        run: |
+          node ci/cc72-workspace-v2/contract.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
