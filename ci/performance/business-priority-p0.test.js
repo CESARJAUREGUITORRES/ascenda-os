@@ -144,7 +144,7 @@ test('hosted gate mirrors governed-write Loop6 safety contract',()=>{
   assert.ok(app.includes('AOS._capturePanelTimers = true'));
   assert.ok(app.includes('AOS._capturePanelTimers = false'));
   assert.ok(app.indexOf('if (extSrcs.length)')<app.indexOf('else if (allInline.length)'));
-  assert.ok(calls.includes('/calls-loop6.js?v=20260821-loop6-v2.3'));
+  assert.ok(calls.includes('/calls-loop6.js?v=20260921-rolling72-v1'));
   assert.ok(loop6.includes("window.__AOS_CC_LOOP6_V2__='v2.3'"));
   assert.ok(loop6.includes('aos_callcenter_confirm_queue_appointment_v1'));
   assert.ok(loop6.includes('aos_callcenter_commit_action_v1'));
