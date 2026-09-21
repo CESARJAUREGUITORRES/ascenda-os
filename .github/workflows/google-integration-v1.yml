@@ -92,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           docker rm -f "$DB_CONTAINER" >/dev/null 2>&1 || true
-          docker run -d --name "$DB_CONTAINER" -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:59337:5432 postgres:17-alpine
+          docker run -d --name "$DB_CONTAINER" -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:59337:5432 supabase/postgres:17.6.1.136
           for i in $(seq 1 40); do
             docker exec "$DB_CONTAINER" pg_isready -U postgres -d postgres >/dev/null 2>&1 && exit 0
             sleep 1
