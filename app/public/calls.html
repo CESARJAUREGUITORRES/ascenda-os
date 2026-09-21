@@ -548,8 +548,18 @@ function _rpc(fn,p,ok,fail){
   fetch(_SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':_SK,'Authorization':'Bearer '+_SK,'Content-Type':'application/json'},body:JSON.stringify(p||{}),signal:ctrl?ctrl.signal:undefined})
   .then(function(r){
     if(tid)clearTimeout(tid);
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    return r.json();
+    return r.text().then(function(raw){
+      var d=null;
+      if(raw){try{d=JSON.parse(raw);}catch(_e){d=null;}}
+      if(!r.ok){
+        var msg=(d&&(d.error||d.message||d.code))||('HTTP '+r.status);
+        var err=new Error(String(msg));
+        err.status=r.status;err.payload=d||{};err.responseText=raw||'';
+        console.error('[SB RPC]',fn,'HTTP '+r.status,d||raw||'');
+        throw err;
+      }
+      return d;
+    });
   })
   .then(function(d){if(ok)ok(d);})
   .catch(function(e){
