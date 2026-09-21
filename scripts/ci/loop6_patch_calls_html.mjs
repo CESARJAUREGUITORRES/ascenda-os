@@ -3,7 +3,7 @@ import fs from 'node:fs';
 const htmlPath='app/public/calls.html';
 const jsPath='app/public/calls-loop6.js';
 const callsJsPath='app/public/calls.js';
-const marker='<script src="/calls-loop6.js?v=20260821-loop6-v2.3"></script>';
+const marker='<script src="/calls-loop6.js?v=20260921-rolling72-v1"></script>';
 const oldMarkers=[
   '<script src="/calls-loop6.js?v=20260821-loop6-v2.2"></script>',
   '<script src="/calls-loop6.js?v=20260821-loop6"></script>',

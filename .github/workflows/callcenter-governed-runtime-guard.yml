@@ -66,7 +66,7 @@ jobs:
           assert(app.includes('AOS._capturePanelTimers = false'), 'panel-loader completion marker missing');
           assert(app.indexOf('if (extSrcs.length)') < app.indexOf('else if (allInline.length)'), 'expected external-before-inline loader contract changed');
 
-          assert(calls.includes('/calls-loop6.js?v=20260821-loop6-v2.3'), 'Loop6 panel runtime reference missing');
+          assert(calls.includes('/calls-loop6.js?v=20260921-rolling72-v1'), 'Loop6 panel runtime reference missing');
           assert(loop6.includes("window.__AOS_CC_LOOP6_V2__='v2.3'"), 'Loop6 V2.3 marker missing');
           assert(loop6.includes('aos_callcenter_confirm_queue_appointment_v1'), 'governed queue RPC missing');
           assert(loop6.includes('aos_callcenter_commit_action_v1'), 'governed manual RPC missing');

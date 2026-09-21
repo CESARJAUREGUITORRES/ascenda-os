@@ -54,15 +54,25 @@ function friendly(e){var m=String(e&&e.message||'Error inesperado'),x={
 function report(e,target){if(silent(e))return;var msg=friendly(e),el=target&&document.getElementById(target);if(el){el.textContent=msg;el.classList.add('aw-state-warn')}toast(msg,true);try{console.warn('[CIA-WORKSPACE-V3]',e)}catch(_){}}
 
 function rpc(action,payload,opt){
-  opt=opt||{};var c=cfg(),t=token();if(!c.key||t.length<32)return Promise.reject(new Error('UNAUTHORIZED'));
+  opt=opt||{};payload=payload||{};var c=cfg(),t=token();if(!c.key||t.length<32)return Promise.reject(new Error('UNAUTHORIZED'));
   var key=opt.key||String(action||'main');
   if(opt.replace!==false&&state.controllers[key])try{state.controllers[key].abort('REQUEST_REPLACED')}catch(_e){}
   var ctl=new AbortController();state.controllers[key]=ctl;state.seq[key]=(state.seq[key]||0)+1;var seq=state.seq[key];
-  var endpoint=String(action||'').toUpperCase()==='DISTRIBUTION_PREVIEW'?'aos_cia_control_center_app_v6':'aos_cia_control_center_app_v5';
+  var a=String(action||'').toUpperCase(),endpoint='aos_cia_control_center_app_v5',body={p_app_token:t,p_action:action,p_payload:payload};
+  if(a==='PREVIEW_CATALOG'){
+    endpoint='aos_cia_workspace_preview_app_v2';
+    body={p_app_token:t,p_preset_key:payload.preset_key||null,p_all_contacts:!!payload.all_contacts,p_limit:payload.limit||25,p_offset:payload.offset||0};
+  }else if(a==='EXPORT_CSV_FAST'){
+    endpoint='aos_cia_workspace_export_app_v2';
+    body={p_app_token:t,p_preset_key:payload.preset_key||null,p_all_contacts:!!payload.all_contacts,p_filename:payload.filename||'audiencia'};
+  }else if(a==='DISTRIBUTION_PREVIEW'){
+    endpoint='aos_cia_distribution_preview_app_v2';
+    body={p_app_token:t,p_preset_key:payload.preset_key||null,p_source_limit:payload.source_limit||100,p_all_available:!!payload.all_available,p_targets:payload.targets||[]};
+  }
   return fetch(c.sb+'/rest/v1/rpc/'+endpoint,{
     method:'POST',signal:ctl.signal,cache:'no-store',
     headers:{apikey:c.key,Authorization:'Bearer '+c.key,'Content-Type':'application/json','Cache-Control':'no-store'},
-    body:JSON.stringify({p_app_token:t,p_action:action,p_payload:payload||{}})
+    body:JSON.stringify(body)
   }).then(function(r){return r.json().catch(function(){return null}).then(function(d){
     if(opt.replace!==false&&seq!==state.seq[key])throw new Error('STALE_RESPONSE');
     if(!r.ok||!d||d.ok!==true)throw new Error((d&&d.error)||('HTTP_'+r.status));
@@ -213,7 +223,7 @@ function selectAudience(key){
 }
 function bindDetail(){
   var p=document.getElementById('aw-preview-btn'),e=document.getElementById('aw-export-btn'),u=document.getElementById('aw-use-btn');
-  if(p)p.onclick=loadPreview;if(e)e.onclick=downloadSelected;if(u)u.onclick=function(){switchTab('distribution')};
+  if(p)p.onclick=loadPreview;if(e)e.onclick=downloadSelected;if(u)u.onclick=function(){state.planner=null;switchTab('distribution');toast('Audiencia lista para distribución')};
 }
 function refreshCatalog(){
   var b=document.getElementById('aw-refresh');if(!b)return;b.disabled=true;b.textContent='Actualizando…';
@@ -226,7 +236,7 @@ function loadPreview(){
   var b=document.getElementById('aw-preview-btn'),pane=document.getElementById('aw-preview');
   if(b){b.disabled=true;b.textContent='Cargando 25…'}
   if(pane)pane.innerHTML='<div class="aw-empty">Consultando miembros actuales…</div>';
-  rpc('PREVIEW_CATALOG',{all_contacts:!!s.__all,filter:s.__all?null:s.dsl,limit:25,offset:0},{key:'preview'}).then(function(d){
+  rpc('PREVIEW_CATALOG',{preset_key:s.preset_key||null,all_contacts:!!s.__all,limit:25,offset:0},{key:'preview'}).then(function(d){
     state.preview=d.items||[];
     if(!s.__all&&d.count!=null){s.count_cache=Number(d.count);s.count_refreshed_at=d.observed_at||new Date().toISOString()}
     renderAudiences();
@@ -243,7 +253,7 @@ function downloadSelected(){
   var s=state.selected;if(!s)return;
   var name=s.__all?'todos-los-contactos':slug(s.name),b=document.getElementById('aw-export-btn');
   if(b){b.disabled=true;b.textContent='Preparando CSV…'}
-  rpc('EXPORT_CSV_FAST',{all_contacts:!!s.__all,filter:s.__all?null:s.dsl,filename:name},{key:'export'}).then(function(d){
+  rpc('EXPORT_CSV_FAST',{preset_key:s.preset_key||null,all_contacts:!!s.__all,filename:name},{key:'export'}).then(function(d){
     var blob=new Blob(['\uFEFF'+String(d.csv||'')],{type:'text/csv;charset=utf-8;'}),url=URL.createObjectURL(blob),a=document.createElement('a');
     a.href=url;a.download=d.filename||name+'.csv';document.body.appendChild(a);a.click();a.remove();requestAnimationFrame(function(){URL.revokeObjectURL(url)});
     toast(fmt(d.row_count)+' contactos exportados');
@@ -327,7 +337,7 @@ function previewDistribution(){
   if(!targets.length){toast('Selecciona al menos un asesor',true);return}
   if(strategy!=='EQUAL'){toast('Porcentaje y cantidad fija se habilitarán en el siguiente gate. Usa reparto equitativo por ahora.',true);return}
   btn.disabled=true;btn.textContent='Simulando…';
-  rpc('DISTRIBUTION_PREVIEW',{filter:s.dsl,strategy:strategy,source_limit:state.plannerAll?null:state.plannerLimit,all_available:!!state.plannerAll,targets:targets},{key:'distribution-preview'}).then(function(d){
+  rpc('DISTRIBUTION_PREVIEW',{preset_key:s.preset_key||null,source_limit:state.plannerAll?null:state.plannerLimit,all_available:!!state.plannerAll,targets:targets},{key:'distribution-preview'}).then(function(d){
     state.planner=d;renderDistribution();toast('Distribución simulada sin crear asignaciones');
   }).catch(function(e){report(e,'aw-plan-result')}).then(function(){var x=document.getElementById('aw-plan-preview');if(x){x.disabled=false;x.textContent='Simular distribución'}});
 }

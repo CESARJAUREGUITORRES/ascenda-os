@@ -69,7 +69,7 @@ jobs:
           $html = Get-Content -Raw app/public/calls.html
           $callsjs = Get-Content -Raw app/public/calls.js
           $runtime = Get-Content -Raw app/public/calls-loop6.js
-          $marker = '<script src="/calls-loop6.js?v=20260821-loop6-v2.3"></script>'
+          $marker = '<script src="/calls-loop6.js?v=20260921-rolling72-v1"></script>'
           if (([regex]::Matches($html,[regex]::Escape($marker))).Count -ne 1) { throw 'Expected exactly one V2.3 loader' }
           if ($html.Contains('calls-loop6.js?v=20260821-loop6-v2.2')) { throw 'V2.2 cache key remains' }
           if (([regex]::Matches($html,[regex]::Escape("__AOS_CC_LOOP6_V2__!=='v2.3'"))).Count -lt 2) { throw 'V2.3 legacy guards missing in calls.html' }
