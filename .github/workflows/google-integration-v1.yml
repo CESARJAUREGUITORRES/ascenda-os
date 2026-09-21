@@ -92,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           docker rm -f "$DB_CONTAINER" >/dev/null 2>&1 || true
-          docker run -d --name "$DB_CONTAINER" -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:59337:5432 postgres:17-alpine
+          docker run -d --name "$DB_CONTAINER" -e POSTGRES_PASSWORD=postgres -p 127.0.0.1:59337:5432 postgres:17-alpine3.22
           for i in $(seq 1 40); do
             if docker exec "$DB_CONTAINER" pg_isready -U postgres -d postgres >/dev/null 2>&1; then
               docker exec "$DB_CONTAINER" sh -lc 'apk add --no-cache postgresql-plpgsql_check >/dev/null && cp /usr/share/postgresql17/extension/plpgsql_check* /usr/local/share/postgresql/extension/ && cp /usr/lib/postgresql17/plpgsql_check.so /usr/local/lib/postgresql/'
