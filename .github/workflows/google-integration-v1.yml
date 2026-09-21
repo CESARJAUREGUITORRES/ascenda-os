@@ -109,7 +109,7 @@ jobs:
       - name: DB security and outbox contracts
         run: psql "$DB_URL" -X -v ON_ERROR_STOP=1 -f ci/google-integration-v1/db_contract.sql
       - name: PostgreSQL lint
-        run: supabase db lint --db-url "$DB_URL" --schema public --level error
+        run: supabase db lint --db-url "${DB_URL}?sslmode=disable" --schema public --level error
       - name: Exact rollback / zero residue
         run: |
           set -euo pipefail
