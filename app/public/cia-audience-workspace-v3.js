@@ -292,9 +292,13 @@ function plannerTargetPayload(){
 function plannerProjectionHtml(){
   var p=state.planner;
   if(!p)return '<div class="aw-state">Selecciona asesores y pulsa <b>Simular distribución</b>. La simulación no crea asignaciones.</div>';
-  var adv=advisors();
-  return '<div class="aw-state aw-state-good"><b>Simulación lista.</b> Revisa el reparto antes de ejecutar una distribución real.</div>'+
-    '<div class="aw-plan-summary"><div><span>Audiencia</span><b>'+fmt(p.candidate_count)+'</b></div><div><span>Solicitados</span><b>'+fmt(p.requested_count!=null?p.requested_count:p.projected_assigned)+'</b></div><div><span>Proyectados</span><b>'+fmt(p.projected_assigned)+'</b></div><div><span>Quedan fuera</span><b>'+fmt(p.remaining_after_plan!=null?p.remaining_after_plan:Math.max(0,(p.candidate_count||0)-(p.projected_assigned||0)))+'</b></div></div>'+
+  var adv=advisors(),blocked=p.blocked||{},aud=p.audience_count!=null?p.audience_count:p.candidate_count,assignable=p.assignable_now!=null?p.assignable_now:p.candidate_count;
+  var blockedTotal=Math.max(0,Number(aud||0)-Number(assignable||0));
+  return '<div class="aw-state aw-state-good"><b>Simulación lista.</b> El reparto usa contactos asignables ahora, no solo el tamaño bruto de la audiencia.</div>'+
+    '<div class="aw-plan-summary"><div><span>Audiencia total</span><b>'+fmt(aud)+'</b></div><div><span>Asignables ahora</span><b>'+fmt(assignable)+'</b></div><div><span>Solicitados</span><b>'+fmt(p.requested_count!=null?p.requested_count:p.projected_assigned)+'</b></div><div><span>Proyectados</span><b>'+fmt(p.projected_assigned)+'</b></div></div>'+
+    '<div class="aw-state" style="margin-top:8px"><b>'+fmt(blockedTotal)+' fuera del reparto actual.</b> '+
+      'Descalificados: '+fmt(blocked.disqualified||0)+' · Provincia: '+fmt(blocked.province_route||0)+' · Llamados hoy: '+fmt(blocked.called_today||0)+' · Cita futura: '+fmt(blocked.future_appointment||0)+' · En trabajo: '+fmt(blocked.legacy_in_progress||0)+
+      '<div class="aw-muted" style="margin-top:4px">Los motivos pueden superponerse; no se suman entre sí.</div></div>'+
     '<div class="aw-projection">'+(p.quotas||[]).map(function(q){var a=adv.find(function(x){return String(x.id)===String(q.advisor_user_id)});return '<div class="aw-projection-row"><span>'+esc(a&&(a.name||a.nombre)||q.advisor_user_id)+'</span><b>'+fmt(q.projected_quantity)+'</b></div>'}).join('')+'</div>';
 }
 function selectedAudienceTotal(){
@@ -304,13 +308,13 @@ function selectedAudienceTotal(){
 function quickQuantityHtml(){
   var total=selectedAudienceTotal(),vals=[25,50,100,250,500];
   return '<div class="aw-quick">'+vals.map(function(n){var dis=total&&n>total?' disabled':'';return '<button type="button" data-quick="'+n+'" '+dis+' class="'+(!state.plannerAll&&state.plannerLimit===n?'active':'')+'">'+fmt(n)+'</button>'}).join('')+
-    '<button type="button" data-quick="ALL" class="'+(state.plannerAll?'active':'')+'">Todo disponible'+(total?' · '+fmt(total):'')+'</button></div>';
+    '<button type="button" data-quick="ALL" class="'+(state.plannerAll?'active':'')+'">Todo asignable</button></div>';
 }
 function renderDistribution(){
   var root=document.getElementById('aw-view-distribution');if(!root)return;
   var s=state.selected,adv=advisors(),rel=releaseCall(),total=selectedAudienceTotal();
   root.innerHTML='<div class="aw-panel"><section class="aw-card"><div class="aw-distribution-head"><div><div class="aw-panel-title">Distribución</div><div class="aw-panel-copy">Elige cuántos contactos quieres trabajar y cómo repartirlos. La simulación es de solo lectura.</div></div><button id="aw-open-test" class="aw-test-launch '+(state.canary?'active':'')+'" '+(!s||s.__all?'disabled':'')+'>'+(state.canary?'🧪 Prueba activa':'🧪 Probar con 1 contacto')+'</button></div>'+
-    '<div class="aw-selection"><b>'+(s?esc(s.name):'Ninguna audiencia seleccionada')+'</b><span>'+(s?(total?fmt(total)+' contactos en el último conteo. ':'')+'Puedes asignar cualquier cantidad hasta el total elegible.':'Vuelve a Audiencias y usa “Usar en distribución”.')+'</span></div>'+
+    '<div class="aw-selection"><b>'+(s?esc(s.name):'Ninguna audiencia seleccionada')+'</b><span>'+(s?(total?fmt(total)+' contactos en la audiencia. ':'')+'La simulación descontará automáticamente no elegibles y contactos no disponibles ahora.':'Vuelve a Audiencias y usa “Usar en distribución”.')+'</span></div>'+
     '<div class="aw-channels"><article class="aw-channel"><b>☎ Call Center</b><p>Reparte trabajo entre asesores desde el hopper gobernado.</p><span class="aw-badge">'+esc(rel.stage||'HUMAN_CANARY_REQUIRED')+'</span></article><article class="aw-channel"><b>@ Email</b><p>Consumirá la misma audiencia sin duplicar la base comercial.</p><span class="aw-badge">Fuente compartida</span></article><article class="aw-channel"><b>◉ WhatsApp</b><p>Consumirá la misma audiencia cuando el canal esté habilitado.</p><span class="aw-badge">Sin envío desde aquí</span></article></div>'+
     '<hr class="cia-divider" style="margin:14px 0;border:0;border-top:1px solid #edf1f6"><div class="aw-panel-title">Planificador Call Center</div><div class="aw-panel-copy">No hay un límite comercial de 35 o 50. Ingresa la cantidad que quieras mientras la audiencia tenga suficientes contactos elegibles.</div>'+
     '<div class="aw-plan-grid"><div><label class="aw-label">Cantidad a asignar</label><input id="aw-plan-limit" class="aw-select" type="number" min="1" max="100000" value="'+esc(state.plannerLimit)+'" '+(state.plannerAll?'disabled':'')+'>'+quickQuantityHtml()+'<div class="aw-quantity-note">'+(state.plannerAll?'Se usará todo lo elegible de esta audiencia.':'Si pides más de lo disponible, la simulación ajustará la cantidad al máximo elegible.')+'</div></div><div><label class="aw-label">Reparto</label><select id="aw-plan-strategy" class="aw-select"><option value="EQUAL">Equitativo</option><option value="PERCENTAGE">Por porcentaje</option><option value="FIXED">Cantidad fija</option></select><div class="aw-quantity-note">Por ahora la prueba funcional usa reparto equitativo; los otros modos permanecen visibles para la siguiente fase.</div></div></div>'+
