@@ -6,7 +6,9 @@
 window.__AOS_CC_LOOP6_V2__='v2.3';
 
 function cc6Token(){return (window.AOS_getToken&&window.AOS_getToken())||sessionStorage.getItem('aos_app_token')||(window.CC&&CC.token)||'';}
-function cc6Rpc(fn,p){return new Promise(function(resolve,reject){if(typeof window._rpc!=='function'){reject(new Error('RPC_UNAVAILABLE'));return;}window._rpc(fn,p,function(d){resolve(d);},function(e){reject(e||new Error('RPC_FAILED'));});});}
+function cc6AuthExpired(x){var m=String(x&&x.error||x&&x.message||x||'').toUpperCase();return m==='UNAUTHORIZED'||m==='AOS_APP_SESSION_MISSING'||m==='APP_SESSION_REQUIRED'||m==='F4_STRONG_SESSION_REQUIRED'||m==='AGENDA_2FA_PANEL_REQUIRED';}
+function cc6ExpireSession(){if(typeof window.AOS_handleSessionExpired==='function')window.AOS_handleSessionExpired();else{cc6Toast('🔐 Sesión vencida','Vuelve a iniciar sesión para continuar. No se guardó ninguna operación.','toast-alerta');setTimeout(function(){window.location.href='/';},1800);}}
+function cc6Rpc(fn,p){return new Promise(function(resolve,reject){if(typeof window._rpc!=='function'){reject(new Error('RPC_UNAVAILABLE'));return;}window._rpc(fn,p,function(d){if(cc6AuthExpired(d)){cc6ExpireSession();var e=new Error(String(d.error||'UNAUTHORIZED'));e.payload=d;reject(e);return;}resolve(d);},function(e){if(cc6AuthExpired(e))cc6ExpireSession();reject(e||new Error('RPC_FAILED'));});});}
 function cc6Uuid(){if(window.crypto&&typeof window.crypto.randomUUID==='function')return window.crypto.randomUUID();return 'cc6-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2);}
 function cc6Stable(obj){return JSON.stringify(obj,Object.keys(obj).sort());}
 function cc6PendingKey(action,payload){var fp=action+'|'+cc6Stable(payload);try{var old=JSON.parse(sessionStorage.getItem('aos_cc6_pending_action')||'null');if(old&&old.fp===fp&&old.key)return{key:old.key,fp:fp};}catch(_e){}var out={key:'cc6-'+cc6Uuid(),fp:fp};try{sessionStorage.setItem('aos_cc6_pending_action',JSON.stringify(out));}catch(_e2){}return out;}
