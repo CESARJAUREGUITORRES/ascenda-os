@@ -233,9 +233,9 @@
       <!-- sin leads -->
       <div class="no-lead" id="cc-no-lead" style="display:none;">
         <div class="no-lead-ico">🎯</div>
-        <div style="font-weight:700;color:#0A4FBF;font-family:'Exo 2',sans-serif;font-size:13px;margin-bottom:4px;">¡Base trabajada!</div>
+        <div id="cc-no-title" style="font-weight:700;color:#0A4FBF;font-family:'Exo 2',sans-serif;font-size:13px;margin-bottom:4px;">¡Base trabajada!</div>
         <div id="cc-no-txt" style="font-size:11px;color:#6B7BA8;">Sin leads pendientes.</div>
-        <button onclick="loadLead()" style="margin-top:9px;padding:6px 14px;border-radius:7px;background:#0A4FBF;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">Reintentar</button>
+        <button id="cc-lead-retry-btn" onclick="loadLead()" style="margin-top:9px;padding:6px 14px;border-radius:7px;background:#0A4FBF;color:#fff;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">Reintentar</button>
       </div>
 
       <!-- lead activo -->
@@ -710,18 +710,47 @@ function loadMetrics(){
 // ══════════════════════════════════════════════════════════════
 // SIGUIENTE LEAD
 // ══════════════════════════════════════════════════════════════
-function loadLead(_retried){
+var CC_LEAD_RETRY_DELAYS=[900,2200,4500];
+var CC_LEAD_INFLIGHT=false;
+var CC_LEAD_RETRY_TIMER=null;
+function ccLeadRetryButtonBusy(busy){
+  var b=document.getElementById('cc-lead-retry-btn');
+  if(b){b.disabled=!!busy;b.style.opacity=busy?'.55':'1';b.style.cursor=busy?'wait':'pointer';}
+}
+function ccLeadEmptyState(title,msg,tier){
+  var titleEl=document.getElementById('cc-no-title');
+  var txt=document.getElementById('cc-no-txt');
+  var noLead=document.getElementById('cc-no-lead');
+  var panel=document.getElementById('cc-lead-panel');
+  var num=document.getElementById('cc-num');
+  var tierEl=document.getElementById('cc-tier');
+  if(titleEl)titleEl.textContent=title||'Call Center';
+  if(txt)txt.textContent=msg||'';
+  if(noLead)noLead.style.display='block';
+  if(panel)panel.style.display='none';
+  if(num)num.textContent='—';
+  if(tierEl&&tier)tierEl.textContent=tier;
+}
+function loadLead(_retryCount){
+  var retryCount=_retryCount===true?1:(Number(_retryCount)||0);
+  if(CC_LEAD_INFLIGHT)return;
+  if(CC_LEAD_RETRY_TIMER){clearTimeout(CC_LEAD_RETRY_TIMER);CC_LEAD_RETRY_TIMER=null;}
+  CC_LEAD_INFLIGHT=true;
+  ccLeadRetryButtonBusy(true);
   document.getElementById('cc-num').textContent='Cargando...';
   document.getElementById('cc-no-lead').style.display='none';
   document.getElementById('cc-lead-panel').style.display='none';
   var x=_ctx();
-  if(!x.a||!x.id){document.getElementById('cc-num').textContent='Error: sin sesión';document.getElementById('cc-no-lead').style.display='block';document.getElementById('cc-no-txt').textContent='Sesión no detectada. Recarga la página.';console.error('[CC] _ctx vacío:',JSON.stringify(x));return;}
+  if(!x.a||!x.id){
+    CC_LEAD_INFLIGHT=false;ccLeadRetryButtonBusy(false);
+    ccLeadEmptyState('Sesión no detectada','Recarga la página e inicia sesión nuevamente.','SIN SESIÓN');
+    console.error('[CC] _ctx vacío:',JSON.stringify(x));return;
+  }
   _rpc('aos_siguiente_lead',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy},function(res){
+    CC_LEAD_INFLIGHT=false;ccLeadRetryButtonBusy(false);
     if(!res||!res.ok||!res.lead){
-      document.getElementById('cc-no-lead').style.display='block';
-      document.getElementById('cc-no-txt').textContent=res?(res.msg||'Sin leads pendientes.'):'Sin leads pendientes.';
-      document.getElementById('cc-num').textContent='—';
-      document.getElementById('cc-tier').textContent='BASE OK'; return;
+      ccLeadEmptyState('¡Base trabajada!',res?(res.msg||'Sin leads pendientes.'):'Sin leads pendientes.','BASE OK');
+      return;
     }
     document.getElementById('cc-no-lead').style.display='none';
     document.getElementById('cc-lead-panel').style.display='block';
@@ -737,7 +766,6 @@ function loadLead(_retried){
     document.getElementById('cc-m-seg-num').textContent='Número: '+CC.lead.num;
     document.getElementById('cc-tipif').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');
     cargarNombrePaciente(CC.lead.num);renderContexto(CC.lead.contexto);
-    /* Mostrar clasificación de Nico si existe */
     fetch(_SB+'/rest/v1/aos_leads?numero_limpio=eq.'+encodeURIComponent(CC.lead.num)+'&select=clasificacion_nico&order=fecha.desc&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json()}).then(function(arr){
       if(arr&&arr[0]&&arr[0].clasificacion_nico){
         try{var c=JSON.parse(arr[0].clasificacion_nico);
@@ -754,11 +782,18 @@ function loadLead(_retried){
       }else{var b=document.getElementById('cc-nico-badge');if(b)b.style.display='none';}
     }).catch(function(){});
   },function(e){
-    console.error('[CC] loadLead error:',e);
-    if(!_retried){console.log('[CC] Reintentando loadLead...');setTimeout(function(){loadLead(true);},2000);return;}
-    document.getElementById('cc-num').textContent='—';
-    document.getElementById('cc-no-lead').style.display='block';
-    document.getElementById('cc-no-txt').textContent='Error cargando lead. Usa los botones de abajo.';
+    CC_LEAD_INFLIGHT=false;
+    var ep=e&&e.payload||{};
+    var errMsg=String(ep.error||ep.message||ep.code||(e&&e.message)||'Error de conexión');
+    console.error('[CC] loadLead error:',errMsg,e);
+    if(retryCount<CC_LEAD_RETRY_DELAYS.length){
+      ccLeadEmptyState('Reconectando Call Center…','Recuperando el siguiente contacto. No cierres esta pantalla.','RECONECTANDO');
+      var wait=CC_LEAD_RETRY_DELAYS[retryCount];
+      CC_LEAD_RETRY_TIMER=setTimeout(function(){CC_LEAD_RETRY_TIMER=null;loadLead(retryCount+1);},wait);
+      return;
+    }
+    ccLeadRetryButtonBusy(false);
+    ccLeadEmptyState('No se pudo cargar el siguiente contacto','La base sigue disponible. '+errMsg+' · Pulsa Reintentar.','REINTENTAR');
   });
 }
 
