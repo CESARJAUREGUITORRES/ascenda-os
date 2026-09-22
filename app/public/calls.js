@@ -142,48 +142,90 @@ function loadMetrics(){
 // ══════════════════════════════════════════════════════════════
 // SIGUIENTE LEAD
 // ══════════════════════════════════════════════════════════════
-function loadLead(_retried){
+var CC_LEAD_RETRY_DELAYS=[900,2200,4500];
+var CC_LEAD_INFLIGHT=false;
+var CC_LEAD_RETRY_TIMER=null;
+function ccLeadRetryButtonBusy(busy){
+  var b=document.getElementById('cc-lead-retry-btn');
+  if(b){b.disabled=!!busy;b.style.opacity=busy?'.55':'1';b.style.cursor=busy?'wait':'pointer';}
+}
+function ccLeadEmptyState(title,msg,tier){
+  var titleEl=document.getElementById('cc-no-title');
+  var txt=document.getElementById('cc-no-txt');
+  var noLead=document.getElementById('cc-no-lead');
+  var panel=document.getElementById('cc-lead-panel');
+  var num=document.getElementById('cc-num');
+  var tierEl=document.getElementById('cc-tier');
+  if(titleEl)titleEl.textContent=title||'Call Center';
+  if(txt)txt.textContent=msg||'';
+  if(noLead)noLead.style.display='block';
+  if(panel)panel.style.display='none';
+  if(num)num.textContent='—';
+  if(tierEl&&tier)tierEl.textContent=tier;
+}
+function loadLead(_retryCount){
+  var retryCount=_retryCount===true?1:(Number(_retryCount)||0);
+  if(CC_LEAD_INFLIGHT)return;
+  if(CC_LEAD_RETRY_TIMER){clearTimeout(CC_LEAD_RETRY_TIMER);CC_LEAD_RETRY_TIMER=null;}
+  CC_LEAD_INFLIGHT=true;
+  ccLeadRetryButtonBusy(true);
   document.getElementById('cc-num').textContent='Cargando...';
   document.getElementById('cc-no-lead').style.display='none';
   document.getElementById('cc-lead-panel').style.display='none';
   var x=_ctx();
   if(!x.a||!x.id){
-    /* Retry after 500ms — AOS.ctx might not be ready yet */
-    if(!CC._retries)CC._retries=0;
-    CC._retries++;
-    if(CC._retries<=5){console.log('[CC] _ctx vacío, retry '+CC._retries+'/5...');setTimeout(loadLead,500);return;}
-    document.getElementById('cc-num').textContent='Error: sin sesión';document.getElementById('cc-no-lead').style.display='block';document.getElementById('cc-no-txt').textContent='Sesión no detectada. Recarga la página.';console.error('[CC] _ctx vacío después de 5 reintentos:',JSON.stringify(x));return;
+    CC_LEAD_INFLIGHT=false;ccLeadRetryButtonBusy(false);
+    ccLeadEmptyState('Sesión no detectada','Recarga la página e inicia sesión nuevamente.','SIN SESIÓN');
+    console.error('[CC] _ctx vacío:',JSON.stringify(x));return;
   }
-  CC._retries=0;
   _rpc('aos_siguiente_lead',{p_asesor:x.a,p_id_asesor:x.id,p_hoy:x.hoy},function(res){
+    CC_LEAD_INFLIGHT=false;ccLeadRetryButtonBusy(false);
     if(!res||!res.ok||!res.lead){
-      document.getElementById('cc-no-lead').style.display='block';
-      document.getElementById('cc-no-txt').textContent=res?(res.msg||'Sin leads pendientes.'):'Sin leads pendientes.';
-      document.getElementById('cc-num').textContent='—';
-      document.getElementById('cc-tier').textContent='BASE OK'; return;
+      ccLeadEmptyState('¡Base trabajada!',res?(res.msg||'Sin leads pendientes.'):'Sin leads pendientes.','BASE OK');
+      return;
     }
     document.getElementById('cc-no-lead').style.display='none';
     document.getElementById('cc-lead-panel').style.display='block';
-    CC.lead={leadId:res.lead&&res.lead.id!=null?Number(res.lead.id):null,num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',anuncio:res.lead&&res.lead.anuncio||((res.anuncio&&res.anuncio.nombre)||''),horaIngreso:res.lead&&res.lead.hora_ingreso||null,attributionSource:res.lead&&res.lead.attributionSource||'UNRESOLVED',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.contexto||null};
+    CC.lead={num:res.lead&&res.lead.num||'',trat:res.lead&&res.lead.trat||'',intento:res.lead&&res.lead.intento||1,rowNum:0,fecha:res.lead&&String(res.lead.fecha||''),wa:'https://api.whatsapp.com/send?phone=51'+((res.lead&&res.lead.num)||'').replace(/\D/g,''),contexto:res.contexto||null};CC.leadStartTs=Date.now();setTimeout(ccCallRestoreForLead,0);
     document.getElementById('cc-tier').textContent=res.tier||'TIER 1';
     document.getElementById('cc-num').textContent=CC.lead.num;
     document.getElementById('cc-trat').textContent=CC.lead.trat;
     document.getElementById('cc-meta').textContent='#'+CC.lead.intento+' · '+CC.lead.fecha;
-    var adEl=document.getElementById('cc-anuncio');var adNombre=(res.anuncio&&res.anuncio.nombre)||CC.lead.anuncio||'';
-    if(adNombre){adEl.innerHTML='<b>'+escH(adNombre)+'</b>';adEl.style.display='block';}else{adEl.innerHTML='';adEl.style.display='none';}
+    var adEl=document.getElementById('cc-anuncio');
+    if(res.anuncio&&res.anuncio.nombre){adEl.innerHTML='<b>'+escH(res.anuncio.nombre)+'</b>';adEl.style.display='block';}else{adEl.innerHTML='';adEl.style.display='none';}
     var wrap=document.getElementById('pac-nombre-wrap');if(wrap)wrap.style.display='none';
     document.getElementById('cc-m-cita-num').textContent='Número: '+CC.lead.num;
     document.getElementById('cc-m-seg-num').textContent='Número: '+CC.lead.num;
     document.getElementById('cc-tipif').value='';document.getElementById('sub-tipif-wrap').classList.remove('open');
     cargarNombrePaciente(CC.lead.num);renderContexto(CC.lead.contexto);
-    /* Agente asesor: cargar info contextual del tratamiento */
-    if(CC.lead.trat)cargarRepoContextual(CC.lead.trat);
+    fetch(_SB+'/rest/v1/aos_leads?numero_limpio=eq.'+encodeURIComponent(CC.lead.num)+'&select=clasificacion_nico&order=fecha.desc&limit=1',{headers:{'apikey':_SK,'Authorization':'Bearer '+_SK}}).then(function(r){return r.json()}).then(function(arr){
+      if(arr&&arr[0]&&arr[0].clasificacion_nico){
+        try{var c=JSON.parse(arr[0].clasificacion_nico);
+          var badge=document.getElementById('cc-nico-badge');
+          if(!badge){var anc=document.getElementById('cc-anuncio');if(anc&&anc.parentNode){badge=document.createElement('div');badge.id='cc-nico-badge';badge.style.cssText='display:inline-flex;gap:4px;margin:4px 0;font-size:9px;font-weight:700;';anc.parentNode.insertBefore(badge,anc.nextSibling);}}
+          if(badge){
+            var color=c.valor_potencial===3?'#16A34A':(c.valor_potencial===2?'#0A4FBF':'#9AAAC8');
+            var label=c.valor_potencial===3?'ALTO':(c.valor_potencial===2?'MEDIO':'BAJO');
+            var urgIcon=c.urgencia==='alta'?'🔥':(c.urgencia==='media'?'⚡':'');
+            badge.innerHTML='<span style="padding:2px 7px;border-radius:6px;background:'+color+';color:#fff;">🏷️ '+label+'</span>'+(urgIcon?'<span style="padding:2px 7px;border-radius:6px;background:#FEF3C7;color:#92400E;">'+urgIcon+' '+(c.urgencia||'').toUpperCase()+'</span>':'');
+            badge.style.display='inline-flex';
+          }
+        }catch(e){}
+      }else{var b=document.getElementById('cc-nico-badge');if(b)b.style.display='none';}
+    }).catch(function(){});
   },function(e){
-    console.error('[CC] loadLead error:',e);
-    if(!_retried){console.log('[CC] Reintentando loadLead...');setTimeout(function(){loadLead(true);},2000);return;}
-    document.getElementById('cc-num').textContent='—';
-    document.getElementById('cc-no-lead').style.display='block';
-    document.getElementById('cc-no-txt').textContent='Error cargando lead. Usa los botones de abajo.';
+    CC_LEAD_INFLIGHT=false;
+    var ep=e&&e.payload||{};
+    var errMsg=String(ep.error||ep.message||ep.code||(e&&e.message)||'Error de conexión');
+    console.error('[CC] loadLead error:',errMsg,e);
+    if(retryCount<CC_LEAD_RETRY_DELAYS.length){
+      ccLeadEmptyState('Reconectando Call Center…','Recuperando el siguiente contacto. No cierres esta pantalla.','RECONECTANDO');
+      var wait=CC_LEAD_RETRY_DELAYS[retryCount];
+      CC_LEAD_RETRY_TIMER=setTimeout(function(){CC_LEAD_RETRY_TIMER=null;loadLead(retryCount+1);},wait);
+      return;
+    }
+    ccLeadRetryButtonBusy(false);
+    ccLeadEmptyState('No se pudo cargar el siguiente contacto','La base sigue disponible. '+errMsg+' · Pulsa Reintentar.','REINTENTAR');
   });
 }
 
