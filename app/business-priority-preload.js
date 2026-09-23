@@ -14,6 +14,11 @@
  * stopping the service: Auth V3, foreground panels and governed business writes
  * keep their normal transport path while PostgREST/DB is allowed to recover.
  *
+ * P0 critical-comms lane: generic push delivery remains available in a bounded
+ * DB-side batch while incident mode is active. The cron scanner is allowed only
+ * during the Lima appointment-reminder window (08:00-11:59); this preserves the
+ * existing Elena/Cartero reminder flow without reopening all-day background work.
+ *
  * This preload is composed AFTER supabase-quota-circuit-preload.cjs in
  * Railway NODE_OPTIONS. The inherited request function therefore preserves
  * the existing project-wide 402 quota breaker while this layer adds a shared
@@ -63,6 +68,20 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     if (p.indexOf('/rest/v1/rpc/aos_generar_snapshot') === 0) return 'global-snapshot'
     if (p.indexOf('/rest/v1/aos_configuracion?') === 0 && (p.indexOf('select=clave%2Cvalor') >= 0 || p.indexOf('select=clave,valor') >= 0)) return 'brand-config-cache'
     return ''
+  }
+
+  function limaHour() {
+    return (new Date().getUTCHours() + 19) % 24
+  }
+
+  function isForegroundEssential(key) {
+    if (!FOREGROUND_PRIORITY_MODE) return false
+    if (key === 'notification-push-claim') return true
+    if (key === 'agent-cron-scan') {
+      const hour = limaHour()
+      return hour >= 8 && hour <= 11
+    }
+    return false
   }
 
   function shieldState() {
@@ -154,7 +173,8 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   https.request = function aosBusinessPriorityRequest() {
     const args = Array.prototype.slice.call(arguments)
     const key = classify(args[0])
-    if (key && (FOREGROUND_PRIORITY_MODE || circuitOpen(key))) return fakeRequest(callbackFrom(args))
+    const foregroundEssential = isForegroundEssential(key)
+    if (key && !foregroundEssential && (FOREGROUND_PRIORITY_MODE || circuitOpen(key))) return fakeRequest(callbackFrom(args))
 
     const req = inheritedRequest.apply(https, args)
     if (key && req && typeof req.once === 'function') {
@@ -184,12 +204,16 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1.5',
+    version: 'p0-a-v1.6-critical-comms',
     states: states,
     shieldKey: SHIELD_KEY,
     classify: classify,
-    foregroundPriorityMode: FOREGROUND_PRIORITY_MODE
+    foregroundPriorityMode: FOREGROUND_PRIORITY_MODE,
+    isForegroundEssential: isForegroundEssential
   }
 
-  console.log('[BUSINESS-PRIORITY] race-safe shared background shield active', { foregroundPriorityMode: FOREGROUND_PRIORITY_MODE })
+  console.log('[BUSINESS-PRIORITY] race-safe shared background shield active', {
+    foregroundPriorityMode: FOREGROUND_PRIORITY_MODE,
+    criticalCommsLane: true
+  })
 }
