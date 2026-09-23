@@ -71,6 +71,8 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   function limaHour() {
+    const forced = Number(process.env.AOS_TEST_LIMA_HOUR)
+    if (Number.isInteger(forced) && forced >= 0 && forced <= 23) return forced
     return (new Date().getUTCHours() + 19) % 24
   }
 
@@ -105,8 +107,6 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     const k = keyState(key)
     k.failures = 0
     k.lastSuccessAt = Date.now()
-    // A successful sibling request must never close a shield opened by another
-    // background source. The shared cooldown expires only by time.
   }
 
   function markFailure(key, reason) {
@@ -195,8 +195,6 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     return req
   }
 
-  // Route get() through the composed request export exactly once. This avoids
-  // bypassing either the existing quota breaker or this background shield.
   https.get = function aosBusinessPriorityGet() {
     const req = https.request.apply(https, arguments)
     req.end()
