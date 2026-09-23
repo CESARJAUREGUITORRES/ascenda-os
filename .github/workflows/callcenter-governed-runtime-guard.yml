@@ -50,6 +50,7 @@ jobs:
           set -euo pipefail
           node --check app/public/f4-production-canary-hotfix.js
           node --check app/public/calls-loop6.js
+          node --check app/public/calls-performance-v1.js
 
       - name: Call Center postload + fail-closed contract
         run: |
@@ -59,6 +60,7 @@ jobs:
           const app = fs.readFileSync('app/public/app.html','utf8');
           const calls = fs.readFileSync('app/public/calls.html','utf8');
           const loop6 = fs.readFileSync('app/public/calls-loop6.js','utf8');
+          const perf = fs.readFileSync('app/public/calls-performance-v1.js','utf8');
           const bridge = fs.readFileSync('app/public/f4-production-canary-hotfix.js','utf8');
           const guard = fs.readFileSync('supabase/migrations/20260822011500_mkt_loop6_legacy_bypass_guard_v22.sql','utf8');
 
@@ -72,6 +74,12 @@ jobs:
           assert(loop6.includes('aos_callcenter_commit_action_v1'), 'governed manual RPC missing');
           assert(loop6.includes('window.guardarCitaManual=function'), 'governed manual handler override missing');
           assert(loop6.includes('window.ccConfirmarCita=function'), 'governed queue handler override missing');
+
+          assert(perf.includes("caches.open('aos-phase2-auth')"), 'Call Center strong-token cache recovery missing');
+          assert(perf.includes("c.match('/__aos_app_token')"), 'Call Center strong-token cache key missing');
+          assert(perf.includes('v.length>=32'), 'Call Center must reject non-strong token candidates');
+          assert(perf.includes('persistCallCenterToken'), 'Call Center recovered-token persistence missing');
+          assert(perf.includes("v1.4-auth-cache-recovery"), 'Call Center auth recovery version marker missing');
 
           assert(bridge.includes('ensureCallCenterLoop6Postload'), 'postload bridge missing');
           assert(bridge.includes('AOS._capturePanelTimers===true'), 'bridge must wait for inline panel runtime completion');
