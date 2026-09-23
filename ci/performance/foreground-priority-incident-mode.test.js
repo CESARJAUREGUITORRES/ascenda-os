@@ -57,16 +57,21 @@ test('foreground-priority mode keeps only critical push while suppressing ordina
   assert.equal(h.baseCalls(),5,'critical push plus auth/business traffic must remain on the real transport');
 });
 
-test('foreground-priority reminder window permits the cron scanner only from 08:00 through 11:59 Lima',()=>{
+test('foreground-priority reminder windows keep Elena cron reachable morning and night only',()=>{
   const host='ituyqwstonmhnfshnaqz.supabase.co';
   const cron={hostname:host,path:'/rest/v1/aos_agentes?activo=eq.true&tipo_ejecucion=eq.cron'};
+
   const morning=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'9'});
   morning.https.request(cron,function(){});
   assert.equal(morning.baseCalls(),1,'morning reminder window must keep Elena/Cartero cron reachable');
 
-  const evening=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'18'});
-  const req=evening.https.request(cron,function(){});req.end();
-  assert.equal(evening.baseCalls(),0,'outside reminder window cron must remain suppressed during incident mode');
+  const night=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'22'});
+  night.https.request(cron,function(){});
+  assert.equal(night.baseCalls(),1,'night-before reminder window must keep Elena/Cartero cron reachable');
+
+  const midday=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'15'});
+  const req=midday.https.request(cron,function(){});req.end();
+  assert.equal(midday.baseCalls(),0,'outside reminder windows cron must remain suppressed during incident mode');
 });
 
 test('normal mode preserves existing shared circuit semantics',()=>{
