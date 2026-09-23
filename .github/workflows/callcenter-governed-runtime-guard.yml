@@ -10,6 +10,7 @@ on:
       - 'app/public/calls-performance-v1.js'
       - 'app/public/calls-loop6.js'
       - 'app/public/f4-production-canary-hotfix.js'
+      - 'app/server-phase-s-f17.js'
       - 'supabase/migrations/*loop6*'
       - 'supabase/rollbacks/*loop6*'
       - '.github/workflows/callcenter-governed-runtime-guard.yml'
@@ -22,6 +23,7 @@ on:
       - 'app/public/calls-performance-v1.js'
       - 'app/public/calls-loop6.js'
       - 'app/public/f4-production-canary-hotfix.js'
+      - 'app/server-phase-s-f17.js'
       - 'supabase/migrations/*loop6*'
       - 'supabase/rollbacks/*loop6*'
       - '.github/workflows/callcenter-governed-runtime-guard.yml'
@@ -48,6 +50,7 @@ jobs:
       - name: Syntax
         run: |
           set -euo pipefail
+          node --check app/server-phase-s-f17.js
           node --check app/public/f4-production-canary-hotfix.js
           node --check app/public/calls-loop6.js
           node --check app/public/calls-performance-v1.js
@@ -62,6 +65,7 @@ jobs:
           const loop6 = fs.readFileSync('app/public/calls-loop6.js','utf8');
           const perf = fs.readFileSync('app/public/calls-performance-v1.js','utf8');
           const bridge = fs.readFileSync('app/public/f4-production-canary-hotfix.js','utf8');
+          const server = fs.readFileSync('app/server-phase-s-f17.js','utf8');
           const guard = fs.readFileSync('supabase/migrations/20260822011500_mkt_loop6_legacy_bypass_guard_v22.sql','utf8');
 
           assert(app.includes('AOS._capturePanelTimers = true'), 'panel-loader start marker missing');
@@ -75,11 +79,22 @@ jobs:
           assert(loop6.includes('window.guardarCitaManual=function'), 'governed manual handler override missing');
           assert(loop6.includes('window.ccConfirmarCita=function'), 'governed queue handler override missing');
 
-          assert(perf.includes("caches.open('aos-phase2-auth')"), 'Call Center strong-token cache recovery missing');
-          assert(perf.includes("c.match('/__aos_app_token')"), 'Call Center strong-token cache key missing');
+          assert(perf.includes("fetch('/api/callcenter/rpc'"), 'Call Center same-origin RPC bridge missing');
+          assert(perf.includes("credentials:'same-origin'"), 'Call Center bridge must transport HttpOnly session cookie');
+          assert(perf.includes("delete payload.p_token"), 'Call Center browser must not forward stale body token into cookie bridge');
+          assert(perf.includes("caches.open('aos-phase2-auth')"), 'Call Center compatibility token-cache recovery missing');
+          assert(perf.includes("c.match('/__aos_app_token')"), 'Call Center compatibility token cache key missing');
           assert(perf.includes('v.length>=32'), 'Call Center must reject non-strong token candidates');
           assert(perf.includes('persistCallCenterToken'), 'Call Center recovered-token persistence missing');
-          assert(perf.includes("v1.4-auth-cache-recovery"), 'Call Center auth recovery version marker missing');
+          assert(perf.includes("v1.5-cookie-session-bridge"), 'Call Center mobile auth bridge version marker missing');
+
+          assert(server.includes("'/api/callcenter/rpc'"), 'server Call Center same-origin route missing');
+          assert(server.includes("cookieValue(req,'aos_app_session')"), 'server must read canonical HttpOnly Auth V3 cookie');
+          assert(server.includes("'aos_callcenter_prepare_action_v1'"), 'prepare RPC allowlist missing');
+          assert(server.includes("'aos_callcenter_commit_action_v1'"), 'commit RPC allowlist missing');
+          assert(server.includes("'aos_callcenter_confirm_queue_appointment_v1'"), 'queue confirmation RPC allowlist missing');
+          assert(server.includes('payload.p_token=token'), 'server must overwrite stale browser token with boundary session');
+          assert(server.includes('sameOriginRequest(req)'), 'server bridge must reject cross-origin writes');
 
           assert(bridge.includes('ensureCallCenterLoop6Postload'), 'postload bridge missing');
           assert(bridge.includes('AOS._capturePanelTimers===true'), 'bridge must wait for inline panel runtime completion');
