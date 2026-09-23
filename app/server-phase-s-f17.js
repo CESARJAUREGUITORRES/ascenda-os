@@ -91,11 +91,12 @@ function cookieValue(req,name){
   return ''
 }
 
-function strongBoundaryToken(req){
+function strongBoundaryToken(req,scope){
   const header=String(req&&req.headers&&req.headers['x-aos-app-token']||'').trim()
-  if(header.length>=32)return header
+  if(scope==='prc1')return header.length>=32?header:''
   const cookie=cookieValue(req,'aos_app_session')
-  return cookie.length>=32?cookie:''
+  if(cookie.length>=32)return cookie
+  return header.length>=32?header:''
 }
 
 function sameOriginRequest(req){
@@ -159,22 +160,20 @@ async function handleAllowlistedRpc(req,res,allowed,writeJson,scope){
   }
   if(req.method!=='POST'){writeJson(res,405,{ok:false,error:'METHOD_NOT_ALLOWED'});return}
   if(!sameOriginRequest(req)){writeJson(res,403,{ok:false,error:'ORIGIN_NOT_ALLOWED'});return}
-  const token=strongBoundaryToken(req)
-  if(token.length<32){writeJson(res,401,{ok:false,error:'APP_SESSION_REQUIRED'});return}
+  const token=strongBoundaryToken(req,scope)
+  if(token.length<32){writeJson(res,401,{ok:false,error:scope==='prc1'?'F4_STRONG_SESSION_REQUIRED':'APP_SESSION_REQUIRED'});return}
   try{
     const body=await readBridgeJson(req)
     const name=String(body&&body.name||'').trim()
-    if(!allowed.has(name)){writeJson(res,403,{ok:false,error:'RPC_NOT_ALLOWED'});return}
+    if(!allowed.has(name)){writeJson(res,403,{ok:false,error:scope==='prc1'?'PRC1_RPC_NOT_ALLOWED':'RPC_NOT_ALLOWED'});return}
     const payload=body&&body.payload&&typeof body.payload==='object'&&!Array.isArray(body.payload)?Object.assign({},body.payload):{}
-    // Never trust a browser supplied p_token. The boundary binds the RPC to the
-    // verified strong session transported in the HttpOnly cookie/header.
     payload.p_token=token
     const out=await prc1Rpc(name,payload)
     if(out.data!==null){writeJson(res,out.status,out.data);return}
-    writeJson(res,out.status||502,{ok:false,error:'UPSTREAM_INVALID_JSON'})
+    writeJson(res,out.status||502,{ok:false,error:scope==='prc1'?'PRC1_UPSTREAM_INVALID_JSON':'UPSTREAM_INVALID_JSON'})
   }catch(e){
     console.error('['+scope.toUpperCase()+'-BRIDGE]',e&&e.message||e)
-    writeJson(res,e&&e.status||502,{ok:false,error:e&&e.message||'BRIDGE_UNAVAILABLE'})
+    writeJson(res,e&&e.status||502,{ok:false,error:e&&e.message||(scope==='prc1'?'PRC1_BRIDGE_UNAVAILABLE':'BRIDGE_UNAVAILABLE')})
   }
 }
 
