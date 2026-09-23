@@ -16,8 +16,8 @@
  *
  * P0 critical-comms lane: generic push delivery remains available in a bounded
  * DB-side batch while incident mode is active. The cron scanner is allowed only
- * during the Lima appointment-reminder window (08:00-11:59); this preserves the
- * existing Elena/Cartero reminder flow without reopening all-day background work.
+ * during Elena/Cartero appointment-reminder windows in Lima: 08:00-11:59 for
+ * same-day reminders and 20:00-23:59 for next-day/night-before reminders.
  *
  * This preload is composed AFTER supabase-quota-circuit-preload.cjs in
  * Railway NODE_OPTIONS. The inherited request function therefore preserves
@@ -76,13 +76,14 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     return (new Date().getUTCHours() + 19) % 24
   }
 
+  function isReminderWindow(hour) {
+    return (hour >= 8 && hour <= 11) || (hour >= 20 && hour <= 23)
+  }
+
   function isForegroundEssential(key) {
     if (!FOREGROUND_PRIORITY_MODE) return false
     if (key === 'notification-push-claim') return true
-    if (key === 'agent-cron-scan') {
-      const hour = limaHour()
-      return hour >= 8 && hour <= 11
-    }
+    if (key === 'agent-cron-scan') return isReminderWindow(limaHour())
     return false
   }
 
@@ -202,16 +203,18 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1.6-critical-comms',
+    version: 'p0-a-v1.7-critical-reminders',
     states: states,
     shieldKey: SHIELD_KEY,
     classify: classify,
     foregroundPriorityMode: FOREGROUND_PRIORITY_MODE,
-    isForegroundEssential: isForegroundEssential
+    isForegroundEssential: isForegroundEssential,
+    isReminderWindow: isReminderWindow
   }
 
   console.log('[BUSINESS-PRIORITY] race-safe shared background shield active', {
     foregroundPriorityMode: FOREGROUND_PRIORITY_MODE,
-    criticalCommsLane: true
+    criticalCommsLane: true,
+    reminderWindowsLima: '08-11,20-23'
   })
 }
