@@ -33,11 +33,8 @@ function install(){
       if(i>=candidates.length){recoverFromCache();return}
       var body=Object.assign({},p||{});body.p_token=candidates[i++];
       return base(actual,body,function(d){
-        if(d&&d.ok===false&&d.error==='UNAUTHORIZED'){
-          lastUnauthorized=d;
-          if(i<candidates.length){attempt();return}
-          recoverFromCache();return;
-        }
+        if(d&&d.ok===false&&d.error==='UNAUTHORIZED'&&i<candidates.length){lastUnauthorized=d;attempt();return}
+        if(d&&d.ok===false&&d.error==='UNAUTHORIZED'){lastUnauthorized=d;recoverFromCache();return}
         if(d&&d.ok===true&&body.p_token)persistCallCenterToken(body.p_token);
         if(ok)ok(d);
       },fail);
