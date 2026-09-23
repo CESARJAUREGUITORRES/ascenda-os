@@ -79,14 +79,19 @@ jobs:
           assert(loop6.includes('window.guardarCitaManual=function'), 'governed manual handler override missing');
           assert(loop6.includes('window.ccConfirmarCita=function'), 'governed queue handler override missing');
 
-          assert(perf.includes("fetch('/api/callcenter/rpc'"), 'Call Center same-origin RPC bridge missing');
-          assert(perf.includes("credentials:'same-origin'"), 'Call Center bridge must transport HttpOnly session cookie');
+          assert(perf.includes('window.AOS_callCenterCookieRpc(actual,payload)'), 'Call Center must delegate to shell cookie transport');
+          assert(!perf.includes("fetch('/api/callcenter/rpc'"), 'Call Center performance runtime must not create a recurrent network owner');
           assert(perf.includes("delete payload.p_token"), 'Call Center browser must not forward stale body token into cookie bridge');
           assert(perf.includes("caches.open('aos-phase2-auth')"), 'Call Center compatibility token-cache recovery missing');
           assert(perf.includes("c.match('/__aos_app_token')"), 'Call Center compatibility token cache key missing');
           assert(perf.includes('v.length>=32'), 'Call Center must reject non-strong token candidates');
           assert(perf.includes('persistCallCenterToken'), 'Call Center recovered-token persistence missing');
           assert(perf.includes("v1.5-cookie-session-bridge"), 'Call Center mobile auth bridge version marker missing');
+
+          assert(bridge.includes('window.AOS_callCenterCookieRpc=function'), 'shell cookie transport missing');
+          assert(bridge.includes("previousFetch('/api/callcenter/rpc'"), 'shell must call same-origin Call Center boundary');
+          assert(bridge.includes("credentials:'same-origin'"), 'shell must transport HttpOnly session cookie');
+          assert(bridge.includes('/calls-performance-v1.js?v=20260923-mobile-cookie-v1'), 'mobile bridge cache-bust missing');
 
           assert(server.includes("'/api/callcenter/rpc'"), 'server Call Center same-origin route missing');
           assert(server.includes("cookieValue(req,'aos_app_session')"), 'server must read canonical HttpOnly Auth V3 cookie');
@@ -95,6 +100,8 @@ jobs:
           assert(server.includes("'aos_callcenter_confirm_queue_appointment_v1'"), 'queue confirmation RPC allowlist missing');
           assert(server.includes('payload.p_token=token'), 'server must overwrite stale browser token with boundary session');
           assert(server.includes('sameOriginRequest(req)'), 'server bridge must reject cross-origin writes');
+          assert(server.includes("scope==='prc1'?'F4_STRONG_SESSION_REQUIRED':'APP_SESSION_REQUIRED'"), 'PRC1 strong-session semantics must remain intact');
+          assert(server.includes("scope==='prc1'?'PRC1_RPC_NOT_ALLOWED':'RPC_NOT_ALLOWED'"), 'PRC1 allowlist semantics must remain intact');
 
           assert(bridge.includes('ensureCallCenterLoop6Postload'), 'postload bridge missing');
           assert(bridge.includes('AOS._capturePanelTimers===true'), 'bridge must wait for inline panel runtime completion');
