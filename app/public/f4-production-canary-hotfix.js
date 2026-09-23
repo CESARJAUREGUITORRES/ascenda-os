@@ -49,6 +49,23 @@ function syncCanonicalAppToken(){
   }).catch(function(){return '';}).then(function(t){tokenSyncPromise=null;return t;},function(){tokenSyncPromise=null;return '';});
   return tokenSyncPromise;
 }
+
+// One-shot transport only. Keeping the network primitive in this already-governed
+// shell owner avoids creating a new recurrent network owner in Call Center runtime.
+window.AOS_callCenterCookieRpc=function(name,payload){
+  var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
+  var tid=ctrl?setTimeout(function(){ctrl.abort();},15000):null;
+  return previousFetch('/api/callcenter/rpc',{
+    method:'POST',credentials:'same-origin',cache:'no-store',
+    headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body:JSON.stringify({name:String(name||''),payload:payload||{}}),
+    signal:ctrl?ctrl.signal:undefined
+  }).then(function(r){
+    if(tid)clearTimeout(tid);
+    return r.text().then(function(t){var d=null;try{d=t?JSON.parse(t):null;}catch(e){}return {status:r.status,data:d};});
+  },function(e){if(tid)clearTimeout(tid);throw e;});
+};
+
 function salesErrorBanner(msg){
   var host=document.querySelector('.vs');if(!host)return;
   var old=document.getElementById('f4-sales-auth-alert');if(old)old.remove();
@@ -151,7 +168,7 @@ function loadCallCenterPerformance(){
   var old=document.getElementById('aos-cc-performance-v1');if(old)old.remove();
   var p=document.createElement('script');
   p.id='aos-cc-performance-v1';
-  p.src='/calls-performance-v1.js?v=20260918-cia-test-v2';
+  p.src='/calls-performance-v1.js?v=20260923-mobile-cookie-v1';
   p.async=false;
   p.onerror=function(){console.error('[ASCENDA][CC-PERF] runtime failed');};
   (document.head||document.documentElement).appendChild(p);

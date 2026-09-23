@@ -17,8 +17,7 @@ function install(){
   var ttl={aos_panel_asesor:2500,aos_monitoreo_equipo:2500,aos_historico_asesor_anual:10000,aos_horarios_semana:30000};
   function clearOperationalCache(){cache.clear()}
   function deliver(waiters,kind,value){waiters.forEach(function(w){try{if(kind==='ok'){if(w.ok)w.ok(value)}else if(w.fail)w.fail(value)}catch(e){console.error('[CC-PERF] callback',e)}})}
-  function callBase(actual,p,ok,fail){
-    var governed=/^aos_callcenter_(prepare_action_v1|commit_action_v1|confirm_queue_appointment_v1)$/.test(actual);if(!governed)return base(actual,p,ok,fail);
+  function directGovernedFallback(actual,p,ok,fail){
     var candidates=callCenterTokenCandidates(p),i=0,cacheTried=false,lastUnauthorized=null;
     function finishUnauthorized(){if(ok)ok(lastUnauthorized||{ok:false,error:'UNAUTHORIZED'})}
     function recoverFromCache(){
@@ -40,6 +39,29 @@ function install(){
       },fail);
     }
     return attempt();
+  }
+  function sameOriginGoverned(actual,p,ok,fail){
+    var payload=Object.assign({},p||{});try{delete payload.p_token}catch(_e){}
+    if(typeof window.AOS_callCenterCookieRpc!=='function')return directGovernedFallback(actual,p,ok,fail);
+    return window.AOS_callCenterCookieRpc(actual,payload).then(function(x){
+      var d=x&&x.data,status=Number(x&&x.status||0);
+      // Cookie missing/expired or older server without the route: retain the
+      // certified direct-token recovery as a compatibility fallback.
+      if(status===401||status===404||status===405||(d&&d.ok===false&&(d.error==='APP_SESSION_REQUIRED'||d.error==='UNAUTHORIZED'))){
+        return directGovernedFallback(actual,p,ok,fail);
+      }
+      if(!d){if(fail)fail(new Error('CALLCENTER_BRIDGE_INVALID_RESPONSE'));return}
+      if(ok)ok(d);
+    }).catch(function(e){
+      // Do not blindly replay a governed write after an ambiguous network
+      // failure. UI receives the transport failure and operator can retry.
+      if(fail)fail(e);
+    });
+  }
+  function callBase(actual,p,ok,fail){
+    var governed=/^aos_callcenter_(prepare_action_v1|commit_action_v1|confirm_queue_appointment_v1)$/.test(actual);
+    if(!governed)return base(actual,p,ok,fail);
+    return sameOriginGoverned(actual,p,ok,fail);
   }
   function notifyCanaryAssignment(d){
     try{
@@ -64,7 +86,7 @@ function install(){
   }
   perfRpc.__ccPerfV1=true;perfRpc.__base=base;window._rpc=perfRpc;
   if(typeof window.loadLead==='function'&&!window.loadLead.__ccPerfLeadGuardV1){var baseLoadLead=window.loadLead,installedAt=Date.now();function guardedLoadLead(_retried){if(!_retried&&Date.now()-installedAt<350){console.log('[ASCENDA][CC-PERF] suppressed duplicate postload lead request');return}return baseLoadLead.apply(this,arguments)}guardedLoadLead.__ccPerfLeadGuardV1=true;guardedLoadLead.__base=baseLoadLead;window.loadLead=guardedLoadLead}
-  window.__AOS_CC_PERF_V1__={version:'v1.4-auth-cache-recovery',installedAt:new Date().toISOString(),clear:clearOperationalCache};console.log('[ASCENDA][CC-PERF] governed token cache recovery + CIA V3 selector + certified V2 fallback active');return true;
+  window.__AOS_CC_PERF_V1__={version:'v1.5-cookie-session-bridge',installedAt:new Date().toISOString(),clear:clearOperationalCache};console.log('[ASCENDA][CC-PERF] same-origin HttpOnly session bridge + token-cache fallback active');return true;
 }
 window.__AOS_CC_INSTALL_PERF_V1__=install;var attempts=0;(function waitForGovernedRuntime(){attempts++;if(install())return;if(attempts<200&&document.getElementById('cc-m-cita-manual'))setTimeout(waitForGovernedRuntime,50)})();
 })();
