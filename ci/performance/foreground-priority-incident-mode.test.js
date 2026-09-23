@@ -30,30 +30,43 @@ function boot(env){
   return {https:fakeHttps,runtime:localGlobal.__AOS_BUSINESS_PRIORITY_V1__,baseCalls:()=>baseCalls};
 }
 
-test('foreground-priority mode suppresses only classified background traffic before network IO',()=>{
-  const h=boot({AOS_FOREGROUND_PRIORITY_MODE:'true'});
+test('foreground-priority mode keeps only critical push while suppressing ordinary background traffic',()=>{
+  const h=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'18'});
   const host='ituyqwstonmhnfshnaqz.supabase.co';
   assert.equal(h.runtime.foregroundPriorityMode,true);
 
-  const background=[
+  const blocked=[
     {hostname:host,path:'/rest/v1/aos_agentes?activo=eq.true&tipo_ejecucion=eq.cron'},
-    {hostname:host,path:'/rest/v1/rpc/aos_notification_push_claim_v1'},
     {hostname:host,path:'/rest/v1/rpc/aos_push_vapid_config_v1'},
     {hostname:host,path:'/rest/v1/rpc/aos_push_vapid_store_v1'},
+    {hostname:host,path:'/rest/v1/rpc/aos_google_claim_sync_v1'},
     {hostname:host,path:'/rest/v1/aos_f5_private_file_transport_tmp?status=in.(READY,PROCESSING)&select=source_filename,source_sha256,content_base64&order=source_filename.asc'},
     {hostname:host,path:'/rest/v1/aos_email_plantillas?select=tipo,html_body&activo=eq.true'},
     {hostname:host,path:'/rest/v1/aos_usuarios?select=nombre,apellidos,cmp&area=eq.médica&cmp=neq.'},
     {hostname:host,path:'/rest/v1/rpc/aos_generar_snapshot'},
     {hostname:host,path:'/rest/v1/aos_configuracion?select=clave%2Cvalor'}
   ];
-  background.forEach(function(opts){const r=h.https.request(opts,function(){});r.end();});
-  assert.equal(h.baseCalls(),0,'incident mode must keep classified background work off Supabase');
+  blocked.forEach(function(opts){const r=h.https.request(opts,function(){});r.end();});
+  assert.equal(h.baseCalls(),0,'incident mode must keep ordinary background work off Supabase');
 
+  h.https.request({hostname:host,path:'/rest/v1/rpc/aos_notification_push_claim_v1'},function(){});
   h.https.request({hostname:host,path:'/rest/v1/rpc/aos_login_v3'},function(){});
   h.https.request({hostname:host,path:'/rest/v1/rpc/aos_callcenter_commit_action_v1'},function(){});
   h.https.request({hostname:host,path:'/rest/v1/rpc/aos_wa3_actor_v1'},function(){});
   h.https.request({hostname:host,path:'/rest/v1/aos_integraciones?select=tipo,api_key&tipo=in.(groq,gemini)'},function(){});
-  assert.equal(h.baseCalls(),4,'auth and business-critical traffic must remain on the real transport');
+  assert.equal(h.baseCalls(),5,'critical push plus auth/business traffic must remain on the real transport');
+});
+
+test('foreground-priority reminder window permits the cron scanner only from 08:00 through 11:59 Lima',()=>{
+  const host='ituyqwstonmhnfshnaqz.supabase.co';
+  const cron={hostname:host,path:'/rest/v1/aos_agentes?activo=eq.true&tipo_ejecucion=eq.cron'};
+  const morning=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'9'});
+  morning.https.request(cron,function(){});
+  assert.equal(morning.baseCalls(),1,'morning reminder window must keep Elena/Cartero cron reachable');
+
+  const evening=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'18'});
+  const req=evening.https.request(cron,function(){});req.end();
+  assert.equal(evening.baseCalls(),0,'outside reminder window cron must remain suppressed during incident mode');
 });
 
 test('normal mode preserves existing shared circuit semantics',()=>{
