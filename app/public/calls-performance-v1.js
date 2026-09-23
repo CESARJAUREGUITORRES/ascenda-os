@@ -42,37 +42,19 @@ function install(){
   }
   function sameOriginGoverned(actual,p,ok,fail){
     var payload=Object.assign({},p||{});try{delete payload.p_token}catch(_e){}
-    var ctrl=typeof AbortController!=='undefined'?new AbortController():null;
-    var tid=ctrl?setTimeout(function(){ctrl.abort()},15000):null;
-    return fetch('/api/callcenter/rpc',{
-      method:'POST',credentials:'same-origin',cache:'no-store',
-      headers:{'Content-Type':'application/json','Accept':'application/json'},
-      body:JSON.stringify({name:actual,payload:payload}),signal:ctrl?ctrl.signal:undefined
-    }).then(function(r){
-      if(tid)clearTimeout(tid);
-      return r.text().then(function(t){
-        var d=null;try{d=t?JSON.parse(t):null}catch(_e){}
-        return {status:r.status,data:d};
-      });
-    }).then(function(x){
-      var d=x.data;
+    if(typeof window.AOS_callCenterCookieRpc!=='function')return directGovernedFallback(actual,p,ok,fail);
+    return window.AOS_callCenterCookieRpc(actual,payload).then(function(x){
+      var d=x&&x.data,status=Number(x&&x.status||0);
       // Cookie missing/expired or older server without the route: retain the
       // certified direct-token recovery as a compatibility fallback.
-      if(x.status===401||x.status===404||x.status===405||(d&&d.ok===false&&(d.error==='APP_SESSION_REQUIRED'||d.error==='UNAUTHORIZED'))){
+      if(status===401||status===404||status===405||(d&&d.ok===false&&(d.error==='APP_SESSION_REQUIRED'||d.error==='UNAUTHORIZED'))){
         return directGovernedFallback(actual,p,ok,fail);
       }
       if(!d){if(fail)fail(new Error('CALLCENTER_BRIDGE_INVALID_RESPONSE'));return}
-      if(d&&d.ok===true){
-        // A cookie-authenticated success is authoritative. Do not copy the
-        // HttpOnly token into JS; that is the point of this transport.
-        if(ok)ok(d);return
-      }
       if(ok)ok(d);
     }).catch(function(e){
-      if(tid)clearTimeout(tid);
       // Do not blindly replay a governed write after an ambiguous network
-      // failure. Existing idempotency protects server retries; UI receives the
-      // transport failure and can let the operator retry explicitly.
+      // failure. UI receives the transport failure and operator can retry.
       if(fail)fail(e);
     });
   }
