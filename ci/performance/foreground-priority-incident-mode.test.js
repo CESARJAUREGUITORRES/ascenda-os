@@ -77,6 +77,22 @@ test('foreground-priority reminder windows retain Elena cron but keep generic pu
   assert.equal(midday.baseCalls(),0,'outside reminder windows cron must remain suppressed during incident mode');
 });
 
+test('failed retained reminder cron opens a five-minute circuit and suppresses immediate retries',()=>{
+  const host='ituyqwstonmhnfshnaqz.supabase.co';
+  const cron={hostname:host,path:'/rest/v1/aos_agentes?activo=eq.true&tipo_ejecucion=eq.cron'};
+  const h=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'22'});
+
+  const first=h.https.request(cron,function(){});
+  assert.equal(h.baseCalls(),1,'first reminder attempt in certified window must be allowed');
+  first.emit('timeout');
+  const shield=h.runtime.states.get(h.runtime.shieldKey);
+  assert.ok(shield.openUntil-Date.now()>240000,'first cron failure must open roughly five minutes of recovery backoff');
+  assert.equal(h.runtime.circuitOpen('agent-cron-scan'),true);
+
+  const retry=h.https.request(cron,function(){});retry.end();
+  assert.equal(h.baseCalls(),1,'open recovery circuit must suppress retained cron retry');
+});
+
 test('normal mode preserves existing shared circuit semantics',()=>{
   const h=boot({AOS_FOREGROUND_PRIORITY_MODE:'false'});
   const host='ituyqwstonmhnfshnaqz.supabase.co';
