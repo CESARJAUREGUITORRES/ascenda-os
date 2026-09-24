@@ -158,7 +158,7 @@ function loadBusinessPriorityRuntime(){
   if(window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__||document.getElementById('aos-business-priority-browser-v1'))return;
   var s=document.createElement('script');
   s.id='aos-business-priority-browser-v1';
-  s.src='/browser-business-priority-v1.js?v=20260901-p0-bc-v1';
+  s.src='/browser-business-priority-v1.js?v=20260923-p0-db-recovery-v1';
   s.async=false;
   s.onerror=function(){console.error('[BUSINESS-PRIORITY] browser runtime failed');};
   (document.head||document.documentElement).appendChild(s);

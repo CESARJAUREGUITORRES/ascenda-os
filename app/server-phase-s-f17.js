@@ -11,6 +11,7 @@ const http=require('http')
 const https=require('https')
 const originalSpawn=childProcess.spawn
 const originalCreateServer=http.createServer
+const FOREGROUND_PRIORITY_MODE=/^(1|true|yes|on)$/i.test(String(process.env.AOS_FOREGROUND_PRIORITY_MODE||'false'))
 
 const PRC1_ALLOWED=new Set([
   'aos_product_review_admin_v1',
@@ -59,6 +60,14 @@ function writeBridgeJson(res,status,obj,bridge){
 }
 function writePrc1Json(res,status,obj){writeBridgeJson(res,status,obj,'prc1-server-v1')}
 function writeCallCenterJson(res,status,obj){writeBridgeJson(res,status,obj,'callcenter-cookie-v1')}
+function writePriorityStatus(res){
+  writeBridgeJson(res,200,{
+    ok:true,
+    foregroundPriorityMode:FOREGROUND_PRIORITY_MODE,
+    shedLevel:FOREGROUND_PRIORITY_MODE?'P0_DB_RECOVERY':'NORMAL',
+    criticalPaths:['AUTH','CALL_CENTER','AGENDA','PATIENTS','SALES_WRITES']
+  },'business-priority-status-v1')
+}
 
 function readBridgeJson(req,maxBytes){
   maxBytes=maxBytes||262144
@@ -186,6 +195,7 @@ function installPrc1HttpBoundary(){
     return function(req,res){
       let pathname=''
       try{pathname=new URL(req.url||'/','http://localhost').pathname}catch(_){}
+      if(pathname==='/api/business-priority/status'&&req.method==='GET'){writePriorityStatus(res);return}
       if(pathname==='/api/prc1/rpc'){handlePrc1(req,res);return}
       if(pathname==='/api/callcenter/rpc'){handleCallCenter(req,res);return}
       return listener.call(this,req,res)
@@ -206,4 +216,4 @@ if(require.main===module){
   require('./server-phase-s.js')
 }
 
-module.exports={rewriteChildArgs,installF17Boundary,installPrc1HttpBoundary,handlePrc1,handleCallCenter,strongBoundaryToken}
+module.exports={rewriteChildArgs,installF17Boundary,installPrc1HttpBoundary,handlePrc1,handleCallCenter,strongBoundaryToken,FOREGROUND_PRIORITY_MODE}
