@@ -22,6 +22,10 @@ assert(s.includes("ai_send_enabled:false"),'degraded control must fail closed fo
 assert(s.includes("p==='/api/phase-s/status'"),'Phase S must expose protected diagnostics');
 assert(s.includes("p==='/health'"),'Phase S must expose non-secret Railway health');
 assert(s.includes("p==='/api/auth/v3/login'"),'Phase S must preserve Auth V3 Resend reconcile boundary');
+assert(s152.includes("pathname==='/api/resend-webhook'"),'outer recovery boundary must recognize Resend provider webhooks');
+assert(s152.includes('writeRecoveryWebhookDeferred'),'recovery boundary must defer provider webhooks before DB I/O');
+assert(s152.includes("'Retry-After':'300'"),'deferred provider webhook must advertise bounded retry delay');
+assert(s152.includes('DB_RECOVERY_WEBHOOK_DEFERRED'),'deferred provider webhook must remain retryable/fail-closed rather than acknowledge persistence');
 assert(waPrelude.includes("caches.open('aos-phase2-auth')"),'WA bootstrap must recover a previously issued strong token from the existing auth bridge cache');
 assert(waPrelude.includes("c.match('/__aos_app_token')"),'WA bootstrap cache recovery must use the canonical Auth V3 bridge key');
 assert(waPrelude.includes("sessionStorage.setItem('aos_app_token',t)"),'recovered strong token should repopulate only session-scoped browser state');
