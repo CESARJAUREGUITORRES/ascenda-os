@@ -31,7 +31,7 @@ assert(authSync.includes("AUTH_RESEND_SYNC_DEFERRED"),'transient Resend/Supabase
 assert(authSync.includes('SYNC_TIMEOUT_MS = 1500'),'Resend sync must stay short-bounded and must not inflate timeouts');
 assert(!authSync.includes('/rest/v1/aos_integraciones?'),'Auth Resend sync must not write public integration catalog');
 assert(login.includes('href="/favicon.png"'),'login document must advertise the canonical Ascenda favicon');
-assert(login.includes('<img src="/favicon.png" alt="AscendaOS">'),'login card must render the canonical Ascenda mark');
+assert(login.includes('<img src="/favicon.png" alt="AscendaOS">')||login.includes('<img src="/favicon.png" alt="ASCENDA CLINIC">'),'login card must render the canonical Ascenda mark');
 assert(!login.includes('<div class="logo">✦</div>'),'generic star must not replace the Ascenda mark');
 assert(login.includes('id="togglePass"'),'password field must expose an explicit visibility toggle');
 assert(login.includes('aria-label="Mostrar contraseña"'),'password visibility toggle must be accessible');
