@@ -30,13 +30,14 @@ function boot(env){
   return {https:fakeHttps,runtime:localGlobal.__AOS_BUSINESS_PRIORITY_V1__,baseCalls:()=>baseCalls};
 }
 
-test('foreground-priority mode keeps only critical push while suppressing ordinary background traffic',()=>{
+test('foreground-priority hard recovery suppresses generic push and ordinary background traffic',()=>{
   const h=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'18'});
   const host='ituyqwstonmhnfshnaqz.supabase.co';
   assert.equal(h.runtime.foregroundPriorityMode,true);
 
   const blocked=[
     {hostname:host,path:'/rest/v1/aos_agentes?activo=eq.true&tipo_ejecucion=eq.cron'},
+    {hostname:host,path:'/rest/v1/rpc/aos_notification_push_claim_v1'},
     {hostname:host,path:'/rest/v1/rpc/aos_push_vapid_config_v1'},
     {hostname:host,path:'/rest/v1/rpc/aos_push_vapid_store_v1'},
     {hostname:host,path:'/rest/v1/rpc/aos_google_claim_sync_v1'},
@@ -47,27 +48,29 @@ test('foreground-priority mode keeps only critical push while suppressing ordina
     {hostname:host,path:'/rest/v1/aos_configuracion?select=clave%2Cvalor'}
   ];
   blocked.forEach(function(opts){const r=h.https.request(opts,function(){});r.end();});
-  assert.equal(h.baseCalls(),0,'incident mode must keep ordinary background work off Supabase');
+  assert.equal(h.baseCalls(),0,'incident mode must keep background work off Supabase');
 
-  h.https.request({hostname:host,path:'/rest/v1/rpc/aos_notification_push_claim_v1'},function(){});
   h.https.request({hostname:host,path:'/rest/v1/rpc/aos_login_v3'},function(){});
   h.https.request({hostname:host,path:'/rest/v1/rpc/aos_callcenter_commit_action_v1'},function(){});
   h.https.request({hostname:host,path:'/rest/v1/rpc/aos_wa3_actor_v1'},function(){});
   h.https.request({hostname:host,path:'/rest/v1/aos_integraciones?select=tipo,api_key&tipo=in.(groq,gemini)'},function(){});
-  assert.equal(h.baseCalls(),5,'critical push plus auth/business traffic must remain on the real transport');
+  assert.equal(h.baseCalls(),4,'auth/business and AI-key traffic must remain on the real transport');
 });
 
-test('foreground-priority reminder windows keep Elena cron reachable morning and night only',()=>{
+test('foreground-priority reminder windows retain Elena cron but keep generic push paused',()=>{
   const host='ituyqwstonmhnfshnaqz.supabase.co';
   const cron={hostname:host,path:'/rest/v1/aos_agentes?activo=eq.true&tipo_ejecucion=eq.cron'};
+  const push={hostname:host,path:'/rest/v1/rpc/aos_notification_push_claim_v1'};
 
   const morning=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'9'});
   morning.https.request(cron,function(){});
-  assert.equal(morning.baseCalls(),1,'morning reminder window must keep Elena/Cartero cron reachable');
+  const morningPush=morning.https.request(push,function(){});morningPush.end();
+  assert.equal(morning.baseCalls(),1,'morning reminder window must keep only Elena/Cartero cron reachable');
 
   const night=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'22'});
   night.https.request(cron,function(){});
-  assert.equal(night.baseCalls(),1,'night-before reminder window must keep Elena/Cartero cron reachable');
+  const nightPush=night.https.request(push,function(){});nightPush.end();
+  assert.equal(night.baseCalls(),1,'night reminder window must keep only Elena/Cartero cron reachable');
 
   const midday=boot({AOS_FOREGROUND_PRIORITY_MODE:'true',AOS_TEST_LIMA_HOUR:'15'});
   const req=midday.https.request(cron,function(){});req.end();
@@ -79,5 +82,6 @@ test('normal mode preserves existing shared circuit semantics',()=>{
   const host='ituyqwstonmhnfshnaqz.supabase.co';
   assert.equal(h.runtime.foregroundPriorityMode,false);
   h.https.request({hostname:host,path:'/rest/v1/rpc/aos_generar_snapshot'},function(){});
-  assert.equal(h.baseCalls(),1,'normal mode must not hard-suppress background traffic before a failure');
+  h.https.request({hostname:host,path:'/rest/v1/rpc/aos_notification_push_claim_v1'},function(){});
+  assert.equal(h.baseCalls(),2,'normal mode must not hard-suppress background traffic before a failure');
 });
