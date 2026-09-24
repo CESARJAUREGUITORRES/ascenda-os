@@ -6,13 +6,16 @@ const fs=require('fs')
 const preload=fs.readFileSync('app/agent-recovery-timer-preload.cjs','utf8')
 const railway=JSON.parse(fs.readFileSync('app/railway.json','utf8'))
 
-test('recovery timer gate is narrow and reversible',()=>{
+test('recovery timer gate is narrow, circuit-aware and reversible',()=>{
   assert.match(preload,/AOS_FOREGROUND_PRIORITY_MODE/)
   assert.match(preload,/fn\.name !== 'guardedAutoTick'/)
   assert.match(preload,/ms === 15000 \|\| ms === 60000/)
   assert.match(preload,/hour >= 8 && hour <= 11/)
   assert.match(preload,/hour >= 20 && hour <= 23/)
-  assert.match(preload,/if \(!enabled \|\| isReminderWindow\(limaHour\(\)\)\) return fn\.apply/)
+  assert.match(preload,/if \(!enabled\) return fn\.apply/)
+  assert.match(preload,/if \(!isReminderWindow\(limaHour\(\)\)\) return undefined/)
+  assert.match(preload,/recoveryCircuitOpen\(\)/)
+  assert.match(preload,/runtime\.circuitOpen\('agent-cron-scan'\)/)
 })
 
 test('production entrypoint loads timer gate only as a NODE_OPTIONS preload',()=>{
