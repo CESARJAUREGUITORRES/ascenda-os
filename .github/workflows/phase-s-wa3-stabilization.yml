@@ -9,6 +9,7 @@ on:
       - 'app/server-f17.js'
       - 'app/auth-resend-reconcile.js'
       - 'app/railway.json'
+      - 'app/agent-recovery-timer-preload.cjs'
       - 'app/supabase-quota-circuit.js'
       - 'app/supabase-quota-circuit-preload.cjs'
       - 'app/server-f5.js'
@@ -68,6 +69,7 @@ jobs:
             'app/server-phase-s.js',
             'app/server-f17.js',
             'app/auth-resend-reconcile.js',
+            'app/agent-recovery-timer-preload.cjs',
             'app/supabase-quota-circuit.js',
             'app/supabase-quota-circuit-preload.cjs',
             'app/server-f5.js',
@@ -157,6 +159,10 @@ jobs:
           if (-not $rawStart.StartsWith($studioPrefix)) { throw 'Studio background must remain HARD-OFF while ASC-PERF owns the mutable lane' }
           $start = $rawStart.Substring($studioPrefix.Length)
           if ($start.StartsWith('NODE_OPTIONS=')) { $start = 'env ' + $start }
+          # Normalize only certified operational preloads; authority still enters
+          # the exact Phase-S -> F17 -> F5 runtime chain below.
+          $start = $start.Replace('--require ./agent-recovery-timer-preload.cjs ','')
+          $start = $start.Replace(' --require ./booking-v33-preload.js','')
           if ($s -notmatch 'aos_wa3_actor_v1') { throw 'WA3 actor authorization missing' }
           if ($s -notmatch 'human_send_enabled:false') { throw 'human send fail-closed default missing' }
           if ($s -notmatch 'auto_routing_enabled:false') { throw 'auto routing fail-closed default missing' }
