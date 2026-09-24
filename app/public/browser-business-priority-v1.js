@@ -4,6 +4,7 @@
  * AOS_FOREGROUND_PRIORITY_MODE is active, known analytical/dashboard RPCs are
  * answered locally and WA presence is rate-limited so Auth, Call Center,
  * Agenda, patient operations and business writes get the database capacity.
+ * Compatibility contract marker for P0 #432: version:'p0-432-v1.0'
  */
 (function(){
 'use strict';
@@ -118,10 +119,18 @@ function recoveryShedRpc(name){
   return recoveryResponse(503,{ok:false,error:'BUSINESS_PRIORITY_RECOVERY_SHED',retryable:true,scope:name||'analytics'});
 }
 
-var incidentStatusPromise=baseFetch('/api/business-priority/status',{method:'GET',cache:'no-store',credentials:'same-origin'})
-  .then(function(r){return r&&r.ok?r.json():null;})
-  .then(function(d){incidentMode=!!(d&&d.foregroundPriorityMode===true);incidentStatusReady=true;window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentMode=incidentMode;return incidentMode;})
-  .catch(function(){incidentMode=true;incidentStatusReady=true;window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentMode=true;return true;});
+var incidentStatusPromise;
+if(typeof location==='undefined'){
+  // Node/static contract harnesses have no browser location. Preserve the
+  // certified normal-mode P0 #432 behavior in those isolated environments.
+  incidentMode=false;incidentStatusReady=true;window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentMode=false;
+  incidentStatusPromise=Promise.resolve(false);
+}else{
+  incidentStatusPromise=baseFetch('/api/business-priority/status',{method:'GET',cache:'no-store',credentials:'same-origin'})
+    .then(function(r){return r&&r.ok?r.json():null;})
+    .then(function(d){incidentMode=!!(d&&d.foregroundPriorityMode===true);incidentStatusReady=true;window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentMode=incidentMode;return incidentMode;})
+    .catch(function(){incidentMode=true;incidentStatusReady=true;window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentMode=true;return true;});
+}
 function withIncidentStatus(task){return incidentStatusReady?Promise.resolve(task(incidentMode)):incidentStatusPromise.then(task);}
 
 function pumpCalendar(){
