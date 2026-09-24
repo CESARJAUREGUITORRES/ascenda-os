@@ -5,9 +5,10 @@
  *
  * During AOS_FOREGROUND_PRIORITY_MODE the legacy server.js `guardedAutoTick`
  * scheduler is allowed to execute only inside the already-certified Lima
- * reminder windows (08:00-11:59 and 20:00-23:59). This removes avoidable
- * integration-key / agent polling pressure while keeping Elena/Cartero's
- * appointment-reminder windows available.
+ * reminder windows (08:00-11:59 and 20:00-23:59). If the shared DB background
+ * circuit is open after a failed reminder attempt, the whole tick is skipped
+ * until that circuit expires. This prevents key loads and agent scans from
+ * continuing to consume connections while Supabase recovers.
  *
  * Scope is intentionally surgical: only a callback named exactly
  * `guardedAutoTick` with the certified 15s bootstrap or 60s interval is gated.
@@ -38,17 +39,24 @@ if (!global.__AOS_AGENT_RECOVERY_TIMER_GATE_V1__) {
     return ms === 15000 || ms === 60000
   }
 
+  function recoveryCircuitOpen() {
+    const runtime = global.__AOS_BUSINESS_PRIORITY_V1__
+    return !!(runtime && typeof runtime.circuitOpen === 'function' && runtime.circuitOpen('agent-cron-scan'))
+  }
+
   function gatedCallback(fn) {
     return function aosRecoveryGuardedAutoTick() {
-      if (!enabled || isReminderWindow(limaHour())) return fn.apply(this, arguments)
-      return undefined
+      if (!enabled) return fn.apply(this, arguments)
+      if (!isReminderWindow(limaHour())) return undefined
+      if (recoveryCircuitOpen()) return undefined
+      return fn.apply(this, arguments)
     }
   }
 
   global.setInterval = function aosRecoverySetInterval(fn, delay) {
     const args = Array.prototype.slice.call(arguments, 2)
     if (!enabled || !isCertifiedAgentTimer(fn, delay)) return nativeSetInterval(fn, delay, ...args)
-    console.log('[P0-AGENTS] guarded auto-tick gated outside reminder windows', { interval_ms: Number(delay), reminderWindowsLima: '08-11,20-23' })
+    console.log('[P0-AGENTS] guarded auto-tick recovery gate active', { interval_ms: Number(delay), reminderWindowsLima: '08-11,20-23', sharedCircuitAware: true })
     return nativeSetInterval(gatedCallback(fn), delay, ...args)
   }
 
@@ -59,11 +67,12 @@ if (!global.__AOS_AGENT_RECOVERY_TIMER_GATE_V1__) {
   }
 
   global.__AOS_AGENT_RECOVERY_TIMER_GATE_STATE__ = {
-    version: 'p0-agent-timer-v1',
+    version: 'p0-agent-timer-v2-circuit-aware',
     enabled: enabled,
     isReminderWindow: isReminderWindow,
-    isCertifiedAgentTimer: isCertifiedAgentTimer
+    isCertifiedAgentTimer: isCertifiedAgentTimer,
+    recoveryCircuitOpen: recoveryCircuitOpen
   }
 
-  console.log('[P0-AGENTS] recovery timer gate ready', { enabled: enabled, reminderWindowsLima: '08-11,20-23' })
+  console.log('[P0-AGENTS] recovery timer gate ready', { enabled: enabled, reminderWindowsLima: '08-11,20-23', sharedCircuitAware: true })
 }
