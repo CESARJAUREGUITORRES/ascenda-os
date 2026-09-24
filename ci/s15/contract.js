@@ -44,7 +44,12 @@ ok(server.includes("console.error('[S15] notification pump fail-open'"),'notific
 ok(server.includes('stopNotificationPump(); server.close'),'pump shutdown cleanup missing')
 
 ok(client.includes("'/notification-center-s15.js?v=20260817-s15-p01'")||client.includes("'/notification-center-s15.js?v=20260817-s15-auth-p02'"),'global notification center loader missing')
-ok(client.includes('#nav-advisor-sales')&&client.includes('#nav-admin-agenda'),'notification opt-in gesture must cover non-WhatsApp modules')
+// APP-PWA V2 #517 deliberately retired permission prompts from arbitrary lateral
+// navigation clicks. Permission is now requested only from the explicit advisor
+// onboarding CTA, which covers Sales, Agenda, Commission, Tasks and system alerts
+// without surprising the user while navigating the app.
+ok(client.includes("function bindPermissionGesture(){/* APP-PWA #517: no pedir Push por clicks laterales; solo CTA explícito del onboarding. */}"),'legacy lateral-nav push permission must stay retired')
+ok(client.includes("id=\"_aosPushAdvisorEnable\"")&&client.includes('Activar ahora')&&client.includes('Recibe ventas, citas, comisiones, tareas y avisos'),'notification opt-in must use explicit non-WhatsApp advisor onboarding CTA')
 ok(center.includes("d.type==='AOS_PUSH_EVENT'"),'open-app generic push listener missing')
 ok(coordination.includes("p_prioridad:pri"),'manual notification sender must project UI type into canonical priority')
 ok(coordination.includes("typ==='URGENTE'?'URGENTE':typ==='ALERTA'?'ALTA':'NORMAL'"),'manual INFO/ALERTA/URGENTE priority mapping changed')
