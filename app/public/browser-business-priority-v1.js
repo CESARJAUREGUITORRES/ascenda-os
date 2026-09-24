@@ -1,8 +1,9 @@
-/* ASCENDA OS · Business Priority Mode P0-B/P0-C + P0 #432
+/* ASCENDA OS · Business Priority Mode P0-B/P0-C + P0 #630
  * Browser read scheduler. It never intercepts or delays governed writes.
- * P0 #432 adds cross-panel single-flight, bounded analytics concurrency,
- * visibility-aware staggering and a short failure cooldown so a fixed +5s UI
- * retry cannot immediately re-hit Supabase after 429/5xx pressure.
+ * P0 #630 adds server-advertised incident load shedding: while
+ * AOS_FOREGROUND_PRIORITY_MODE is active, known analytical/dashboard RPCs are
+ * answered locally and WA presence is rate-limited so Auth, Call Center,
+ * Agenda, patient operations and business writes get the database capacity.
  */
 (function(){
 'use strict';
@@ -18,14 +19,21 @@ var analyticsActive=0;
 var CALENDAR_MAX_CONCURRENCY=2;
 var MAX_ANALYTICS_CONCURRENCY=1;
 var FAILURE_COOLDOWN_MS=12000;
+var incidentMode=true; // fail safe until the same-origin status endpoint answers.
+var incidentStatusReady=false;
+var lastPresenceAttemptAt=0;
+var PRESENCE_RECOVERY_INTERVAL_MS=90000;
 
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__={
-  version:'p0-432-v1.0',
-  policy:'critical-immediate__analytics-bounded__failure-cooldown'
+  version:'p0-630-v1.0',
+  policy:'critical-immediate__incident-secondary-shed__analytics-bounded__failure-cooldown',
+  incidentMode:true
 };
 
 function urlOf(input){return typeof input==='string'?input:(input&&input.url)||'';}
 function rpcName(url){var m=String(url||'').match(/\/rest\/v1\/rpc\/([^?]+)/);return m&&m[1]||'';}
+function pathnameOf(input){try{return new URL(urlOf(input),location.href).pathname;}catch(_e){return '';}}
+function methodOf(input,init){return String((init&&init.method)||(input&&input.method)||'GET').toUpperCase();}
 function ccMounted(){return !!document.getElementById('cc-m-cita-manual');}
 function text(id){var e=document.getElementById(id);return e?String(e.textContent||'').trim():'';}
 function leadBoundaryReady(){
@@ -81,6 +89,41 @@ function transportWithCooldown(key,input,init){
   });
 }
 
+function recoveryResponse(status,body){
+  var payload=JSON.stringify(body||{}),headers={'Content-Type':'application/json','Cache-Control':'no-store','X-Ascenda-Business-Priority':'P0_DB_RECOVERY'};
+  if(typeof Response!=='undefined')return new Response(payload,{status:status,headers:headers});
+  return {
+    status:status,ok:status>=200&&status<300,headers:{get:function(k){return headers[k]||headers[String(k||'').toLowerCase()]||null;}},
+    clone:function(){return recoveryResponse(status,body);},
+    json:function(){return Promise.resolve(body||{});},
+    text:function(){return Promise.resolve(payload);}
+  };
+}
+
+var RECOVERY_SHED_READS={
+  aos_panel_admin:1,
+  aos_panel_asesor:1,
+  aos_monitoreo_equipo:1,
+  aos_historico_asesor_anual:1,
+  aos_ticker_mkt:1,
+  aos_kpi_flujo_clinico:1,
+  aos_actividad_minutos:1,
+  aos_actividad_benchmark:1,
+  aos_actividad_reciente:1,
+  aos_comisiones_asesor:1,
+  aos_sentinel_owner_feed_v1:1
+};
+function isRecoveryShedRead(name){return !!(RECOVERY_SHED_READS[name]||/^aos_marketing_/.test(name));}
+function recoveryShedRpc(name){
+  return recoveryResponse(503,{ok:false,error:'BUSINESS_PRIORITY_RECOVERY_SHED',retryable:true,scope:name||'analytics'});
+}
+
+var incidentStatusPromise=baseFetch('/api/business-priority/status',{method:'GET',cache:'no-store',credentials:'same-origin'})
+  .then(function(r){return r&&r.ok?r.json():null;})
+  .then(function(d){incidentMode=!!(d&&d.foregroundPriorityMode===true);incidentStatusReady=true;window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentMode=incidentMode;return incidentMode;})
+  .catch(function(){incidentMode=true;incidentStatusReady=true;window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentMode=true;return true;});
+function withIncidentStatus(task){return incidentStatusReady?Promise.resolve(task(incidentMode)):incidentStatusPromise.then(task);}
+
 function pumpCalendar(){
   while(calendarActive<CALENDAR_MAX_CONCURRENCY&&calendarQueue.length){
     var job=calendarQueue.shift();
@@ -116,39 +159,59 @@ var SECONDARY_CC={
   aos_historico_asesor_anual:1
 };
 
-/* Expensive read-only analytics observed in P0 #432. Keep these progressive.
- * The list intentionally excludes patient search/history, next-lead and every
- * aos_callcenter_* RPC because those are foreground/revenue-critical paths.
+/* Expensive read-only analytics observed in production. Keep these progressive
+ * outside incidents; during P0 recovery the subset above is shed completely.
+ * Patient search/history, next-lead and every aos_callcenter_* RPC are excluded.
  */
 var HEAVY_ANALYTICS={
   aos_ticker_mkt:1,
   aos_kpi_flujo_clinico:1,
   aos_actividad_minutos:1,
   aos_actividad_benchmark:1,
+  aos_actividad_reciente:1,
   aos_historico_asesor_anual:1,
+  aos_comisiones_asesor:1,
   aos_sentinel_owner_feed_v1:1
 };
 var PRIMARY_READ={aos_panel_admin:1,aos_panel_asesor:1};
 
 window.fetch=function(input,init){
-  var url=urlOf(input),name=rpcName(url);
+  var url=urlOf(input),name=rpcName(url),path=pathnameOf(input),method=methodOf(input,init);
+
+  // WA presence is useful but not revenue-critical. During a DB incident keep
+  // at most one real heartbeat per browser every 90s; the other 30s ticks are
+  // acknowledged locally and cannot consume PostgREST connections.
+  if(method==='POST'&&path==='/api/wa3/presence'){
+    return withIncidentStatus(function(active){
+      if(!active)return baseFetch(input,init);
+      var now=Date.now();
+      if(now-lastPresenceAttemptAt<PRESENCE_RECOVERY_INTERVAL_MS)return recoveryResponse(200,{ok:true,recovery_suppressed:true});
+      lastPresenceAttemptAt=now;
+      return baseFetch(input,init);
+    });
+  }
+
   if(!name)return baseFetch(input,init);
 
-  // Revenue-critical / governed operations are always immediate and are never
-  // failure-cooled. Lead selection is mutable; governed writes stay untouched.
-  if(name==='aos_siguiente_lead'||name==='aos_siguiente_lead_v2'||/^aos_callcenter_/.test(name)){
+  // Revenue-critical / governed operations are always immediate and never
+  // failure-cooled or incident-shed. Lead selection is mutable.
+  if(name==='aos_siguiente_lead'||name==='aos_siguiente_lead_v2'||name==='aos_siguiente_lead_v3'||/^aos_callcenter_/.test(name)){
     return baseFetch(input,init);
   }
 
+  if(isRecoveryShedRead(name)){
+    return withIncidentStatus(function(active){if(active)return recoveryShedRpc(name);return dispatchRead(name,input,init);});
+  }
+  return dispatchRead(name,input,init);
+};
+
+function dispatchRead(name,input,init){
   var key=requestKey(name,input,init);
 
-  // Call Center calendar remains progressive and bounded behind the lead boundary.
   if(ccMounted()&&name==='aos_horarios_semana'){
     return singleFlight(key,function(){return queueCalendar(function(){return transportWithCooldown(key,input,init);});});
   }
 
-  // While Call Center is mounted, secondary panel reads yield to the next-lead
-  // boundary. Heavy ones then also enter the global analytics lane.
   if(ccMounted()&&SECONDARY_CC[name]){
     return singleFlight(key,function(){
       return waitLeadBoundary(2500).then(function(){
@@ -158,25 +221,22 @@ window.fetch=function(input,init){
     });
   }
 
-  // Cross-panel P0 #432 lane: one expensive analytical read per browser at a
-  // time, staggered and visibility-aware. This prevents mount-time fan-out.
-  if(HEAVY_ANALYTICS[name]){
+  if(HEAVY_ANALYTICS[name]||/^aos_marketing_/.test(name)){
     return singleFlight(key,function(){return queueAnalytics(function(){return transportWithCooldown(key,input,init);});});
   }
 
-  // Primary dashboard reads stay immediate but are single-flighted. Their short
-  // pressure cooldown suppresses the identical fixed +5s retry after 429/5xx.
   if(PRIMARY_READ[name]){
     return singleFlight(key,function(){return transportWithCooldown(key,input,init);});
   }
 
   return baseFetch(input,init);
-};
+}
 
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.pending=pending;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.failureCooldown=failureCooldown;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.calendarQueue=calendarQueue;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.analyticsQueue=analyticsQueue;
-window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.limits={calendar:CALENDAR_MAX_CONCURRENCY,analytics:MAX_ANALYTICS_CONCURRENCY,failureCooldownMs:FAILURE_COOLDOWN_MS};
-console.log('[BUSINESS-PRIORITY] P0 #432 cross-panel pressure governor active');
+window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentStatusPromise=incidentStatusPromise;
+window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.limits={calendar:CALENDAR_MAX_CONCURRENCY,analytics:MAX_ANALYTICS_CONCURRENCY,failureCooldownMs:FAILURE_COOLDOWN_MS,presenceRecoveryIntervalMs:PRESENCE_RECOVERY_INTERVAL_MS};
+console.log('[BUSINESS-PRIORITY] P0 #630 DB recovery load-shed governor active');
 })();
