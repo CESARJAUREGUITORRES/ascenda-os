@@ -11,10 +11,11 @@ const preload=fs.readFileSync('app/business-priority-preload.js','utf8');
 const quotaPreload=fs.readFileSync('app/supabase-quota-circuit-preload.cjs','utf8');
 const browser=fs.readFileSync('app/public/browser-business-priority-v1.js','utf8');
 const f4=fs.readFileSync('app/public/f4-production-canary-hotfix.js','utf8');
+const phaseBoundary=fs.readFileSync('app/server-phase-s-f17.js','utf8');
 const pkg=JSON.parse(fs.readFileSync('app/package.json','utf8'));
 const rail=JSON.parse(fs.readFileSync('app/railway.json','utf8'));
 
-for(const [name,src] of [['preload',preload],['quotaPreload',quotaPreload],['browser',browser],['f4',f4]]){
+for(const [name,src] of [['preload',preload],['quotaPreload',quotaPreload],['browser',browser],['f4',f4],['phaseBoundary',phaseBoundary]]){
   test(name+' syntax',()=>assert.doesNotThrow(()=>new Function(src)));
 }
 
@@ -89,6 +90,8 @@ test('browser scheduler preserves governed writes and prioritizes next lead',asy
   assert.match(browser,/aos_panel_asesor:1/);
   assert.match(browser,/aos_monitoreo_equipo:1/);
   assert.match(browser,/aos_historico_asesor_anual:1/);
+  assert.match(browser,/BUSINESS_PRIORITY_RECOVERY_SHED/);
+  assert.match(browser,/PRESENCE_RECOVERY_INTERVAL_MS=90000/);
   assert.doesNotMatch(browser,/aos_callcenter_commit_action_v1\s*:/);
   assert.doesNotMatch(browser,/aos_callcenter_confirm_queue_appointment_v1\s*:/);
 
@@ -99,10 +102,12 @@ test('browser scheduler preserves governed writes and prioritizes next lead',asy
   };
   const calls=[];
   let calendarActive=0,maxCalendarActive=0;
-  function FakeResponse(name){this.name=name;}
-  FakeResponse.prototype.clone=function(){return new FakeResponse(this.name);};
+  function FakeResponse(name,status,body){this.name=name;this.status=status||200;this.ok=this.status>=200&&this.status<300;this._body=body||{};}
+  FakeResponse.prototype.clone=function(){return new FakeResponse(this.name,this.status,this._body);};
+  FakeResponse.prototype.json=function(){return Promise.resolve(this._body);};
   function nameOf(input){const m=String(input||'').match(/\/rpc\/([^?]+)/);return m&&m[1]||'';}
   function baseFetch(input){
+    if(String(input)==='/api/business-priority/status')return Promise.resolve(new FakeResponse('priority',200,{ok:true,foregroundPriorityMode:false}));
     const name=nameOf(input);calls.push(name);
     if(name==='aos_horarios_semana'){
       calendarActive++;maxCalendarActive=Math.max(maxCalendarActive,calendarActive);
@@ -112,9 +117,10 @@ test('browser scheduler preserves governed writes and prioritizes next lead',asy
   }
   const context={
     window:{fetch:baseFetch},
-    document:{getElementById:function(id){return els[id]||null;}},
+    document:{hidden:false,getElementById:function(id){return els[id]||null;}},
+    location:{href:'https://ascenda.test/app'},
     console:{log:function(){},error:function(){},warn:function(){}},
-    setTimeout,clearTimeout,Promise,Map
+    setTimeout,clearTimeout,Promise,Map,URL
   };
   vm.runInNewContext(browser,context,{filename:'browser-business-priority-v1.js'});
   const base='https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/rpc/';
@@ -129,8 +135,35 @@ test('browser scheduler preserves governed writes and prioritizes next lead',asy
   assert.ok(maxCalendarActive<=2,'calendar concurrency exceeded business-priority cap');
 });
 
+test('incident mode sheds analytics without touching Call Center writes',async()=>{
+  const network=[];
+  function FakeResponse(status,body){this.status=status;this.ok=status>=200&&status<300;this._body=body||{};}
+  FakeResponse.prototype.clone=function(){return new FakeResponse(this.status,this._body);};
+  FakeResponse.prototype.json=function(){return Promise.resolve(this._body);};
+  FakeResponse.prototype.text=function(){return Promise.resolve(JSON.stringify(this._body));};
+  function baseFetch(input){
+    network.push(String(input));
+    if(String(input)==='/api/business-priority/status')return Promise.resolve(new FakeResponse(200,{ok:true,foregroundPriorityMode:true}));
+    return Promise.resolve(new FakeResponse(200,{ok:true}));
+  }
+  const context={window:{fetch:baseFetch},document:{hidden:false,getElementById:function(){return null;}},location:{href:'https://ascenda.test/app',origin:'https://ascenda.test'},console:{log:function(){},error:function(){},warn:function(){}},setTimeout,clearTimeout,Promise,Map,URL};
+  vm.runInNewContext(browser,context,{filename:'browser-business-priority-v1.js'});
+  const base='https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/rpc/';
+  const analytics=await context.window.fetch(base+'aos_marketing_period_summary_v2',{method:'POST'});
+  assert.equal(analytics.status,503);
+  assert.equal(network.filter(x=>x.includes('aos_marketing_period_summary_v2')).length,0,'shed analytics must not reach Supabase');
+  await context.window.fetch(base+'aos_callcenter_commit_action_v1',{method:'POST'});
+  assert.equal(network.filter(x=>x.includes('aos_callcenter_commit_action_v1')).length,1,'governed write must remain immediate');
+});
+
+test('server boundary exposes reversible foreground-priority status without DB I/O',()=>{
+  assert.match(phaseBoundary,/\/api\/business-priority\/status/);
+  assert.match(phaseBoundary,/FOREGROUND_PRIORITY_MODE/);
+  assert.match(phaseBoundary,/P0_DB_RECOVERY/);
+});
+
 test('F4 loads priority scheduler without changing Loop6 postload authority',()=>{
-  assert.match(f4,/browser-business-priority-v1\.js\?v=20260901-p0-bc-v1/);
+  assert.match(f4,/browser-business-priority-v1\.js\?v=20260923-p0-db-recovery-v1/);
   assert.match(f4,/calls-loop6\.js\?v=20260901-loop6-v2\.3-postload/);
   assert.match(f4,/window\.__AOS_CC_LOOP6_POSTLOAD_READY__='v2\.3-postload'/);
   assert.match(f4,/loadCallCenterPerformance\(\)/);
