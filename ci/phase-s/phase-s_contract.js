@@ -62,6 +62,12 @@ if(studioHardOff){
   const remainder=start.slice(studioHardOffPrefix.length);
   normalizedStart=remainder.startsWith('NODE_OPTIONS=')?'env '+remainder:remainder;
 }
+// Recovery and Booking V3.3 are certified NODE_OPTIONS preloads layered around
+// the same Phase-S/F17 chain. Normalize only these exact preload tokens before
+// validating the underlying authority chain.
+normalizedStart=String(normalizedStart||'')
+  .replace('--require ./agent-recovery-timer-preload.cjs ','')
+  .replace(' --require ./booking-v33-preload.js','');
 assert(studioHardOff,'Studio background must remain HARD-OFF while ASC-PERF owns the mutable lane');
 const directPhaseS=[legacy,sentinel,sentinelEmail,sentinelEmailQuota].includes(normalizedStart);
 const f17Bootstrap=[s152Legacy,s152Sentinel,s152SentinelEmail,s152SentinelEmailQuota].includes(normalizedStart)
