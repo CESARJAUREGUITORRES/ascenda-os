@@ -16,8 +16,9 @@
  *
  * P0 hard recovery: generic notification polling is paused while incident mode
  * is active. Elena/Cartero cron execution is the only background lane retained,
- * and only during Lima reminder windows 08:00-11:59 / 20:00-23:59. Notification
- * outbox rows remain durable and will drain after recovery mode is disabled.
+ * and only during Lima reminder windows 08:00-11:59 / 20:00-23:59. If that cron
+ * itself encounters DB pressure it must respect the shared circuit: 5 minutes
+ * after the first failure and 15 minutes after a subsequent failure.
  *
  * This preload is composed AFTER supabase-quota-circuit-preload.cjs in
  * Railway NODE_OPTIONS. The inherited request function therefore preserves
@@ -116,7 +117,12 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     const k = keyState(key)
     k.failures += 1
     k.lastFailureAt = now
-    const wait = k.failures >= 3 ? 600000 : (k.failures === 2 ? 120000 : 30000)
+    let wait
+    if (FOREGROUND_PRIORITY_MODE && key === 'agent-cron-scan') {
+      wait = k.failures >= 2 ? 900000 : 300000
+    } else {
+      wait = k.failures >= 3 ? 600000 : (k.failures === 2 ? 120000 : 30000)
+    }
     s.lastKey = key
     s.openUntil = Math.max(s.openUntil, now + wait)
     if (now >= s.lastLogUntil) {
@@ -174,7 +180,10 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     const args = Array.prototype.slice.call(arguments)
     const key = classify(args[0])
     const foregroundEssential = isForegroundEssential(key)
-    if (key && !foregroundEssential && (FOREGROUND_PRIORITY_MODE || circuitOpen(key))) return fakeRequest(callbackFrom(args))
+    // A currently-open circuit always wins, including for reminder cron. This
+    // prevents a failing retained lane from becoming the incident's new poller.
+    if (key && circuitOpen(key)) return fakeRequest(callbackFrom(args))
+    if (key && FOREGROUND_PRIORITY_MODE && !foregroundEssential) return fakeRequest(callbackFrom(args))
 
     const req = inheritedRequest.apply(https, args)
     if (key && req && typeof req.once === 'function') {
@@ -202,10 +211,11 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1.8-hard-recovery',
+    version: 'p0-a-v1.9-cron-circuit',
     states: states,
     shieldKey: SHIELD_KEY,
     classify: classify,
+    circuitOpen: circuitOpen,
     foregroundPriorityMode: FOREGROUND_PRIORITY_MODE,
     isForegroundEssential: isForegroundEssential,
     isReminderWindow: isReminderWindow

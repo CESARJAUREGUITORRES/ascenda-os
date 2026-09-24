@@ -77,6 +77,21 @@ function writeRecoveryPresence(req,res){
     presence:'DEFERRED'
   },'business-priority-presence-v1')
 }
+function writeRecoveryWebhookDeferred(req,res){
+  // Do not acknowledge provider delivery while persistence is unavailable.
+  // A fast 503 preserves provider retry semantics without spending 15 seconds
+  // on another doomed Supabase connection during an active recovery incident.
+  try{req.resume()}catch(_){}
+  if(res.headersSent)return
+  res.writeHead(503,{
+    'Content-Type':'application/json; charset=utf-8',
+    'Cache-Control':'no-store',
+    'X-Content-Type-Options':'nosniff',
+    'Retry-After':'300',
+    'X-Ascenda-Bridge':'business-priority-webhook-v1'
+  })
+  res.end(JSON.stringify({ok:false,error:'DB_RECOVERY_WEBHOOK_DEFERRED',retryable:true,retry_after_seconds:300}))
+}
 
 function readBridgeJson(req,maxBytes){
   maxBytes=maxBytes||262144
@@ -206,6 +221,7 @@ function installPrc1HttpBoundary(){
       try{pathname=new URL(req.url||'/','http://localhost').pathname}catch(_){}
       if(pathname==='/api/business-priority/status'&&req.method==='GET'){writePriorityStatus(res);return}
       if(FOREGROUND_PRIORITY_MODE&&pathname==='/api/wa3/presence'&&req.method==='POST'){writeRecoveryPresence(req,res);return}
+      if(FOREGROUND_PRIORITY_MODE&&pathname==='/api/resend-webhook'&&req.method==='POST'){writeRecoveryWebhookDeferred(req,res);return}
       if(pathname==='/api/prc1/rpc'){handlePrc1(req,res);return}
       if(pathname==='/api/callcenter/rpc'){handleCallCenter(req,res);return}
       return listener.call(this,req,res)
