@@ -32,7 +32,12 @@ if(studioHardOff){
   const remainder=rawStart.slice(studioHardOffPrefix.length);
   start=remainder.startsWith('NODE_OPTIONS=')?'env '+remainder:remainder;
 }
-start=start.replace(' --require ./supabase-quota-circuit-preload.cjs','');
+// Normalize only certified operational preloads that wrap, but do not change,
+// the Phase-S -> F17 -> F5 authority chain.
+start=String(start||'')
+  .replace('--require ./agent-recovery-timer-preload.cjs ','')
+  .replace(' --require ./booking-v33-preload.js','')
+  .replace(' --require ./supabase-quota-circuit-preload.cjs','');
 ok(studioHardOff,'Studio background must remain HARD-OFF while ASC-PERF owns the mutable lane');
 const sentinelPhaseS="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs' node server-phase-s.js";
 const sentinelPhaseSEmail="env NODE_OPTIONS='--require ./sentinel-sentry-init.cjs --require ./email-runtime-env-compat.cjs' node server-phase-s.js";
