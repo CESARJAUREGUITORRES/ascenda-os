@@ -4,13 +4,16 @@ on:
   pull_request:
     paths:
       - 'app/business-priority-preload.js'
+      - 'app/agent-recovery-timer-preload.cjs'
       - 'app/supabase-quota-circuit-preload.cjs'
       - 'app/public/browser-business-priority-v1.js'
       - 'app/public/f4-production-canary-hotfix.js'
+      - 'app/railway.json'
       - 'ci/performance/business-priority-p0.test.js'
       - 'ci/performance/business-priority-race.test.js'
       - 'ci/performance/foreground-priority-incident-mode.test.js'
       - 'ci/performance/cross-panel-pressure-p0432.test.js'
+      - 'ci/performance/agent-recovery-timer.test.js'
       - 'supabase/migrations/20260902202000_p0432_db_hotpath_refresh_removal_v1.sql'
       - 'supabase/rollbacks/20260902202000_p0432_db_hotpath_refresh_removal_v1_recovery.sql'
       - '.github/workflows/business-priority-p0.yml'
@@ -18,13 +21,16 @@ on:
     branches: ['main','perf/p0-business-priority-lazy-calendar-20260901','perf/p0432-cross-panel-pressure-20260902','perf/p0432-db-hotpath-refresh-removal-20260902']
     paths:
       - 'app/business-priority-preload.js'
+      - 'app/agent-recovery-timer-preload.cjs'
       - 'app/supabase-quota-circuit-preload.cjs'
       - 'app/public/browser-business-priority-v1.js'
       - 'app/public/f4-production-canary-hotfix.js'
+      - 'app/railway.json'
       - 'ci/performance/business-priority-p0.test.js'
       - 'ci/performance/business-priority-race.test.js'
       - 'ci/performance/foreground-priority-incident-mode.test.js'
       - 'ci/performance/cross-panel-pressure-p0432.test.js'
+      - 'ci/performance/agent-recovery-timer.test.js'
       - 'supabase/migrations/20260902202000_p0432_db_hotpath_refresh_removal_v1.sql'
       - 'supabase/rollbacks/20260902202000_p0432_db_hotpath_refresh_removal_v1_recovery.sql'
       - '.github/workflows/business-priority-p0.yml'
@@ -44,13 +50,15 @@ jobs:
       - name: Syntax
         run: |
           node --check app/business-priority-preload.js
+          node --check app/agent-recovery-timer-preload.cjs
           node --check app/supabase-quota-circuit-preload.cjs
           node --check app/public/browser-business-priority-v1.js
           node --check app/public/f4-production-canary-hotfix.js
           node --check ci/performance/business-priority-race.test.js
           node --check ci/performance/foreground-priority-incident-mode.test.js
           node --check ci/performance/cross-panel-pressure-p0432.test.js
+          node --check ci/performance/agent-recovery-timer.test.js
       - name: Regression gates
-        run: node --test ci/performance/business-priority-p0.test.js ci/performance/business-priority-race.test.js ci/performance/foreground-priority-incident-mode.test.js ci/performance/cross-panel-pressure-p0432.test.js
+        run: node --test ci/performance/business-priority-p0.test.js ci/performance/business-priority-race.test.js ci/performance/foreground-priority-incident-mode.test.js ci/performance/cross-panel-pressure-p0432.test.js ci/performance/agent-recovery-timer.test.js
       - name: Existing Call Center performance gates
         run: node --test ci/wa4c-full-local/p0-callcenter-agenda-performance.test.js
