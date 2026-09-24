@@ -68,6 +68,15 @@ function writePriorityStatus(res){
     criticalPaths:['AUTH','CALL_CENTER','AGENDA','PATIENTS','SALES_WRITES']
   },'business-priority-status-v1')
 }
+function writeRecoveryPresence(req,res){
+  try{req.resume()}catch(_){}
+  writeBridgeJson(res,200,{
+    ok:true,
+    recovery_suppressed:true,
+    foregroundPriorityMode:true,
+    presence:'DEFERRED'
+  },'business-priority-presence-v1')
+}
 
 function readBridgeJson(req,maxBytes){
   maxBytes=maxBytes||262144
@@ -196,6 +205,7 @@ function installPrc1HttpBoundary(){
       let pathname=''
       try{pathname=new URL(req.url||'/','http://localhost').pathname}catch(_){}
       if(pathname==='/api/business-priority/status'&&req.method==='GET'){writePriorityStatus(res);return}
+      if(FOREGROUND_PRIORITY_MODE&&pathname==='/api/wa3/presence'&&req.method==='POST'){writeRecoveryPresence(req,res);return}
       if(pathname==='/api/prc1/rpc'){handlePrc1(req,res);return}
       if(pathname==='/api/callcenter/rpc'){handleCallCenter(req,res);return}
       return listener.call(this,req,res)

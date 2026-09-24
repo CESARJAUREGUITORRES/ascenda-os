@@ -1,9 +1,9 @@
-/* ASCENDA OS · Business Priority Mode P0-B/P0-C + P0 #630
+/* ASCENDA OS · Business Priority Mode P0-B/P0-C + P0 #632
  * Browser read scheduler. It never intercepts or delays governed writes.
- * P0 #630 adds server-advertised incident load shedding: while
- * AOS_FOREGROUND_PRIORITY_MODE is active, known analytical/dashboard RPCs are
- * answered locally and WA presence is rate-limited so Auth, Call Center,
- * Agenda, patient operations and business writes get the database capacity.
+ * P0 #632 hardens incident load shedding: while foreground recovery is active,
+ * known analytical/dashboard RPCs, the legacy 5k admin ranking read and WA
+ * presence heartbeats are answered locally so Auth, Call Center, Agenda,
+ * patient operations and governed business writes get the database capacity.
  * Compatibility contract marker for P0 #432: version:'p0-432-v1.0'
  */
 (function(){
@@ -22,11 +22,9 @@ var MAX_ANALYTICS_CONCURRENCY=1;
 var FAILURE_COOLDOWN_MS=12000;
 var incidentMode=true; // fail safe until the same-origin status endpoint answers.
 var incidentStatusReady=false;
-var lastPresenceAttemptAt=0;
-var PRESENCE_RECOVERY_INTERVAL_MS=90000;
 
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__={
-  version:'p0-630-v1.0',
+  version:'p0-632-v1.0',
   policy:'critical-immediate__incident-secondary-shed__analytics-bounded__failure-cooldown',
   incidentMode:true
 };
@@ -35,6 +33,16 @@ function urlOf(input){return typeof input==='string'?input:(input&&input.url)||'
 function rpcName(url){var m=String(url||'').match(/\/rest\/v1\/rpc\/([^?]+)/);return m&&m[1]||'';}
 function pathnameOf(input){try{return new URL(urlOf(input),location.href).pathname;}catch(_e){return '';}}
 function methodOf(input,init){return String((init&&init.method)||(input&&input.method)||'GET').toUpperCase();}
+function isRecoveryShedDirectRead(url,method){
+  if(method!=='GET')return false;
+  try{
+    var u=new URL(String(url||''),location.href);
+    if(u.pathname!=='/rest/v1/aos_ventas')return false;
+    var select=String(u.searchParams.get('select')||'').replace(/\s/g,'');
+    var limit=String(u.searchParams.get('limit')||'');
+    return select==='asesor,monto,tipo'&&limit==='5000';
+  }catch(_e){return false;}
+}
 function ccMounted(){return !!document.getElementById('cc-m-cita-manual');}
 function text(id){var e=document.getElementById(id);return e?String(e.textContent||'').trim():'';}
 function leadBoundaryReady(){
@@ -187,15 +195,21 @@ var PRIMARY_READ={aos_panel_admin:1,aos_panel_asesor:1};
 window.fetch=function(input,init){
   var url=urlOf(input),name=rpcName(url),path=pathnameOf(input),method=methodOf(input,init);
 
-  // WA presence is useful but not revenue-critical. During a DB incident keep
-  // at most one real heartbeat per browser every 90s; the other 30s ticks are
-  // acknowledged locally and cannot consume PostgREST connections.
+  // Presence is non-critical during DB recovery. Stale and current tabs receive
+  // a successful local acknowledgement; no heartbeat reaches Railway/Supabase.
   if(method==='POST'&&path==='/api/wa3/presence'){
     return withIncidentStatus(function(active){
       if(!active)return baseFetch(input,init);
-      var now=Date.now();
-      if(now-lastPresenceAttemptAt<PRESENCE_RECOVERY_INTERVAL_MS)return recoveryResponse(200,{ok:true,recovery_suppressed:true});
-      lastPresenceAttemptAt=now;
+      return recoveryResponse(200,{ok:true,recovery_suppressed:true,presence:'DEFERRED'});
+    });
+  }
+
+  // Legacy admin ranking fetches up to 5k raw sales rows every refresh cycle.
+  // Shed that exact read shape during recovery; operational sales writes/reads
+  // outside this shape are untouched.
+  if(isRecoveryShedDirectRead(url,method)){
+    return withIncidentStatus(function(active){
+      if(active)return recoveryResponse(503,{ok:false,error:'BUSINESS_PRIORITY_RECOVERY_SHED',retryable:true,scope:'admin-ranking'});
       return baseFetch(input,init);
     });
   }
@@ -246,6 +260,6 @@ window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.failureCooldown=failureCooldown;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.calendarQueue=calendarQueue;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.analyticsQueue=analyticsQueue;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentStatusPromise=incidentStatusPromise;
-window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.limits={calendar:CALENDAR_MAX_CONCURRENCY,analytics:MAX_ANALYTICS_CONCURRENCY,failureCooldownMs:FAILURE_COOLDOWN_MS,presenceRecoveryIntervalMs:PRESENCE_RECOVERY_INTERVAL_MS};
-console.log('[BUSINESS-PRIORITY] P0 #630 DB recovery load-shed governor active');
+window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.limits={calendar:CALENDAR_MAX_CONCURRENCY,analytics:MAX_ANALYTICS_CONCURRENCY,failureCooldownMs:FAILURE_COOLDOWN_MS};
+console.log('[BUSINESS-PRIORITY] P0 #632 hard recovery load-shed governor active');
 })();

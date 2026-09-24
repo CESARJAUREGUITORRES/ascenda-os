@@ -91,7 +91,8 @@ test('browser scheduler preserves governed writes and prioritizes next lead',asy
   assert.match(browser,/aos_monitoreo_equipo:1/);
   assert.match(browser,/aos_historico_asesor_anual:1/);
   assert.match(browser,/BUSINESS_PRIORITY_RECOVERY_SHED/);
-  assert.match(browser,/PRESENCE_RECOVERY_INTERVAL_MS=90000/);
+  assert.match(browser,/isRecoveryShedDirectRead/);
+  assert.match(browser,/recovery_suppressed:true/);
   assert.doesNotMatch(browser,/aos_callcenter_commit_action_v1\s*:/);
   assert.doesNotMatch(browser,/aos_callcenter_confirm_queue_appointment_v1\s*:/);
 
@@ -105,6 +106,7 @@ test('browser scheduler preserves governed writes and prioritizes next lead',asy
   function FakeResponse(name,status,body){this.name=name;this.status=status||200;this.ok=this.status>=200&&this.status<300;this._body=body||{};}
   FakeResponse.prototype.clone=function(){return new FakeResponse(this.name,this.status,this._body);};
   FakeResponse.prototype.json=function(){return Promise.resolve(this._body);};
+  FakeResponse.prototype.text=function(){return Promise.resolve(JSON.stringify(this._body));};
   function nameOf(input){const m=String(input||'').match(/\/rpc\/([^?]+)/);return m&&m[1]||'';}
   function baseFetch(input){
     if(String(input)==='/api/business-priority/status')return Promise.resolve(new FakeResponse('priority',200,{ok:true,foregroundPriorityMode:false}));
@@ -118,7 +120,7 @@ test('browser scheduler preserves governed writes and prioritizes next lead',asy
   const context={
     window:{fetch:baseFetch},
     document:{hidden:false,getElementById:function(id){return els[id]||null;}},
-    location:{href:'https://ascenda.test/app'},
+    location:{href:'https://ascenda.test/app',origin:'https://ascenda.test'},
     console:{log:function(){},error:function(){},warn:function(){}},
     setTimeout,clearTimeout,Promise,Map,URL
   };
@@ -135,7 +137,7 @@ test('browser scheduler preserves governed writes and prioritizes next lead',asy
   assert.ok(maxCalendarActive<=2,'calendar concurrency exceeded business-priority cap');
 });
 
-test('incident mode sheds analytics without touching Call Center writes',async()=>{
+test('incident mode sheds analytics, legacy ranking and presence without touching Call Center writes',async()=>{
   const network=[];
   function FakeResponse(status,body){this.status=status;this.ok=status>=200&&status<300;this._body=body||{};}
   FakeResponse.prototype.clone=function(){return new FakeResponse(this.status,this._body);};
@@ -152,18 +154,30 @@ test('incident mode sheds analytics without touching Call Center writes',async()
   const analytics=await context.window.fetch(base+'aos_marketing_period_summary_v2',{method:'POST'});
   assert.equal(analytics.status,503);
   assert.equal(network.filter(x=>x.includes('aos_marketing_period_summary_v2')).length,0,'shed analytics must not reach Supabase');
+
+  const rankUrl='https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/aos_ventas?select=asesor%2Cmonto%2Ctipo&fecha=gte.2026-09-01&asesor=neq.NO+APLICA&limit=5000';
+  const rank=await context.window.fetch(rankUrl,{method:'GET'});
+  assert.equal(rank.status,503);
+  assert.equal(network.filter(x=>x.includes('limit=5000')).length,0,'legacy ranking must not reach Supabase');
+
+  const presence=await context.window.fetch('/api/wa3/presence',{method:'POST',body:'{}'});
+  assert.equal(presence.status,200);
+  assert.equal(network.filter(x=>x==='/api/wa3/presence').length,0,'presence must be acknowledged locally during recovery');
+
   await context.window.fetch(base+'aos_callcenter_commit_action_v1',{method:'POST'});
   assert.equal(network.filter(x=>x.includes('aos_callcenter_commit_action_v1')).length,1,'governed write must remain immediate');
 });
 
-test('server boundary exposes reversible foreground-priority status without DB I/O',()=>{
+test('server boundary exposes recovery status and short-circuits stale presence without DB I/O',()=>{
   assert.match(phaseBoundary,/\/api\/business-priority\/status/);
   assert.match(phaseBoundary,/FOREGROUND_PRIORITY_MODE/);
   assert.match(phaseBoundary,/P0_DB_RECOVERY/);
+  assert.match(phaseBoundary,/writeRecoveryPresence/);
+  assert.match(phaseBoundary,/pathname==='\/api\/wa3\/presence'/);
 });
 
-test('F4 loads priority scheduler without changing Loop6 postload authority',()=>{
-  assert.match(f4,/browser-business-priority-v1\.js\?v=20260923-p0-db-recovery-v1/);
+test('F4 loads hard-recovery scheduler without changing Loop6 postload authority',()=>{
+  assert.match(f4,/browser-business-priority-v1\.js\?v=20260923-p0-db-recovery-v2/);
   assert.match(f4,/calls-loop6\.js\?v=20260901-loop6-v2\.3-postload/);
   assert.match(f4,/window\.__AOS_CC_LOOP6_POSTLOAD_READY__='v2\.3-postload'/);
   assert.match(f4,/loadCallCenterPerformance\(\)/);

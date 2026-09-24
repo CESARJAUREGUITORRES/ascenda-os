@@ -14,10 +14,10 @@
  * stopping the service: Auth V3, foreground panels and governed business writes
  * keep their normal transport path while PostgREST/DB is allowed to recover.
  *
- * P0 critical-comms lane: generic push delivery remains available in a bounded
- * DB-side batch while incident mode is active. The cron scanner is allowed only
- * during Elena/Cartero appointment-reminder windows in Lima: 08:00-11:59 for
- * same-day reminders and 20:00-23:59 for next-day/night-before reminders.
+ * P0 hard recovery: generic notification polling is paused while incident mode
+ * is active. Elena/Cartero cron execution is the only background lane retained,
+ * and only during Lima reminder windows 08:00-11:59 / 20:00-23:59. Notification
+ * outbox rows remain durable and will drain after recovery mode is disabled.
  *
  * This preload is composed AFTER supabase-quota-circuit-preload.cjs in
  * Railway NODE_OPTIONS. The inherited request function therefore preserves
@@ -82,7 +82,6 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
 
   function isForegroundEssential(key) {
     if (!FOREGROUND_PRIORITY_MODE) return false
-    if (key === 'notification-push-claim') return true
     if (key === 'agent-cron-scan') return isReminderWindow(limaHour())
     return false
   }
@@ -203,7 +202,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1.7-critical-reminders',
+    version: 'p0-a-v1.8-hard-recovery',
     states: states,
     shieldKey: SHIELD_KEY,
     classify: classify,
@@ -214,7 +213,8 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
 
   console.log('[BUSINESS-PRIORITY] race-safe shared background shield active', {
     foregroundPriorityMode: FOREGROUND_PRIORITY_MODE,
-    criticalCommsLane: true,
+    criticalCommsLane: 'CRON_REMINDERS_ONLY',
+    notificationPump: FOREGROUND_PRIORITY_MODE?'PAUSED':'ACTIVE',
     reminderWindowsLima: '08-11,20-23'
   })
 }
