@@ -24,8 +24,8 @@ var incidentMode=true; // fail safe until the same-origin status endpoint answer
 var incidentStatusReady=false;
 
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__={
-  version:'p0-632-v1.0',
-  policy:'critical-immediate__incident-secondary-shed__analytics-bounded__failure-cooldown',
+  version:'p0-632-v1.1-operational-monitor',
+  policy:'critical-immediate__incident-secondary-shed__operational-monitor-live__analytics-bounded__failure-cooldown',
   incidentMode:true
 };
 
@@ -112,7 +112,6 @@ function recoveryResponse(status,body){
 var RECOVERY_SHED_READS={
   aos_panel_admin:1,
   aos_panel_asesor:1,
-  aos_monitoreo_equipo:1,
   aos_historico_asesor_anual:1,
   aos_ticker_mkt:1,
   aos_kpi_flujo_clinico:1,
@@ -217,9 +216,11 @@ window.fetch=function(input,init){
   if(!name)return baseFetch(input,init);
 
   // Revenue-critical / governed operations are always immediate and never
-  // failure-cooled or incident-shed. Lead selection is mutable.
-  if(name==='aos_siguiente_lead'||name==='aos_siguiente_lead_v2'||name==='aos_siguiente_lead_v3'||/^aos_callcenter_/.test(name)){
-    return baseFetch(input,init);
+  // failure-cooled or incident-shed. Lead selection is mutable. The live team
+  // monitor is also operational: it is a ~200ms bounded read and is required by
+  // supervisors even while analytical dashboards remain shed.
+  if(name==='aos_siguiente_lead'||name==='aos_siguiente_lead_v2'||name==='aos_siguiente_lead_v3'||name==='aos_monitoreo_equipo'||/^aos_callcenter_/.test(name)){
+    return dispatchRead(name,input,init);
   }
 
   if(isRecoveryShedRead(name)){
@@ -248,7 +249,7 @@ function dispatchRead(name,input,init){
     return singleFlight(key,function(){return queueAnalytics(function(){return transportWithCooldown(key,input,init);});});
   }
 
-  if(PRIMARY_READ[name]){
+  if(PRIMARY_READ[name]||name==='aos_monitoreo_equipo'){
     return singleFlight(key,function(){return transportWithCooldown(key,input,init);});
   }
 
@@ -261,5 +262,5 @@ window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.calendarQueue=calendarQueue;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.analyticsQueue=analyticsQueue;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentStatusPromise=incidentStatusPromise;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.limits={calendar:CALENDAR_MAX_CONCURRENCY,analytics:MAX_ANALYTICS_CONCURRENCY,failureCooldownMs:FAILURE_COOLDOWN_MS};
-console.log('[BUSINESS-PRIORITY] P0 #632 hard recovery load-shed governor active');
+console.log('[BUSINESS-PRIORITY] P0 #632 hard recovery load-shed governor active + operational monitor live');
 })();
