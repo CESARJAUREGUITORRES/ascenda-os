@@ -137,7 +137,7 @@ test('browser scheduler preserves governed writes and prioritizes next lead',asy
   assert.ok(maxCalendarActive<=2,'calendar concurrency exceeded business-priority cap');
 });
 
-test('incident mode sheds analytics, legacy ranking and presence without touching Call Center writes',async()=>{
+test('incident mode sheds deep analytics but keeps operational homes and Call Center live',async()=>{
   const network=[];
   function FakeResponse(status,body){this.status=status;this.ok=status>=200&&status<300;this._body=body||{};}
   FakeResponse.prototype.clone=function(){return new FakeResponse(this.status,this._body);};
@@ -154,6 +154,11 @@ test('incident mode sheds analytics, legacy ranking and presence without touchin
   const analytics=await context.window.fetch(base+'aos_marketing_period_summary_v2',{method:'POST'});
   assert.equal(analytics.status,503);
   assert.equal(network.filter(x=>x.includes('aos_marketing_period_summary_v2')).length,0,'shed analytics must not reach Supabase');
+
+  await context.window.fetch(base+'aos_panel_admin',{method:'POST',body:'{}'});
+  await context.window.fetch(base+'aos_panel_asesor',{method:'POST',body:'{}'});
+  assert.equal(network.filter(x=>x.includes('aos_panel_admin')).length,1,'admin operational snapshot must remain live');
+  assert.equal(network.filter(x=>x.includes('aos_panel_asesor')).length,1,'advisor operational snapshot must remain live');
 
   const rankUrl='https://ituyqwstonmhnfshnaqz.supabase.co/rest/v1/aos_ventas?select=asesor%2Cmonto%2Ctipo&fecha=gte.2026-09-01&asesor=neq.NO+APLICA&limit=5000';
   const rank=await context.window.fetch(rankUrl,{method:'GET'});
@@ -176,8 +181,8 @@ test('server boundary exposes recovery status and short-circuits stale presence 
   assert.match(phaseBoundary,/pathname==='\/api\/wa3\/presence'/);
 });
 
-test('F4 loads hard-recovery scheduler without changing Loop6 postload authority',()=>{
-  assert.match(f4,/browser-business-priority-v1\.js\?v=20260923-p0-db-recovery-v2/);
+test('F4 loads cache-busted recovery scheduler without changing Loop6 postload authority',()=>{
+  assert.match(f4,/browser-business-priority-v1\.js\?v=20260925-p0-operational-home-v3/);
   assert.match(f4,/calls-loop6\.js\?v=20260901-loop6-v2\.3-postload/);
   assert.match(f4,/window\.__AOS_CC_LOOP6_POSTLOAD_READY__='v2\.3-postload'/);
   assert.match(f4,/loadCallCenterPerformance\(\)/);
