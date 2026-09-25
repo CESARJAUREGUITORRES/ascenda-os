@@ -4,6 +4,9 @@
  * known analytical/dashboard RPCs, the legacy 5k admin ranking read and WA
  * presence heartbeats are answered locally so Auth, Call Center, Agenda,
  * patient operations and governed business writes get the database capacity.
+ * P0 #637 keeps the bounded operational home snapshots live during recovery;
+ * otherwise Admin/Advisor Home could never leave "Conectando..." while the
+ * incident flag remained enabled after the database had recovered.
  * Compatibility contract marker for P0 #432: version:'p0-432-v1.0'
  */
 (function(){
@@ -24,8 +27,8 @@ var incidentMode=true; // fail safe until the same-origin status endpoint answer
 var incidentStatusReady=false;
 
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__={
-  version:'p0-632-v1.1-operational-monitor',
-  policy:'critical-immediate__incident-secondary-shed__operational-monitor-live__analytics-bounded__failure-cooldown',
+  version:'p0-637-v1.2-operational-homes',
+  policy:'critical-immediate__incident-secondary-shed__operational-homes-and-monitor-live__analytics-bounded__failure-cooldown',
   incidentMode:true
 };
 
@@ -110,8 +113,8 @@ function recoveryResponse(status,body){
 }
 
 var RECOVERY_SHED_READS={
-  aos_panel_admin:1,
-  aos_panel_asesor:1,
+  // aos_panel_admin / aos_panel_asesor are operational home snapshots. They stay
+  // live in recovery and are still protected by single-flight + failure cooldown.
   aos_historico_asesor_anual:1,
   aos_ticker_mkt:1,
   aos_kpi_flujo_clinico:1,
@@ -216,10 +219,10 @@ window.fetch=function(input,init){
   if(!name)return baseFetch(input,init);
 
   // Revenue-critical / governed operations are always immediate and never
-  // failure-cooled or incident-shed. Lead selection is mutable. The live team
-  // monitor is also operational: it is a ~200ms bounded read and is required by
-  // supervisors even while analytical dashboards remain shed.
-  if(name==='aos_siguiente_lead'||name==='aos_siguiente_lead_v2'||name==='aos_siguiente_lead_v3'||name==='aos_monitoreo_equipo'||/^aos_callcenter_/.test(name)){
+  // failure-cooled or incident-shed. Lead selection is mutable. Operational
+  // primary home snapshots and the live team monitor also stay live: supervisors
+  // and advisors must see current work even while deep analytics remain shed.
+  if(name==='aos_siguiente_lead'||name==='aos_siguiente_lead_v2'||name==='aos_siguiente_lead_v3'||name==='aos_panel_admin'||name==='aos_panel_asesor'||name==='aos_monitoreo_equipo'||/^aos_callcenter_/.test(name)){
     return dispatchRead(name,input,init);
   }
 
@@ -262,5 +265,5 @@ window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.calendarQueue=calendarQueue;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.analyticsQueue=analyticsQueue;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentStatusPromise=incidentStatusPromise;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.limits={calendar:CALENDAR_MAX_CONCURRENCY,analytics:MAX_ANALYTICS_CONCURRENCY,failureCooldownMs:FAILURE_COOLDOWN_MS};
-console.log('[BUSINESS-PRIORITY] P0 #632 hard recovery load-shed governor active + operational monitor live');
+console.log('[BUSINESS-PRIORITY] P0 #637 recovery governor active + operational homes/monitor live');
 })();
