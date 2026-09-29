@@ -296,6 +296,47 @@ function loadCore(){
   document.head.appendChild(s);
 }
 
+function safeOperationalRender(name,args){
+  try{
+    var fn=window[name];
+    if(typeof fn==='function')fn.apply(window,args||[]);
+  }catch(e){
+    console.warn('[ASCENDA] Marketing operational render skipped',name,e&&e.message||e);
+  }
+}
+
+function hydrateInitialOperationalBlocks(){
+  var y=document.getElementById('mk-anio');
+  var m=document.getElementById('mk-mes');
+  if(!y||!m)return;
+  var annual=!!(window.MK&&window.MK.modo==='anio');
+  var fn=annual?'aos_marketing_dashboard_anio':'aos_marketing_dashboard';
+  var payload=annual?{p_anio:Number(y.value)}:{p_mes:Number(m.value),p_anio:Number(y.value)};
+  var sb=String(window.SB||'https://ituyqwstonmhnfshnaqz.supabase.co').replace(/\/$/,'');
+  window.fetch(sb+'/rest/v1/rpc/'+fn,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  }).then(function(r){
+    if(!r.ok)throw new Error('OPERATIONAL_DASHBOARD_HTTP_'+r.status);
+    return r.json();
+  }).then(function(d){
+    if(!d||d.error)return;
+    safeOperationalRender('rGest',[d.gestion||{}]);
+    safeOperationalRender('rAn',[Array.isArray(d.porAnuncio)?d.porAnuncio:[]]);
+    safeOperationalRender('rCamp',[Array.isArray(d.porTratamiento)?d.porTratamiento:[]]);
+    safeOperationalRender('rVL',[Array.isArray(d.ventasLeads)?d.ventasLeads:[]]);
+    safeOperationalRender('rVF',[Array.isArray(d.ventasLeadsFuera)?d.ventasLeadsFuera:[]]);
+  }).catch(function(e){
+    console.warn('[ASCENDA] Marketing initial operational hydration deferred',e&&e.message||e);
+  });
+}
+
 loadCore();
+// The legacy HTML fires its first dashboard read before this gateway exists. Under
+// anon statement_timeout that first read can fail while V4.3 succeeds, leaving only
+// Gestión/Top Anuncios/Campañas/Ventas blank. Retry those operational blocks once,
+// after the 3s anon timeout window, through the authenticated serialized gateway.
+setTimeout(hydrateInitialOperationalBlocks,3500);
 console.log('[ASCENDA] Marketing P0 server-read gateway mounted');
 })();
