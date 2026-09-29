@@ -70,10 +70,20 @@ test('legacy LTV cohort read is suppressed from bootstrap start',()=>{
 });
 
 test('new bootstrap release replaces older SPA fetch wrapper',()=>{
-  assert.match(boot,/2026-09-29-mkt-server-read-v1/);
+  assert.match(boot,/2026-09-29-mkt-investment-v2/);
   assert.match(boot,/G&&G\.release!==RELEASE&&typeof G\.baseFetch==='function'/);
   assert.match(boot,/window\.fetch=G\.baseFetch/);
   assert.match(boot,/delete window\.__AOS_MKT_PERF_V1/);
+});
+
+test('investment refresh re-renders spend KPIs and guards duplicate submissions',()=>{
+  assert.match(boot,/safeOperationalRender\('rKPI'/);
+  assert.match(boot,/safeOperationalRender\('rEmb'/);
+  assert.match(boot,/__AOS_MKT_INVESTMENT_GUARD_V1/);
+  assert.match(boot,/if\(saving\)return/);
+  assert.match(boot,/Hay una fila repetida/);
+  assert.match(boot,/perf&&typeof perf\.clear==='function'/);
+  assert.match(boot,/window\.ivDel=function\(btn\)/);
 });
 
 test('browser heavy reads use same-origin authenticated gateway instead of anon PostgREST',()=>{
