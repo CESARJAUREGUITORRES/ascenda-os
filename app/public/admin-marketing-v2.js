@@ -249,6 +249,7 @@ if(!G){
     var hit=cache.get(key);
     if(hit&&now-hit.ts<targets[fn]){
       stats.cacheHit++;
+      if(fn==='aos_marketing_period_summary_v2')maybeHydrateInitialOperationalBlocks();
       return Promise.resolve(toResponse(hit.snap));
     }
     if(inflight.has(key)){
@@ -269,6 +270,10 @@ if(!G){
       // A transient API/database error must never poison the short-lived cache.
       if(successful(x))cache.set(key,{ts:Date.now(),snap:x});
       else stats.failedNotCached++;
+      // The legacy HTML starts its first dashboard request before this wrapper is
+      // mounted. Once the first governed monthly summary completes, hydrate the
+      // legacy operational tail through the same server gateway.
+      if(successful(x)&&fn==='aos_marketing_period_summary_v2')maybeHydrateInitialOperationalBlocks();
       return x;
     }).finally(function(){inflight.delete(key);});
 
@@ -288,12 +293,58 @@ if(!G){
 }
 
 function loadCore(){
+  // Every Marketing mount gets one operational hydration opportunity. The wrapper
+  // consumes this flag only after the governed summary is available, including
+  // cache-hit remounts, so SPA navigation cannot leave the legacy tail blank.
+  window.__AOS_MKT_OPERATIONAL_HYDRATION_NEEDED=true;
   var old=document.getElementById('aos-marketing-v2-core');if(old)old.remove();
   var s=document.createElement('script');
   s.id='aos-marketing-v2-core';
   s.src='/admin-marketing-v2-core.js?v='+(typeof _APP_VERSION!=='undefined'?_APP_VERSION:Date.now());
   s.onerror=function(){console.error('[ASCENDA] Marketing core load failed');};
   document.head.appendChild(s);
+}
+
+function maybeHydrateInitialOperationalBlocks(){
+  if(window.__AOS_MKT_OPERATIONAL_HYDRATION_NEEDED!==true)return;
+  window.__AOS_MKT_OPERATIONAL_HYDRATION_NEEDED=false;
+  Promise.resolve().then(hydrateInitialOperationalBlocks);
+}
+
+function safeOperationalRender(name,args){
+  try{
+    var fn=window[name];
+    if(typeof fn==='function')fn.apply(window,args||[]);
+  }catch(e){
+    console.warn('[ASCENDA] Marketing operational render skipped',name,e&&e.message||e);
+  }
+}
+
+function hydrateInitialOperationalBlocks(){
+  var y=document.getElementById('mk-anio');
+  var m=document.getElementById('mk-mes');
+  if(!y||!m)return;
+  var annual=!!(window.MK&&window.MK.modo==='anio');
+  var fn=annual?'aos_marketing_dashboard_anio':'aos_marketing_dashboard';
+  var payload=annual?{p_anio:Number(y.value)}:{p_mes:Number(m.value),p_anio:Number(y.value)};
+  var sb=String(window.SB||'https://ituyqwstonmhnfshnaqz.supabase.co').replace(/\/$/,'');
+  window.fetch(sb+'/rest/v1/rpc/'+fn,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(payload)
+  }).then(function(r){
+    if(!r.ok)throw new Error('OPERATIONAL_DASHBOARD_HTTP_'+r.status);
+    return r.json();
+  }).then(function(d){
+    if(!d||d.error)return;
+    safeOperationalRender('rGest',[d.gestion||{}]);
+    safeOperationalRender('rAn',[Array.isArray(d.porAnuncio)?d.porAnuncio:[]]);
+    safeOperationalRender('rCamp',[Array.isArray(d.porTratamiento)?d.porTratamiento:[]]);
+    safeOperationalRender('rVL',[Array.isArray(d.ventasLeads)?d.ventasLeads:[]]);
+    safeOperationalRender('rVF',[Array.isArray(d.ventasLeadsFuera)?d.ventasLeadsFuera:[]]);
+  }).catch(function(e){
+    console.warn('[ASCENDA] Marketing initial operational hydration deferred',e&&e.message||e);
+  });
 }
 
 loadCore();
