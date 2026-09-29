@@ -4,6 +4,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 
 const migration=fs.readFileSync('supabase/migrations/20260929234000_marketing_web_booking_lineage_v1.sql','utf8');
+const compat=fs.readFileSync('supabase/migrations/20260929235500_marketing_web_booking_source_compat_v1.sql','utf8');
 const boot=fs.readFileSync('app/public/admin-marketing-v2.js','utf8');
 const ui=fs.readFileSync('app/public/admin-marketing-web-bookings.js','utf8');
 const gateway=fs.readFileSync('app/marketing-read-gateway.js','utf8');
@@ -13,7 +14,9 @@ test('landing booking lineage is additive and preserves canonical agenda authori
   assert.match(migration,/create table if not exists public\.aos_landing_booking_attribution/);
   assert.match(migration,/create or replace function public\.aos_agendar_publica_landing_v1/);
   assert.match(migration,/public\.aos_agendar_publica_v2\(/);
-  assert.match(migration,/source_channel='LANDING'/);
+  assert.match(compat,/public\.aos_agendar_publica_v2\(/);
+  assert.match(compat,/acquisition_channel','LANDING'/);
+  assert.doesNotMatch(compat,/source_channel='LANDING'/);
   assert.doesNotMatch(migration,/insert into public\.aos_leads/i);
   assert.doesNotMatch(migration,/delete from public\.aos_agenda_citas/i);
 });
@@ -23,7 +26,7 @@ test('lineage ledger is append-only and idempotent',()=>{
   assert.match(migration,/before update or delete on public\.aos_landing_booking_attribution/);
   assert.match(migration,/aos_landing_booking_idempotency_uq/);
   assert.match(migration,/pg_advisory_xact_lock/);
-  assert.match(migration,/idempotent_replay/);
+  assert.match(compat,/idempotent_replay/);
 });
 
 test('web booking read model is admin-only and follows booking through calls and sales',()=>{
