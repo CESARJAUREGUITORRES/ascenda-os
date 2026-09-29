@@ -3,27 +3,19 @@
 /*
  * ASCENDA OS · Business Priority Mode P0-A
  *
- * Only known non-critical Supabase background traffic is circuit-broken.
- * Revenue-critical reads/writes, Call Center, Agenda, Sales, WhatsApp routing
- * and AI-key bootstrap remain outside this shield and always use the normal
- * transport path.
+ * Classified Supabase background traffic must always yield to Auth, Call Center,
+ * Agenda, Patients and governed commercial writes. Normal mode allows background
+ * work while the database is healthy, but gives every classified background
+ * request a strict transport budget. A slow/failed background request opens a
+ * shared circuit so more cron/push/cache work cannot pile up behind it.
  *
- * P0 #467 adds a reversible incident-only foreground-priority mode. When
- * AOS_FOREGROUND_PRIORITY_MODE=true, classified non-critical background calls
- * are rejected locally before network I/O. This is intentionally narrower than
- * stopping the service: Auth V3, foreground panels and governed business writes
- * keep their normal transport path while PostgREST/DB is allowed to recover.
+ * AOS_FOREGROUND_PRIORITY_MODE=true remains the emergency kill-switch: every
+ * classified background call is rejected locally before network I/O. No reminder
+ * cron exception is retained during an active DB-recovery incident; Auth wins.
  *
- * P0 hard recovery: generic notification polling is paused while incident mode
- * is active. Elena/Cartero cron execution is the only background lane retained,
- * and only during Lima reminder windows 08:00-11:59 / 20:00-23:59. If that cron
- * itself encounters DB pressure it must respect the shared circuit: 5 minutes
- * after the first failure and 15 minutes after a subsequent failure.
- *
- * This preload is composed AFTER supabase-quota-circuit-preload.cjs in
- * Railway NODE_OPTIONS. The inherited request function therefore preserves
- * the existing project-wide 402 quota breaker while this layer adds a shared
- * 5xx/timeout shield for background work.
+ * This preload is composed AFTER supabase-quota-circuit-preload.cjs in Railway
+ * NODE_OPTIONS. Critical traffic remains outside classify() and therefore never
+ * passes through this background budget/circuit.
  */
 
 const https = require('https')
@@ -36,6 +28,8 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   const inheritedRequest = https.request.bind(https)
   const PROJECT_HOST = String(process.env.AOS_SUPABASE_HOST || 'ituyqwstonmhnfshnaqz.supabase.co').toLowerCase()
   const FOREGROUND_PRIORITY_MODE = /^(1|true|yes|on)$/i.test(String(process.env.AOS_FOREGROUND_PRIORITY_MODE || 'false'))
+  const rawBudget = Number(process.env.AOS_BACKGROUND_REQUEST_BUDGET_MS || 1800)
+  const BACKGROUND_REQUEST_BUDGET_MS = Number.isFinite(rawBudget) ? Math.max(500, Math.min(5000, Math.round(rawBudget))) : 1800
   const SHIELD_KEY = 'background-shield'
   const states = new Map()
 
@@ -62,12 +56,23 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     if (p.indexOf('/rest/v1/rpc/aos_notification_push_claim_v1') === 0) return 'notification-push-claim'
     if (p.indexOf('/rest/v1/rpc/aos_push_vapid_config_v1') === 0) return 'notification-vapid-config'
     if (p.indexOf('/rest/v1/rpc/aos_push_vapid_store_v1') === 0) return 'notification-vapid-store'
+    if (p.indexOf('/rest/v1/rpc/aos_push_vapid_runtime_config_v2') === 0) return 'notification-vapid-runtime-config'
     if (p.indexOf('/rest/v1/rpc/aos_google_claim_sync_v1') === 0) return 'google-sync-claim'
     if (p.indexOf('/rest/v1/aos_f5_private_file_transport_tmp?') === 0 && p.indexOf('status=in.(READY,PROCESSING)') >= 0) return 'f5-recovery-scan'
     if (p.indexOf('/rest/v1/aos_email_plantillas?') === 0 && p.indexOf('activo=eq.true') >= 0) return 'email-template-cache'
     if (p.indexOf('/rest/v1/aos_usuarios?') === 0 && p.indexOf('select=nombre,apellidos,cmp') >= 0 && p.indexOf('cmp=neq.') >= 0) return 'medical-cmp-cache'
     if (p.indexOf('/rest/v1/rpc/aos_generar_snapshot') === 0) return 'global-snapshot'
     if (p.indexOf('/rest/v1/aos_configuracion?') === 0 && (p.indexOf('select=clave%2Cvalor') >= 0 || p.indexOf('select=clave,valor') >= 0)) return 'brand-config-cache'
+
+    // WA4 provider/bootstrap reads are optional while Auth/REST is recovering.
+    // They previously continued every startup/retry cycle and were observed as
+    // repeated 504s immediately alongside login failures. Match only read-shaped
+    // catalog/secret lookups; governed WA writes and conversation RPCs stay live.
+    if (p.indexOf('/rest/v1/aos_integration_secrets_v1?') === 0) return 'wa4-provider-secret-cache'
+    if (p.indexOf('/rest/v1/aos_integraciones?') === 0 && p.indexOf('select=api_key') >= 0) return 'wa4-provider-fallback-cache'
+    if (p.indexOf('/rest/v1/aos_wa_auto_authority_v1?select=mode') === 0) return 'wa4-authority-bootstrap'
+    if (p.indexOf('/rest/v1/aos_wa_ai_control_v1?select=copilot_enabled') === 0) return 'wa4-ai-bootstrap'
+    if (p.indexOf('/rest/v1/aos_wa_routing_control_v1?select=ai_send_enabled') === 0) return 'wa4-routing-bootstrap'
     return ''
   }
 
@@ -81,9 +86,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     return (hour >= 8 && hour <= 11) || (hour >= 20 && hour <= 23)
   }
 
-  function isForegroundEssential(key) {
-    if (!FOREGROUND_PRIORITY_MODE) return false
-    if (key === 'agent-cron-scan') return isReminderWindow(limaHour())
+  function isForegroundEssential() {
     return false
   }
 
@@ -100,7 +103,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
 
   function isFailureStatus(status) {
     status = Number(status || 0)
-    return status === 401 || status === 403 || status === 408 || status === 429 || status >= 500
+    return status === 408 || status === 429 || status >= 500
   }
 
   function markSuccess(key) {
@@ -117,12 +120,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     const k = keyState(key)
     k.failures += 1
     k.lastFailureAt = now
-    let wait
-    if (FOREGROUND_PRIORITY_MODE && key === 'agent-cron-scan') {
-      wait = k.failures >= 2 ? 900000 : 300000
-    } else {
-      wait = k.failures >= 3 ? 600000 : (k.failures === 2 ? 120000 : 30000)
-    }
+    const wait = k.failures >= 2 ? 1800000 : 600000
     s.lastKey = key
     s.openUntil = Math.max(s.openUntil, now + wait)
     if (now >= s.lastLogUntil) {
@@ -179,27 +177,39 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   https.request = function aosBusinessPriorityRequest() {
     const args = Array.prototype.slice.call(arguments)
     const key = classify(args[0])
-    const foregroundEssential = isForegroundEssential(key)
-    // A currently-open circuit always wins, including for reminder cron. This
-    // prevents a failing retained lane from becoming the incident's new poller.
     if (key && circuitOpen(key)) return fakeRequest(callbackFrom(args))
-    if (key && FOREGROUND_PRIORITY_MODE && !foregroundEssential) return fakeRequest(callbackFrom(args))
+    if (key && FOREGROUND_PRIORITY_MODE) return fakeRequest(callbackFrom(args))
 
     const req = inheritedRequest.apply(https, args)
     if (key && req && typeof req.once === 'function') {
       let failedByTransport = false
-      req.once('response', function(res) {
-        const status = Number(res && res.statusCode || 0)
-        if (isFailureStatus(status)) markFailure(key, 'HTTP_' + status)
-        else if (status >= 200 && status < 500) markSuccess(key)
-      })
+      let budgetTimer = null
+      function clearBudget() {
+        if (budgetTimer) {
+          clearTimeout(budgetTimer)
+          budgetTimer = null
+        }
+      }
       function failOnce(reason) {
         if (failedByTransport) return
         failedByTransport = true
         markFailure(key, reason)
       }
-      req.once('timeout', function() { failOnce('TIMEOUT') })
-      req.once('error', function(e) { failOnce(e && e.code || e && e.message || 'ERROR') })
+      budgetTimer = setTimeout(function() {
+        failOnce('BACKGROUND_BUDGET_EXCEEDED')
+        try { req.destroy(Object.assign(new Error('AOS_BACKGROUND_BUDGET_EXCEEDED'), { code: 'AOS_BACKGROUND_BUDGET_EXCEEDED' })) } catch (_) {}
+      }, BACKGROUND_REQUEST_BUDGET_MS)
+      if (budgetTimer && typeof budgetTimer.unref === 'function') budgetTimer.unref()
+
+      req.once('response', function(res) {
+        clearBudget()
+        const status = Number(res && res.statusCode || 0)
+        if (isFailureStatus(status)) markFailure(key, 'HTTP_' + status)
+        else if (status >= 200 && status < 500) markSuccess(key)
+      })
+      req.once('timeout', function() { clearBudget(); failOnce('TIMEOUT') })
+      req.once('error', function(e) { clearBudget(); failOnce(e && e.code || e && e.message || 'ERROR') })
+      req.once('close', clearBudget)
     }
     return req
   }
@@ -211,20 +221,24 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v1.9-cron-circuit',
+    version: 'p0-a-v2.1-auth-first-wa-bootstrap-shed',
     states: states,
     shieldKey: SHIELD_KEY,
     classify: classify,
     circuitOpen: circuitOpen,
     foregroundPriorityMode: FOREGROUND_PRIORITY_MODE,
+    backgroundRequestBudgetMs: BACKGROUND_REQUEST_BUDGET_MS,
     isForegroundEssential: isForegroundEssential,
-    isReminderWindow: isReminderWindow
+    isReminderWindow: isReminderWindow,
+    limaHour: limaHour
   }
 
-  console.log('[BUSINESS-PRIORITY] race-safe shared background shield active', {
+  console.log('[BUSINESS-PRIORITY] auth-first background shield active', {
     foregroundPriorityMode: FOREGROUND_PRIORITY_MODE,
-    criticalCommsLane: 'CRON_REMINDERS_ONLY',
-    notificationPump: FOREGROUND_PRIORITY_MODE?'PAUSED':'ACTIVE',
-    reminderWindowsLima: '08-11,20-23'
+    backgroundRequestBudgetMs: BACKGROUND_REQUEST_BUDGET_MS,
+    emergencyBackgroundLane: 'NONE',
+    notificationPump: FOREGROUND_PRIORITY_MODE ? 'PAUSED' : 'BUDGETED',
+    reminderCron: FOREGROUND_PRIORITY_MODE ? 'PAUSED' : 'BUDGETED',
+    waBootstrap: FOREGROUND_PRIORITY_MODE ? 'PAUSED' : 'BUDGETED'
   })
 }
