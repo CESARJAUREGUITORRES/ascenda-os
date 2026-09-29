@@ -4,6 +4,9 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const boot=fs.readFileSync('app/public/admin-marketing-v2.js','utf8');
 const core=fs.readFileSync('app/public/admin-marketing-v2-core.js','utf8');
+const server=fs.readFileSync('app/server-phase-s-f17.js','utf8');
+const gatewaySource=fs.readFileSync('app/marketing-read-gateway.js','utf8');
+const {createMarketingReadGateway,SPECS}=require('../../app/marketing-read-gateway');
 const indexMigration=fs.readFileSync('supabase/migrations/20260902022000_p0_marketing_confirmed_call_lookup_index.sql','utf8');
 const callLeadMigration=fs.readFileSync('supabase/migrations/20260902024000_p0_marketing_call_lead_single_pass_v4.sql','utf8');
 const summaryMigration=fs.readFileSync('supabase/migrations/20260902164000_p0_marketing_period_summary_fast_v5.sql','utf8');
@@ -33,6 +36,7 @@ test('single-flight and cache are scoped to Marketing reads',()=>{
 test('failed reads never poison the short-lived cache and one timeout retry is bounded',()=>{
   assert.match(boot,/function timeoutSnap\(/);
   assert.match(boot,/57014/);
+  assert.match(boot,/UPSTREAM_TIMEOUT/);
   assert.match(boot,/var RETRY_MS=300/);
   assert.match(boot,/stats\.timeoutRetries\+\+/);
   assert.match(boot,/if\(successful\(x\)\)cache\.set/);
@@ -66,10 +70,71 @@ test('legacy LTV cohort read is suppressed from bootstrap start',()=>{
 });
 
 test('new bootstrap release replaces older SPA fetch wrapper',()=>{
-  assert.match(boot,/2026-09-10-mkt-v4\.3\.1-ui-lineage/);
+  assert.match(boot,/2026-09-29-mkt-server-read-v1/);
   assert.match(boot,/G&&G\.release!==RELEASE&&typeof G\.baseFetch==='function'/);
   assert.match(boot,/window\.fetch=G\.baseFetch/);
   assert.match(boot,/delete window\.__AOS_MKT_PERF_V1/);
+});
+
+test('browser heavy reads use same-origin authenticated gateway instead of anon PostgREST',()=>{
+  assert.match(boot,/function gatewayFetch\(/);
+  assert.match(boot,/baseFetch\('\/api\/marketing\/rpc'/);
+  assert.match(boot,/credentials:'same-origin'/);
+  assert.match(boot,/X-AOS-App-Token/);
+  assert.match(boot,/sessionStorage\.getItem\('aos_app_token'\)/);
+  assert.match(boot,/gatewayReads/);
+  assert.doesNotMatch(gatewaySource,/SUPABASE_ANON_KEY/);
+});
+
+test('server exposes only the Marketing read boundary and verifies admin session',()=>{
+  assert.match(server,/createMarketingReadGateway/);
+  assert.match(server,/pathname==='\/api\/marketing\/rpc'/);
+  assert.match(server,/strongBoundaryToken\(req,'marketing'\)/);
+  assert.match(server,/sameOriginRequest\(req\)/);
+  assert.match(server,/X-Ascenda-Bridge':'marketing-read-v1'/);
+  assert.match(gatewaySource,/aos_cia_verify_admin_session_v1/);
+  assert.match(gatewaySource,/SUPABASE_SERVICE_ROLE_KEY/);
+  assert.match(gatewaySource,/STALE_MAX_MS=10\*60\*1000/);
+  assert.match(gatewaySource,/const inflight=new Map\(\)/);
+  assert.match(gatewaySource,/let tail=Promise\.resolve\(\)/);
+  assert.equal(SPECS.aos_marketing_lineage_admin_v43.token,true);
+});
+
+test('Marketing server gateway caches, strips unknown args, and can serve bounded stale data',async()=>{
+  let clock=0;
+  let fail=false;
+  const calls=[];
+  const gateway=createMarketingReadGateway({
+    now:()=>clock,
+    rpc:async(name,payload)=>{
+      calls.push({name,payload});
+      if(name==='aos_cia_verify_admin_session_v1')return {status:200,body:{ok:true,user_id:'00000000-0000-0000-0000-000000000001',usuario:'admin'}};
+      if(fail)throw Object.assign(new Error('UPSTREAM_TIMEOUT'),{status:504});
+      return {status:200,body:{personasUnicas:7,marker:'ok'}};
+    }
+  });
+  const token='t'.repeat(40);
+  const first=await gateway.execute({token,name:'aos_marketing_period_summary_v2',payload:{p_fecha_desde:'2026-09-01',p_fecha_hasta:'2026-09-30',evil:'drop-me'}});
+  assert.equal(first.status,200);
+  assert.equal(first.cache,'MISS');
+  assert.equal(calls.filter(x=>x.name==='aos_marketing_period_summary_v2').length,1);
+  const payload=calls.find(x=>x.name==='aos_marketing_period_summary_v2').payload;
+  assert.equal(Object.prototype.hasOwnProperty.call(payload,'evil'),false);
+
+  const second=await gateway.execute({token,name:'aos_marketing_period_summary_v2',payload:{p_fecha_desde:'2026-09-01',p_fecha_hasta:'2026-09-30'}});
+  assert.equal(second.cache,'HIT');
+  assert.equal(calls.filter(x=>x.name==='aos_marketing_period_summary_v2').length,1);
+
+  clock=25000;
+  fail=true;
+  const stale=await gateway.execute({token,name:'aos_marketing_period_summary_v2',payload:{p_fecha_desde:'2026-09-01',p_fecha_hasta:'2026-09-30'}});
+  assert.equal(stale.status,200);
+  assert.equal(stale.cache,'STALE');
+  assert.deepEqual(stale.body,{personasUnicas:7,marker:'ok'});
+
+  const blocked=await gateway.execute({token,name:'aos_marketing_not_real',payload:{}});
+  assert.equal(blocked.status,403);
+  assert.equal(blocked.body.error,'MARKETING_RPC_NOT_ALLOWED');
 });
 
 test('period summary attribution and intent share one serialized monthly lane',()=>{
@@ -81,7 +146,6 @@ test('period summary attribution and intent share one serialized monthly lane',(
   assert.match(boot,/aos_marketing_intent_detail_public_v3:true/);
   assert.match(boot,/aos_marketing_lineage_admin_v43:true/);
   assert.match(boot,/function runMonthly\(/);
-  assert.match(boot,/function withoutSignal\(/);
   assert.match(boot,/monthlyTail=queued\.then/);
   assert.match(boot,/serializedMonthly/);
   assert.match(boot,/waitAnnualDrain/);
