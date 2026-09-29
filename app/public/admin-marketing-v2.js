@@ -24,7 +24,6 @@ if(!G){
   var monthlyTail=Promise.resolve();
   var annualTail=Promise.resolve();
   var lastCriticalSettledAt=Date.now();
-  var initialOperationalHydrationStarted=false;
   var QUIET_MS=3500;
   var RETRY_MS=300;
   var stats={
@@ -250,6 +249,7 @@ if(!G){
     var hit=cache.get(key);
     if(hit&&now-hit.ts<targets[fn]){
       stats.cacheHit++;
+      if(fn==='aos_marketing_period_summary_v2')maybeHydrateInitialOperationalBlocks();
       return Promise.resolve(toResponse(hit.snap));
     }
     if(inflight.has(key)){
@@ -272,11 +272,8 @@ if(!G){
       else stats.failedNotCached++;
       // The legacy HTML starts its first dashboard request before this wrapper is
       // mounted. Once the first governed monthly summary completes, hydrate the
-      // legacy operational tail exactly once through the same server gateway.
-      if(successful(x)&&fn==='aos_marketing_period_summary_v2'&&!initialOperationalHydrationStarted){
-        initialOperationalHydrationStarted=true;
-        Promise.resolve().then(hydrateInitialOperationalBlocks);
-      }
+      // legacy operational tail through the same server gateway.
+      if(successful(x)&&fn==='aos_marketing_period_summary_v2')maybeHydrateInitialOperationalBlocks();
       return x;
     }).finally(function(){inflight.delete(key);});
 
@@ -296,12 +293,22 @@ if(!G){
 }
 
 function loadCore(){
+  // Every Marketing mount gets one operational hydration opportunity. The wrapper
+  // consumes this flag only after the governed summary is available, including
+  // cache-hit remounts, so SPA navigation cannot leave the legacy tail blank.
+  window.__AOS_MKT_OPERATIONAL_HYDRATION_NEEDED=true;
   var old=document.getElementById('aos-marketing-v2-core');if(old)old.remove();
   var s=document.createElement('script');
   s.id='aos-marketing-v2-core';
   s.src='/admin-marketing-v2-core.js?v='+(typeof _APP_VERSION!=='undefined'?_APP_VERSION:Date.now());
   s.onerror=function(){console.error('[ASCENDA] Marketing core load failed');};
   document.head.appendChild(s);
+}
+
+function maybeHydrateInitialOperationalBlocks(){
+  if(window.__AOS_MKT_OPERATIONAL_HYDRATION_NEEDED!==true)return;
+  window.__AOS_MKT_OPERATIONAL_HYDRATION_NEEDED=false;
+  Promise.resolve().then(hydrateInitialOperationalBlocks);
 }
 
 function safeOperationalRender(name,args){
