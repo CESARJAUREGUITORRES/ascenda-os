@@ -6,12 +6,16 @@
 // CALLCENTER P0: expose a separate allowlisted same-origin boundary that reads
 // the HttpOnly Auth V3 session cookie server-side, so mobile/PWA writes do not
 // depend on a stale JavaScript token cache.
+// MARKETING P0: route expensive read-only analytics through an authenticated,
+// cached server boundary so browser anon statement_timeout cannot blank the panel.
 const childProcess=require('child_process')
 const http=require('http')
 const https=require('https')
+const {createMarketingReadGateway}=require('./marketing-read-gateway')
 const originalSpawn=childProcess.spawn
 const originalCreateServer=http.createServer
 const FOREGROUND_PRIORITY_MODE=/^(1|true|yes|on)$/i.test(String(process.env.AOS_FOREGROUND_PRIORITY_MODE||'false'))
+let marketingReadGateway=null
 
 const PRC1_ALLOWED=new Set([
   'aos_product_review_admin_v1',
@@ -60,6 +64,17 @@ function writeBridgeJson(res,status,obj,bridge){
 }
 function writePrc1Json(res,status,obj){writeBridgeJson(res,status,obj,'prc1-server-v1')}
 function writeCallCenterJson(res,status,obj){writeBridgeJson(res,status,obj,'callcenter-cookie-v1')}
+function writeMarketingJson(res,status,obj,cacheState){
+  if(res.headersSent)return
+  res.writeHead(status,{
+    'Content-Type':'application/json; charset=utf-8',
+    'Cache-Control':'no-store',
+    'X-Content-Type-Options':'nosniff',
+    'X-Ascenda-Bridge':'marketing-read-v1',
+    'X-Ascenda-Cache':String(cacheState||'BYPASS')
+  })
+  res.end(JSON.stringify(obj))
+}
 function writePriorityStatus(res){
   writeBridgeJson(res,200,{
     ok:true,
@@ -212,6 +227,30 @@ async function handleAllowlistedRpc(req,res,allowed,writeJson,scope){
 
 function handlePrc1(req,res){return handleAllowlistedRpc(req,res,PRC1_ALLOWED,writePrc1Json,'prc1')}
 function handleCallCenter(req,res){return handleAllowlistedRpc(req,res,CALLCENTER_ALLOWED,writeCallCenterJson,'callcenter')}
+async function handleMarketing(req,res){
+  if(req.method==='OPTIONS'){
+    res.writeHead(204,{
+      'Access-Control-Allow-Methods':'POST,OPTIONS',
+      'Access-Control-Allow-Headers':'Content-Type,X-AOS-App-Token',
+      'Cache-Control':'no-store',
+      'X-Ascenda-Bridge':'marketing-read-v1'
+    })
+    res.end();return
+  }
+  if(req.method!=='POST'){writeMarketingJson(res,405,{ok:false,error:'METHOD_NOT_ALLOWED'},'BYPASS');return}
+  if(!sameOriginRequest(req)){writeMarketingJson(res,403,{ok:false,error:'ORIGIN_NOT_ALLOWED'},'BYPASS');return}
+  const token=strongBoundaryToken(req,'marketing')
+  if(token.length<32){writeMarketingJson(res,401,{ok:false,error:'ADMIN_SESSION_REQUIRED'},'BYPASS');return}
+  try{
+    const body=await readBridgeJson(req)
+    if(!marketingReadGateway)marketingReadGateway=createMarketingReadGateway()
+    const out=await marketingReadGateway.execute({token:token,name:body&&body.name,payload:body&&body.payload})
+    writeMarketingJson(res,out.status||502,out.body,out.cache)
+  }catch(e){
+    console.error('[MARKETING-BRIDGE]',e&&e.message||e)
+    writeMarketingJson(res,e&&e.status||502,{ok:false,error:e&&e.message||'MARKETING_BRIDGE_UNAVAILABLE'},'MISS')
+  }
+}
 
 function installPrc1HttpBoundary(){
   if(http.createServer&&http.createServer.__aosPrc1)return
@@ -224,6 +263,7 @@ function installPrc1HttpBoundary(){
       if(FOREGROUND_PRIORITY_MODE&&pathname==='/api/resend-webhook'&&req.method==='POST'){writeRecoveryWebhookDeferred(req,res);return}
       if(pathname==='/api/prc1/rpc'){handlePrc1(req,res);return}
       if(pathname==='/api/callcenter/rpc'){handleCallCenter(req,res);return}
+      if(pathname==='/api/marketing/rpc'){handleMarketing(req,res);return}
       return listener.call(this,req,res)
     }
   }
@@ -242,4 +282,4 @@ if(require.main===module){
   require('./server-phase-s.js')
 }
 
-module.exports={rewriteChildArgs,installF17Boundary,installPrc1HttpBoundary,handlePrc1,handleCallCenter,strongBoundaryToken,FOREGROUND_PRIORITY_MODE}
+module.exports={rewriteChildArgs,installF17Boundary,installPrc1HttpBoundary,handlePrc1,handleCallCenter,handleMarketing,strongBoundaryToken,FOREGROUND_PRIORITY_MODE}
