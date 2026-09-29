@@ -24,6 +24,7 @@ if(!G){
   var monthlyTail=Promise.resolve();
   var annualTail=Promise.resolve();
   var lastCriticalSettledAt=Date.now();
+  var initialOperationalHydrationStarted=false;
   var QUIET_MS=3500;
   var RETRY_MS=300;
   var stats={
@@ -269,6 +270,13 @@ if(!G){
       // A transient API/database error must never poison the short-lived cache.
       if(successful(x))cache.set(key,{ts:Date.now(),snap:x});
       else stats.failedNotCached++;
+      // The legacy HTML starts its first dashboard request before this wrapper is
+      // mounted. Once the first governed monthly summary completes, hydrate the
+      // legacy operational tail exactly once through the same server gateway.
+      if(successful(x)&&fn==='aos_marketing_period_summary_v2'&&!initialOperationalHydrationStarted){
+        initialOperationalHydrationStarted=true;
+        Promise.resolve().then(hydrateInitialOperationalBlocks);
+      }
       return x;
     }).finally(function(){inflight.delete(key);});
 
@@ -333,10 +341,5 @@ function hydrateInitialOperationalBlocks(){
 }
 
 loadCore();
-// The legacy HTML fires its first dashboard read before this gateway exists. Under
-// anon statement_timeout that first read can fail while V4.3 succeeds, leaving only
-// Gestión/Top Anuncios/Campañas/Ventas blank. Retry those operational blocks once,
-// after the 3s anon timeout window, through the authenticated serialized gateway.
-setTimeout(hydrateInitialOperationalBlocks,3500);
 console.log('[ASCENDA] Marketing P0 server-read gateway mounted');
 })();
