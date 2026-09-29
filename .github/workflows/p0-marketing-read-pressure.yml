@@ -16,6 +16,7 @@ on:
       - 'supabase/rollbacks/20260910233500_marketing_lineage_admin_v43_recovery.sql'
       - 'docs/control/MARKETING_METRIC_DICTIONARY.md'
       - 'ci/performance/marketing-read-pressure.test.js'
+      - 'ci/performance/marketing-read-gateway.test.js'
       - '.github/workflows/p0-marketing-read-pressure.yml'
   workflow_dispatch:
 
@@ -40,8 +41,9 @@ jobs:
           node --check app/marketing-read-gateway.js
           node --check app/server-phase-s-f17.js
           node --check ci/performance/marketing-read-pressure.test.js
+          node --check ci/performance/marketing-read-gateway.test.js
       - name: Marketing performance contracts
-        run: node --test ci/performance/marketing-read-pressure.test.js
+        run: node --test ci/performance/marketing-read-pressure.test.js ci/performance/marketing-read-gateway.test.js
       - name: Read-pressure assertions
         run: |
           set -euo pipefail
@@ -57,6 +59,8 @@ jobs:
           grep -q '2026-09-10-v4.3.1-operational-lineage' "$CORE"
           grep -q 'aos_marketing_lineage_admin_v43' "$BOOT"
           grep -q 'aos_cia_verify_admin_session_v1' "$GATEWAY"
+          grep -q 'MAX_BODY_BYTES=1024\*1024' "$GATEWAY"
+          grep -q "k!=='p_token'" "$GATEWAY"
           grep -q "pathname==='/api/marketing/rpc'" "$SERVER"
           grep -q "aos_app_actor_v3(p_token,'admin-marketing',true)" "$LINEAGE"
           grep -q 'MARKETING_ADMIN_2FA_REQUIRED' "$LINEAGE"
