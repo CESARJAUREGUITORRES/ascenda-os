@@ -20,7 +20,8 @@ const SPECS={
   aos_marketing_historico_public_v2:{keys:['p_anio'],ttl:5*60*1000},
   aos_marketing_ltv_public_v2:{keys:['p_anio'],ttl:5*60*1000},
   aos_marketing_value_map_public_v43:{keys:['p_anio','p_mes'],ttl:5*60*1000},
-  aos_marketing_lineage_admin_v43:{keys:['p_anio','p_mes'],ttl:30000,token:true}
+  aos_marketing_lineage_admin_v43:{keys:['p_anio','p_mes'],ttl:30000,token:true},
+  aos_marketing_web_bookings_admin_v1:{keys:['p_desde','p_hasta','p_filters'],ttl:15000,token:true}
 }
 
 function sha256(value){return crypto.createHash('sha256').update(String(value||'')).digest('hex')}

@@ -6,6 +6,7 @@ on:
     paths:
       - 'app/public/admin-marketing-v2.js'
       - 'app/public/admin-marketing-v2-core.js'
+      - 'app/public/admin-marketing-web-bookings.js'
       - 'app/public/admin-marketing.html'
       - 'app/marketing-read-gateway.js'
       - 'app/server-phase-s-f17.js'
@@ -14,9 +15,11 @@ on:
       - 'supabase/rollbacks/20260910230000_marketing_value_map_v43_recovery.sql'
       - 'supabase/migrations/20260910233500_marketing_lineage_admin_v43.sql'
       - 'supabase/rollbacks/20260910233500_marketing_lineage_admin_v43_recovery.sql'
+      - 'supabase/migrations/20260929234000_marketing_web_booking_lineage_v1.sql'
       - 'docs/control/MARKETING_METRIC_DICTIONARY.md'
       - 'ci/performance/marketing-read-pressure.test.js'
       - 'ci/performance/marketing-read-gateway.test.js'
+      - 'ci/marketing-web-booking-lineage/contract.test.js'
       - '.github/workflows/p0-marketing-read-pressure.yml'
   workflow_dispatch:
 
@@ -38,26 +41,35 @@ jobs:
           set -euo pipefail
           node --check app/public/admin-marketing-v2.js
           node --check app/public/admin-marketing-v2-core.js
+          node --check app/public/admin-marketing-web-bookings.js
           node --check app/marketing-read-gateway.js
           node --check app/server-phase-s-f17.js
           node --check ci/performance/marketing-read-pressure.test.js
           node --check ci/performance/marketing-read-gateway.test.js
+          node --check ci/marketing-web-booking-lineage/contract.test.js
       - name: Marketing performance contracts
-        run: node --test ci/performance/marketing-read-pressure.test.js ci/performance/marketing-read-gateway.test.js
+        run: node --test ci/performance/marketing-read-pressure.test.js ci/performance/marketing-read-gateway.test.js ci/marketing-web-booking-lineage/contract.test.js
       - name: Read-pressure assertions
         run: |
           set -euo pipefail
           BOOT='app/public/admin-marketing-v2.js'
           CORE='app/public/admin-marketing-v2-core.js'
+          WEB='app/public/admin-marketing-web-bookings.js'
           GATEWAY='app/marketing-read-gateway.js'
           SERVER='app/server-phase-s-f17.js'
           LINEAGE='supabase/migrations/20260910233500_marketing_lineage_admin_v43.sql'
+          WEBLINEAGE='supabase/migrations/20260929234000_marketing_web_booking_lineage_v1.sql'
           grep -q 'admin-marketing-v2-core.js' "$BOOT"
+          grep -q 'admin-marketing-web-bookings.js' "$BOOT"
           grep -q "baseFetch('/api/marketing/rpc'" "$BOOT"
           grep -q 'aos_marketing_historico_public_v2' "$BOOT"
           grep -q 'aos_marketing_value_map_public_v43' "$BOOT"
           grep -q '2026-09-10-v4.3.1-operational-lineage' "$CORE"
           grep -q 'aos_marketing_lineage_admin_v43' "$BOOT"
+          grep -q 'aos_marketing_web_bookings_admin_v1' "$GATEWAY"
+          grep -q "name:'aos_marketing_web_bookings_admin_v1'" "$WEB"
+          grep -q 'aos_agendar_publica_landing_v1' "$WEBLINEAGE"
+          grep -q 'aos_landing_booking_attribution' "$WEBLINEAGE"
           grep -q 'aos_cia_verify_admin_session_v1' "$GATEWAY"
           grep -q 'MAX_BODY_BYTES=1024\*1024' "$GATEWAY"
           grep -q "k!=='p_token'" "$GATEWAY"
@@ -65,4 +77,5 @@ jobs:
           grep -q "aos_app_actor_v3(p_token,'admin-marketing',true)" "$LINEAGE"
           grep -q 'MARKETING_ADMIN_2FA_REQUIRED' "$LINEAGE"
           ! grep -Eq 'setInterval[[:space:]]*\(' "$BOOT"
+          ! grep -Eq 'setInterval[[:space:]]*\(' "$WEB"
           echo 'ASCENDA_P0_MARKETING_READ_PRESSURE_PASS'

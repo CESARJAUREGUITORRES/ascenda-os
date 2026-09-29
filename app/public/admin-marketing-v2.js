@@ -435,7 +435,17 @@ function installInvestmentGuards(){
   };
 }
 
+function loadWebBookingsModule(){
+  var old=document.getElementById('aos-marketing-web-bookings');if(old)old.remove();
+  var s=document.createElement('script');
+  s.id='aos-marketing-web-bookings';
+  s.src='/admin-marketing-web-bookings.js?v='+(typeof _APP_VERSION!=='undefined'?_APP_VERSION:Date.now());
+  s.onerror=function(){console.error('[ASCENDA] Citas Web module load failed');};
+  document.head.appendChild(s);
+}
+
 installInvestmentGuards();
 loadCore();
+loadWebBookingsModule();
 console.log('[ASCENDA] Marketing P0 server-read gateway mounted');
 })();
