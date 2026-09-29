@@ -1,12 +1,12 @@
 /* ASCENDA OS — Marketing V4.3 read-pressure bootstrap
  * Shapes the certified V4.3 controller in admin-marketing-v2-core.js.
- * Shapes read pressure only: single-flight, successful-response cache, monthly lane,
- * annual quiescence, startup suppression of obsolete LTV, and one timeout retry.
+ * P0 2026-09-29: expensive reads are routed through the authenticated same-origin
+ * server gateway so browser anon statement_timeout cannot blank the dashboard.
  */
 (function(){
 'use strict';
 
-var RELEASE='2026-09-10-mkt-v4.3.1-ui-lineage';
+var RELEASE='2026-09-29-mkt-server-read-v1';
 var G=window.__AOS_MKT_PERF_V1;
 
 // SPA remounts can keep an older fetch wrapper alive. Upgrade deterministically by
@@ -29,7 +29,7 @@ if(!G){
   var stats={
     network:0,cacheHit:0,coalesced:0,deferred:0,suppressedLegacyLtv:0,
     serializedInsights:0,serializedMonthly:0,annualDeferred:0,timeoutRetries:0,
-    failedNotCached:0
+    failedNotCached:0,gatewayReads:0
   };
   var targets={
     aos_marketing_dashboard:2500,
@@ -139,27 +139,50 @@ if(!G){
   function emptyJsonResponse(){
     return new Response('{}',{status:200,headers:{'Content-Type':'application/json'}});
   }
-  function withoutSignal(init){
-    var x={};
-    Object.keys(init||{}).forEach(function(k){if(k!=='signal')x[k]=init[k];});
-    return x;
+  function appToken(){
+    var t='';
+    try{t=String(sessionStorage.getItem('aos_app_token')||'').trim();}catch(_){}
+    return t.length>=32?t:'';
+  }
+  function payloadFrom(init){
+    var raw=init&&init.body;
+    if(!raw)return {};
+    if(typeof raw==='string'){
+      try{var parsed=JSON.parse(raw);return parsed&&typeof parsed==='object'&&!Array.isArray(parsed)?parsed:{};}catch(_){}
+    }
+    return {};
+  }
+  function gatewayFetch(input,init){
+    var url=typeof input==='string'?input:(input&&input.url)||'';
+    var fn=fnFrom(url);
+    if(!fn)return baseFetch(input,init);
+    var headers={'Content-Type':'application/json','Accept':'application/json'};
+    var token=appToken();if(token)headers['X-AOS-App-Token']=token;
+    stats.gatewayReads++;
+    return baseFetch('/api/marketing/rpc',{
+      method:'POST',
+      credentials:'same-origin',
+      cache:'no-store',
+      headers:headers,
+      body:JSON.stringify({name:fn,payload:payloadFrom(init)})
+    });
   }
   function timeoutSnap(x){
-    return !!(x&&x.status>=500&&(/\"code\"\s*:\s*\"57014\"/i.test(x.body||'')||/statement timeout/i.test(x.body||'')));
+    return !!(x&&x.status>=500&&(/\"code\"\s*:\s*\"57014\"/i.test(x.body||'')||/statement timeout|UPSTREAM_TIMEOUT|timeout manager/i.test(x.body||'')));
   }
   function successful(x){return !!(x&&x.status>=200&&x.status<300);}
   function networkSnap(input,init,signal,allowRetry){
     if(aborted(signal))return Promise.reject(abortError());
     stats.network++;
-    // Once a read reaches PostgREST, let it finish. Browser abort does not reliably
-    // cancel the server statement and can otherwise create hidden overlap.
-    return baseFetch(input,withoutSignal(init)).then(snap).then(function(x){
+    // Once a read reaches the server gateway, let it finish. Browser abort does not
+    // reliably cancel an upstream database statement and can create hidden overlap.
+    return gatewayFetch(input,init).then(snap).then(function(x){
       if(!allowRetry||!timeoutSnap(x))return x;
       stats.timeoutRetries++;
       return sleep(RETRY_MS,signal).then(function(){
         if(aborted(signal))throw abortError();
         stats.network++;
-        return baseFetch(input,withoutSignal(init)).then(snap);
+        return gatewayFetch(input,init).then(snap);
       });
     });
   }
@@ -241,7 +264,7 @@ if(!G){
       if(monthlySerial[fn])return runMonthly(input,init,signal);
       if(criticalReads[fn])return runCritical(input,init,signal);
       stats.network++;
-      return baseFetch(input,init).then(snap);
+      return gatewayFetch(input,init).then(snap);
     }).then(function(x){
       // A transient API/database error must never poison the short-lived cache.
       if(successful(x))cache.set(key,{ts:Date.now(),snap:x});
@@ -274,5 +297,5 @@ function loadCore(){
 }
 
 loadCore();
-console.log('[ASCENDA] Marketing P0 read-pressure bootstrap mounted');
+console.log('[ASCENDA] Marketing P0 server-read gateway mounted');
 })();
