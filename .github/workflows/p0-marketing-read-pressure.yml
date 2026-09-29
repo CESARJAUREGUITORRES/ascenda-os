@@ -7,6 +7,8 @@ on:
       - 'app/public/admin-marketing-v2.js'
       - 'app/public/admin-marketing-v2-core.js'
       - 'app/public/admin-marketing.html'
+      - 'app/marketing-read-gateway.js'
+      - 'app/server-phase-s-f17.js'
       - 'src/admin-marketing.html'
       - 'supabase/migrations/20260910230000_marketing_value_map_v43.sql'
       - 'supabase/rollbacks/20260910230000_marketing_value_map_v43_recovery.sql'
@@ -35,6 +37,8 @@ jobs:
           set -euo pipefail
           node --check app/public/admin-marketing-v2.js
           node --check app/public/admin-marketing-v2-core.js
+          node --check app/marketing-read-gateway.js
+          node --check app/server-phase-s-f17.js
           node --check ci/performance/marketing-read-pressure.test.js
       - name: Marketing performance contracts
         run: node --test ci/performance/marketing-read-pressure.test.js
@@ -43,13 +47,17 @@ jobs:
           set -euo pipefail
           BOOT='app/public/admin-marketing-v2.js'
           CORE='app/public/admin-marketing-v2-core.js'
-          MIG='supabase/migrations/20260910230000_marketing_value_map_v43.sql'
+          GATEWAY='app/marketing-read-gateway.js'
+          SERVER='app/server-phase-s-f17.js'
           LINEAGE='supabase/migrations/20260910233500_marketing_lineage_admin_v43.sql'
           grep -q 'admin-marketing-v2-core.js' "$BOOT"
+          grep -q "baseFetch('/api/marketing/rpc'" "$BOOT"
           grep -q 'aos_marketing_historico_public_v2' "$BOOT"
           grep -q 'aos_marketing_value_map_public_v43' "$BOOT"
           grep -q '2026-09-10-v4.3.1-operational-lineage' "$CORE"
           grep -q 'aos_marketing_lineage_admin_v43' "$BOOT"
+          grep -q 'aos_cia_verify_admin_session_v1' "$GATEWAY"
+          grep -q "pathname==='/api/marketing/rpc'" "$SERVER"
           grep -q "aos_app_actor_v3(p_token,'admin-marketing',true)" "$LINEAGE"
           grep -q 'MARKETING_ADMIN_2FA_REQUIRED' "$LINEAGE"
           ! grep -Eq 'setInterval[[:space:]]*\(' "$BOOT"
