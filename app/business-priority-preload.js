@@ -56,12 +56,23 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     if (p.indexOf('/rest/v1/rpc/aos_notification_push_claim_v1') === 0) return 'notification-push-claim'
     if (p.indexOf('/rest/v1/rpc/aos_push_vapid_config_v1') === 0) return 'notification-vapid-config'
     if (p.indexOf('/rest/v1/rpc/aos_push_vapid_store_v1') === 0) return 'notification-vapid-store'
+    if (p.indexOf('/rest/v1/rpc/aos_push_vapid_runtime_config_v2') === 0) return 'notification-vapid-runtime-config'
     if (p.indexOf('/rest/v1/rpc/aos_google_claim_sync_v1') === 0) return 'google-sync-claim'
     if (p.indexOf('/rest/v1/aos_f5_private_file_transport_tmp?') === 0 && p.indexOf('status=in.(READY,PROCESSING)') >= 0) return 'f5-recovery-scan'
     if (p.indexOf('/rest/v1/aos_email_plantillas?') === 0 && p.indexOf('activo=eq.true') >= 0) return 'email-template-cache'
     if (p.indexOf('/rest/v1/aos_usuarios?') === 0 && p.indexOf('select=nombre,apellidos,cmp') >= 0 && p.indexOf('cmp=neq.') >= 0) return 'medical-cmp-cache'
     if (p.indexOf('/rest/v1/rpc/aos_generar_snapshot') === 0) return 'global-snapshot'
     if (p.indexOf('/rest/v1/aos_configuracion?') === 0 && (p.indexOf('select=clave%2Cvalor') >= 0 || p.indexOf('select=clave,valor') >= 0)) return 'brand-config-cache'
+
+    // WA4 provider/bootstrap reads are optional while Auth/REST is recovering.
+    // They previously continued every startup/retry cycle and were observed as
+    // repeated 504s immediately alongside login failures. Match only read-shaped
+    // catalog/secret lookups; governed WA writes and conversation RPCs stay live.
+    if (p.indexOf('/rest/v1/aos_integration_secrets_v1?') === 0) return 'wa4-provider-secret-cache'
+    if (p.indexOf('/rest/v1/aos_integraciones?') === 0 && p.indexOf('select=api_key') >= 0) return 'wa4-provider-fallback-cache'
+    if (p.indexOf('/rest/v1/aos_wa_auto_authority_v1?select=mode') === 0) return 'wa4-authority-bootstrap'
+    if (p.indexOf('/rest/v1/aos_wa_ai_control_v1?select=copilot_enabled') === 0) return 'wa4-ai-bootstrap'
+    if (p.indexOf('/rest/v1/aos_wa_routing_control_v1?select=ai_send_enabled') === 0) return 'wa4-routing-bootstrap'
     return ''
   }
 
@@ -76,9 +87,6 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   function isForegroundEssential() {
-    // Emergency foreground recovery has no background exception. Reminder cron
-    // must not be able to starve Auth during the same incident it is meant to
-    // survive. Normal mode still runs reminders when the DB is healthy.
     return false
   }
 
@@ -112,9 +120,6 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     const k = keyState(key)
     k.failures += 1
     k.lastFailureAt = now
-    // One slow background request is enough to yield meaningful breathing room.
-    // A repeated failure extends recovery, preventing a 60s cron/pump from
-    // repeatedly reopening pressure while Auth is trying to recover.
     const wait = k.failures >= 2 ? 1800000 : 600000
     s.lastKey = key
     s.openUntil = Math.max(s.openUntil, now + wait)
@@ -216,7 +221,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   global.__AOS_BUSINESS_PRIORITY_V1__ = {
-    version: 'p0-a-v2.0-auth-first-budget',
+    version: 'p0-a-v2.1-auth-first-wa-bootstrap-shed',
     states: states,
     shieldKey: SHIELD_KEY,
     classify: classify,
@@ -233,6 +238,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     backgroundRequestBudgetMs: BACKGROUND_REQUEST_BUDGET_MS,
     emergencyBackgroundLane: 'NONE',
     notificationPump: FOREGROUND_PRIORITY_MODE ? 'PAUSED' : 'BUDGETED',
-    reminderCron: FOREGROUND_PRIORITY_MODE ? 'PAUSED' : 'BUDGETED'
+    reminderCron: FOREGROUND_PRIORITY_MODE ? 'PAUSED' : 'BUDGETED',
+    waBootstrap: FOREGROUND_PRIORITY_MODE ? 'PAUSED' : 'BUDGETED'
   })
 }
