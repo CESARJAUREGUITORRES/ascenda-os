@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 
-var RELEASE='2026-09-29-mkt-server-read-v1';
+var RELEASE='2026-09-29-mkt-investment-v2';
 var G=window.__AOS_MKT_PERF_V1;
 
 // SPA remounts can keep an older fetch wrapper alive. Upgrade deterministically by
@@ -337,6 +337,10 @@ function hydrateInitialOperationalBlocks(){
     return r.json();
   }).then(function(d){
     if(!d||d.error)return;
+    // The governed V4 summary does not own spend KPIs. Rehydrate them from the
+    // canonical dashboard together with the legacy operational tail.
+    safeOperationalRender('rKPI',[d.kpis||{}]);
+    safeOperationalRender('rEmb',[d.embudo||{}]);
     safeOperationalRender('rGest',[d.gestion||{}]);
     safeOperationalRender('rAn',[Array.isArray(d.porAnuncio)?d.porAnuncio:[]]);
     safeOperationalRender('rCamp',[Array.isArray(d.porTratamiento)?d.porTratamiento:[]]);
@@ -347,6 +351,91 @@ function hydrateInitialOperationalBlocks(){
   });
 }
 
+function installInvestmentGuards(){
+  if(window.__AOS_MKT_INVESTMENT_GUARD_V1)return;
+  window.__AOS_MKT_INVESTMENT_GUARD_V1=true;
+  var saving=false;
+
+  // Removing a row is now local until Guardar. Cancelar therefore really cancels.
+  window.ivDel=function(btn){
+    if(!btn||!btn.parentNode)return;
+    btn.parentNode.remove();
+    if(typeof window.ivCalc==='function')window.ivCalc();
+  };
+
+  window.ivSave=function(){
+    if(saving)return;
+    var monthEl=document.getElementById('iv-m');
+    var yearEl=document.getElementById('iv-a');
+    var list=document.getElementById('iv-list');
+    if(!monthEl||!yearEl||!list)return;
+
+    var m=Number(monthEl.value),a=Number(yearEl.value);
+    var monthNames=window.MF||[];
+    var mn=String(monthNames[m]||'').toUpperCase();
+    var rows=[];
+    var seen=Object.create(null);
+    var duplicate='';
+
+    list.querySelectorAll('.iv-row').forEach(function(row){
+      var tr=row.querySelector('[data-field=tratamiento]');
+      var pl=row.querySelector('[data-field=plataforma]');
+      var iv=row.querySelector('[data-field=inversion]');
+      if(!tr||!pl||!iv)return;
+      var t=String(tr.value||'').trim().toUpperCase();
+      var p=String(pl.value||'').trim().toUpperCase();
+      var v=Number(iv.value)||0;
+      if(v<=0)return;
+      var key=t+'|'+p;
+      if(seen[key]){duplicate=t+' / '+p;return;}
+      seen[key]=true;
+      rows.push({tratamiento:t,mes:mn,anio:a,inversion:v,mes_num:m,plataforma:p});
+    });
+
+    if(duplicate){
+      alert('Hay una fila repetida: '+duplicate+'. Deja una sola inversión por tratamiento y red social.');
+      return;
+    }
+
+    var btn=document.querySelector('#m-iv .mbtn-p');
+    saving=true;
+    if(btn){btn.disabled=true;btn.dataset.oldText=btn.textContent;btn.textContent='Guardando…';}
+
+    function ensureOk(resp){
+      if(!resp||resp.ok)return resp;
+      return resp.text().then(function(txt){throw new Error('INVESTMENT_HTTP_'+resp.status+(txt?': '+txt.slice(0,180):''));});
+    }
+
+    var deleteReq=window.rest('aos_inversion_campanas?mes_num=eq.'+m+'&anio=eq.'+a,{method:'DELETE'}).then(ensureOk);
+    deleteReq.then(function(){
+      if(!rows.length)return null;
+      return window.fetch(window.SB+'/rest/v1/aos_inversion_campanas',{
+        method:'POST',
+        headers:{
+          'apikey':window.SK,
+          'Authorization':'Bearer '+window.SK,
+          'Content-Type':'application/json',
+          'Prefer':'return=minimal'
+        },
+        body:JSON.stringify(rows)
+      }).then(ensureOk);
+    }).then(function(){
+      var perf=window.__AOS_MKT_PERF_V1;
+      if(perf&&typeof perf.clear==='function')perf.clear();
+      var modal=document.getElementById('m-iv');if(modal)modal.classList.remove('open');
+      if(typeof window.mkL==='function')window.mkL();
+    }).catch(function(e){
+      console.error('[ASCENDA] Marketing investment save failed',e);
+      alert('No se pudo guardar la inversión. Los datos no se duplicaron. Vuelve a intentarlo.');
+      if(typeof window.ivLd==='function')window.ivLd();
+    }).finally(function(){
+      saving=false;
+      if(btn){btn.disabled=false;btn.textContent=btn.dataset.oldText||'💾 Guardar';}
+    });
+  };
+}
+
+installInvestmentGuards();
 loadCore();
 console.log('[ASCENDA] Marketing P0 server-read gateway mounted');
 })();
