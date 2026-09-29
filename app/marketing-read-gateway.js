@@ -4,7 +4,7 @@ const crypto=require('crypto')
 const https=require('https')
 
 const DEFAULT_SB_URL='https://ituyqwstonmhnfshnaqz.supabase.co'
-const MAX_BODY_BYTES=262144
+const MAX_BODY_BYTES=1024*1024
 const UPSTREAM_TIMEOUT_MS=15000
 const AUTH_TTL_MS=60000
 const STALE_MAX_MS=10*60*1000
@@ -89,6 +89,7 @@ function createMarketingReadGateway(config){
   const cache=new Map()
   const inflight=new Map()
   const authCache=new Map()
+  const authInflight=new Map()
   let tail=Promise.resolve()
 
   async function verifyAdmin(token){
@@ -97,20 +98,27 @@ function createMarketingReadGateway(config){
     const key=sha256(token)
     const hit=authCache.get(key)
     if(hit&&now()-hit.ts<AUTH_TTL_MS)return hit.actor
-    let out
-    try{out=await requester('aos_cia_verify_admin_session_v1',{p_token:token})}
-    catch(e){return {ok:false,status:e&&e.status||503,error:e&&e.message||'AUTH_UPSTREAM_UNAVAILABLE'}}
-    const body=out&&out.body
-    if(!out||out.status>=300||!body||body.ok!==true||!body.user_id)return {ok:false,status:401,error:'ADMIN_SESSION_REQUIRED'}
-    const actor={ok:true,status:200,user_id:String(body.user_id),usuario:String(body.usuario||'')}
-    authCache.set(key,{ts:now(),actor:actor})
-    if(authCache.size>64){const first=authCache.keys().next();if(!first.done)authCache.delete(first.value)}
-    return actor
+    if(authInflight.has(key))return authInflight.get(key)
+
+    const pending=(async function(){
+      let out
+      try{out=await requester('aos_cia_verify_admin_session_v1',{p_token:token})}
+      catch(e){return {ok:false,status:e&&e.status||503,error:e&&e.message||'AUTH_UPSTREAM_UNAVAILABLE'}}
+      const body=out&&out.body
+      if(!out||out.status>=300||!body||body.ok!==true||!body.user_id)return {ok:false,status:401,error:'ADMIN_SESSION_REQUIRED'}
+      const actor={ok:true,status:200,user_id:String(body.user_id),usuario:String(body.usuario||'')}
+      authCache.set(key,{ts:now(),actor:actor})
+      if(authCache.size>64){const first=authCache.keys().next();if(!first.done)authCache.delete(first.value)}
+      return actor
+    })().finally(function(){authInflight.delete(key)})
+
+    authInflight.set(key,pending)
+    return pending
   }
 
   function cacheKey(name,payload,actor){
     const ordered={}
-    Object.keys(payload||{}).sort().forEach(function(k){ordered[k]=payload[k]})
+    Object.keys(payload||{}).sort().forEach(function(k){if(k!=='p_token')ordered[k]=payload[k]})
     return name+'|'+actor.user_id+'|'+JSON.stringify(ordered)
   }
 
@@ -167,7 +175,7 @@ function createMarketingReadGateway(config){
     execute:execute,
     allowedNames:function(){return Object.keys(SPECS)},
     cacheSize:function(){return cache.size},
-    clear:function(){cache.clear();inflight.clear();authCache.clear()}
+    clear:function(){cache.clear();inflight.clear();authCache.clear();authInflight.clear()}
   }
 }
 
