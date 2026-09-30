@@ -2,7 +2,7 @@
 
 const https = require('https')
 
-const VERSION = '1.0.1'
+const VERSION = '1.0.2'
 const SITE = 'SAN ISIDRO'
 const PREFIX = '/api/ascenda-connect/booking/v1'
 const ALLOWED_ORIGINS = new Set(['https://zivital.pe', 'https://www.zivital.pe'])
@@ -264,11 +264,40 @@ function createBookingConnectV1(opts) {
   const confirmationHandler = typeof opts.confirmationHandler === 'function' ? opts.confirmationHandler : null
   const rpc = opts.rpc || ((name, payload) => supabaseRequest(sb, key, '/rest/v1/rpc/' + encodeURIComponent(name), 'POST', payload || {}))
   const get = opts.get || (path => supabaseRequest(sb, key, '/rest/v1/' + path, 'GET'))
+  const readCache = new Map()
+  const readInflight = new Map()
 
-  async function loadCatalog() { return rpc('aos_booking_public_catalog_v2', {}) }
+  function cachedRead(cacheKey, ttlMs, loader) {
+    const now = Date.now()
+    const hit = readCache.get(cacheKey)
+    if (hit && now - hit.ts < ttlMs) return Promise.resolve(hit.value)
+    if (readInflight.has(cacheKey)) return readInflight.get(cacheKey)
+    const pending = Promise.resolve().then(loader).then(value => {
+      readCache.set(cacheKey, { ts: Date.now(), value })
+      if (readCache.size > 128) {
+        for (const [k, v] of readCache) {
+          if (Date.now() - v.ts > 2 * 60 * 1000) readCache.delete(k)
+          if (readCache.size <= 96) break
+        }
+      }
+      return value
+    }).finally(() => readInflight.delete(cacheKey))
+    readInflight.set(cacheKey, pending)
+    return pending
+  }
+
+  function invalidateDaysCache() {
+    for (const k of readCache.keys()) if (k.startsWith('days:')) readCache.delete(k)
+  }
+
+  async function loadCatalog() {
+    return cachedRead('catalog', 60 * 1000, () => rpc('aos_booking_public_catalog_v2', {}))
+  }
   async function loadProfiles() {
-    const rows = await get('aos_perfiles_profesional?visible=eq.true&order=orden&select=id,nombre_publico,foto_url,especialidad,cmp,tipo,servicios,orden,visible')
-    return Array.isArray(rows) ? rows : []
+    return cachedRead('profiles', 60 * 1000, async () => {
+      const rows = await get('aos_perfiles_profesional?visible=eq.true&order=orden&select=id,nombre_publico,foto_url,especialidad,cmp,tipo,servicios,orden,visible')
+      return Array.isArray(rows) ? rows : []
+    })
   }
   async function findEntry(id) {
     const raw = await loadCatalog()
@@ -312,9 +341,11 @@ function createBookingConnectV1(opts) {
           if (!providerId) return json(res, 400, { ok: false, error: 'PROVIDER_REQUIRED' }, origin)
           const p = await findProfile(providerId)
           if (!p || roleOfProfile(p) !== 'DOCTORA' || !profileSupports(p, entry.nombre)) return json(res, 409, { ok: false, error: 'PROVIDER_NOT_ELIGIBLE' }, origin)
-          days = await rpc('aos_booking_provider_days_v3', { p_profesional_id: providerId, p_anio: Number(d.year), p_mes: Number(d.month), p_sede: SITE })
+          const cacheKey = ['days','DOCTORA',providerId,Number(d.year),Number(d.month),SITE].join(':')
+          days = await cachedRead(cacheKey, 20 * 1000, () => rpc('aos_booking_provider_days_v3', { p_profesional_id: providerId, p_anio: Number(d.year), p_mes: Number(d.month), p_sede: SITE }))
         } else {
-          days = await rpc('aos_booking_pool_days_v3', { p_role: 'ENFERMERIA', p_anio: Number(d.year), p_mes: Number(d.month), p_sede: SITE })
+          const cacheKey = ['days','ENFERMERIA',Number(d.year),Number(d.month),SITE].join(':')
+          days = await cachedRead(cacheKey, 20 * 1000, () => rpc('aos_booking_pool_days_v3', { p_role: 'ENFERMERIA', p_anio: Number(d.year), p_mes: Number(d.month), p_sede: SITE }))
         }
         return json(res, 200, { ok: true, days: Array.isArray(days) ? days.map(x => String(x).slice(0, 10)) : [] }, origin)
       }
@@ -389,6 +420,7 @@ function createBookingConnectV1(opts) {
           p_tipo_cita: appointmentType
         })
         if (!r || !r.ok) return json(res, 409, { ok: false, error: cleanText((r && r.error) || 'BOOKING_REJECTED', 120) }, origin)
+        invalidateDaysCache()
         return json(res, 200, { ok: true, agenda_id: cleanText(r.agenda_id, 80), source_channel: cleanText(r.source_channel, 40), source_campaign: cleanText(r.source_campaign, 100), advisor_code: cleanText(r.advisor_code, 100) }, origin)
       }
 
