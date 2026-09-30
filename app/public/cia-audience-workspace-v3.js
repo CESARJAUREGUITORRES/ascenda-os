@@ -10,7 +10,9 @@ window.__ASCENDA_CIA_AUDIENCE_WORKSPACE_V3__=true;
 var state={
   meta:null,boot:null,library:null,tab:'audiences',category:'ALL',query:'',
   selected:null,preview:[],advisor:null,canary:null,armedUntil:0,
-  activity:null,release:null,planner:null,plannerTargets:[],plannerStrategy:'EQUAL',plannerLimit:100,plannerAll:false,testOpen:false,controllers:{},seq:{}
+  activity:null,release:null,planner:null,plannerTargets:[],plannerStrategy:'EQUAL',plannerLimit:100,plannerAll:false,testOpen:false,controllers:{},seq:{},
+  prepared:null,
+  builder:{name:'',description:'',rules:[{field:'acquisition.web_booking_count',operator:'gt',value:'0'}],count:null,preview:[],busy:false,lastDsl:null}
 };
 
 var CAT={
@@ -24,6 +26,7 @@ var CAT={
   EMAIL:{label:'Email',icon:'@'},
   DEMOGRAPHIC:{label:'Demografía',icon:'◉'},
   CONTACT:{label:'Calidad de datos',icon:'✓'},
+  ACQUISITION:{label:'Adquisición',icon:'🌐'},
   CRM:{label:'CRM y sede',icon:'⌂'},
   CUSTOM:{label:'Personalizadas',icon:'◇'}
 };
@@ -65,7 +68,7 @@ function rpc(action,payload,opt){
   }else if(a==='EXPORT_CSV_FAST'){
     endpoint='aos_cia_workspace_export_app_v2';
     body={p_app_token:t,p_preset_key:payload.preset_key||null,p_all_contacts:!!payload.all_contacts,p_filename:payload.filename||'audiencia'};
-  }else if(a==='DISTRIBUTION_PREVIEW'){
+  }else if(a==='DISTRIBUTION_PREVIEW'&&payload.preset_key){
     endpoint='aos_cia_distribution_preview_app_v2';
     body={p_app_token:t,p_preset_key:payload.preset_key||null,p_source_limit:payload.source_limit||100,p_all_available:!!payload.all_available,p_targets:payload.targets||[]};
   }
@@ -163,7 +166,7 @@ function switchTab(tab){
 function presets(){return state.meta&&Array.isArray(state.meta.presets)?state.meta.presets:[]}
 function categoryCounts(){var out={};presets().forEach(function(p){out[p.category]=(out[p.category]||0)+1});return out}
 function categories(){
-  var cc=categoryCounts(),keys=['ALL','CALL','LEAD','APPOINTMENT','FOLLOWUP','SEGMENT','SALE','EMAIL','DEMOGRAPHIC','CONTACT'];
+  var cc=categoryCounts(),keys=['ALL','ACQUISITION','CALL','LEAD','APPOINTMENT','FOLLOWUP','SEGMENT','SALE','EMAIL','DEMOGRAPHIC','CONTACT'];
   return keys.filter(function(k){return k==='ALL'||cc[k]});
 }
 function filteredPresets(){
