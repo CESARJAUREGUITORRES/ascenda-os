@@ -515,6 +515,48 @@ function revalidateAdminSessionContext() {
     });
 }
 
+/* ===== AUTH V3 LIVE EXPIRY =====
+   Mantiene el TTL servidor de 8h. Solo sincroniza UX con la autoridad real. */
+function aosSessionExpiryMs(){
+  try{
+    var exact=sessionStorage.getItem('aos_app_expires_at');
+    var t=exact?Date.parse(exact):NaN;
+    if(Number.isFinite(t))return t;
+    var s=JSON.parse(localStorage.getItem('aos_session')||'{}');
+    return Number(s.expires)||0;
+  }catch(_e){return 0}
+}
+function aosClearSessionTimers(){
+  if(AOS.sessionWarnTimer){clearTimeout(AOS.sessionWarnTimer);AOS.sessionWarnTimer=null}
+  if(AOS.sessionExpiryTimer){clearTimeout(AOS.sessionExpiryTimer);AOS.sessionExpiryTimer=null}
+}
+function aosHandleSessionExpired(){
+  if(window.__AOS_SESSION_EXPIRED__)return;
+  window.__AOS_SESSION_EXPIRED__=true;
+  aosClearSessionTimers();
+  try{
+    sessionStorage.removeItem('aos_app_token');
+    sessionStorage.removeItem('aos_app_expires_at');
+    sessionStorage.removeItem('aos_si_token');
+    sessionStorage.removeItem('aos_si_expires_at');
+    localStorage.removeItem('aos_session');
+  }catch(_e){}
+  try{if(window.AOS_showToast)AOS_showToast('🔐 Sesión vencida','Vuelve a iniciar sesión para continuar. No se guardó ninguna operación.','toast-alerta')}catch(_e2){}
+  setTimeout(function(){redirectLogin();},1800);
+}
+function aosScheduleSessionExpiry(){
+  aosClearSessionTimers();
+  var exp=aosSessionExpiryMs(),now=Date.now();
+  if(!exp||exp<=now){aosHandleSessionExpired();return}
+  var warnAt=exp-now-5*60*1000;
+  if(warnAt>0)AOS.sessionWarnTimer=setTimeout(function(){
+    if(window.AOS_showToast)AOS_showToast('⏳ Sesión por vencer','Tu sesión vence en 5 minutos. Finaliza o guarda tu gestión.','toast-alerta');
+  },warnAt);
+  AOS.sessionExpiryTimer=setTimeout(aosHandleSessionExpired,Math.max(0,exp-now+250));
+}
+window.AOS_handleSessionExpired=aosHandleSessionExpired;
+window.AOS_scheduleSessionExpiry=aosScheduleSessionExpiry;
+
 /* ===== INIT — se ejecuta al final del script via setTimeout para garantizar que todas las funciones estén definidas ===== */
 setTimeout(function() {
   try {
@@ -565,6 +607,7 @@ setTimeout(function() {
     }
     AOS.role = AOS.ctx.role;
   } catch(e) { redirectLogin(); return; }
+  aosScheduleSessionExpiry();
   
   buildTopbar(); startClock();
   
@@ -1766,8 +1809,11 @@ function doLogout() {
   setTimeout(function() { redirectLogin(); }, 400);
 }
 function redirectLogin() {
+  aosClearSessionTimers();
   try {
     sessionStorage.removeItem('aos_token');
+    sessionStorage.removeItem('aos_app_token');
+    sessionStorage.removeItem('aos_app_expires_at');
     sessionStorage.removeItem('aos_si_token');
     sessionStorage.removeItem('aos_si_expires_at');
     localStorage.removeItem('aos_session');
