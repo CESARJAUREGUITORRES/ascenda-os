@@ -198,15 +198,18 @@ function audienceRows(){
 }
 function previewTable(){
   var a=state.preview;if(!Array.isArray(a)||!a.length)return '<div class="aw-empty">Pulsa <b>Ver 25 contactos</b> para revisar miembros actuales.</div>';
-  return '<table><thead><tr><th>Contacto</th><th>Estado</th><th>Valor</th><th>Señal</th></tr></thead><tbody>'+a.map(function(x){
-    var name=x.name||x.contact_name||x.contact_key||'Contacto',email=x.email||x.canonical_email||'',status=x.lifecycle||x.latest_call_status||'—',value=x.value_tier||'—',signal=x.latest_interest||x.next_appointment_at||'—';
-    return '<tr><td><b>'+esc(name)+'</b><div class="aw-muted">'+esc(x.contact_key||'')+(email?' · '+esc(email):'')+'</div></td><td>'+esc(status)+'</td><td>'+esc(value)+'</td><td>'+esc(signal)+'</td></tr>';
+  return '<table><thead><tr><th>Contacto</th><th>Estado</th><th>Valor</th><th>Origen / señal</th></tr></thead><tbody>'+a.map(function(x){
+    var name=x.name||x.contact_name||x.contact_key||'Contacto',email=x.email||x.canonical_email||'',status=x.lifecycle||x.latest_call_status||'—',value=x.value_tier||'—';
+    var origin=[x.latest_platform,x.latest_campaign_name,x.latest_landing_name,x.latest_ad_name].filter(Boolean).join(' · ');
+    var signal=origin||x.latest_treatment||x.latest_interest||x.next_appointment_at||'—';
+    var web=x.web_booking_count?'<div class="aw-muted">🌐 '+fmt(x.web_booking_count)+' reserva(s) web</div>':'';
+    return '<tr><td><b>'+esc(name)+'</b><div class="aw-muted">'+esc(x.contact_key||'')+(email?' · '+esc(email):'')+'</div></td><td>'+esc(status)+'</td><td>'+esc(value)+'</td><td>'+esc(signal)+web+'</td></tr>';
   }).join('')+'</tbody></table>';
 }
 function detailHtml(){
   var s=state.selected;if(!s)return '<div class="aw-detail-empty"><div><b>Selecciona una audiencia</b><br><br>Aquí podrás revisar sus contactos, descargar CSV o usarla en una distribución.</div></div>';
   var count=currentCount(s),fresh=currentFresh(s),c=s.__all?{label:'Base completa'}:cat(s.category);
-  return '<div class="aw-badge">'+esc(c.label)+'</div><div class="aw-detail-title" style="margin-top:8px">'+esc(s.name)+'</div><div class="aw-detail-copy">'+esc(s.description||'')+'</div><div class="aw-detail-count">'+(count==null?'—':fmt(count))+' <small>contactos</small></div><div class="aw-detail-meta">Conteo: '+esc(fresh?dt(fresh):'pendiente de actualización')+'</div><div class="aw-detail-actions"><button id="aw-preview-btn" class="aw-btn aw-primary">Ver 25 contactos</button><button id="aw-export-btn" class="aw-btn aw-secondary">Descargar CSV</button><button id="aw-use-btn" class="aw-btn aw-success wide" '+(s.__all?'disabled':'')+'>Usar en distribución</button></div><div id="aw-preview" class="aw-preview">'+previewTable()+'</div>';
+  return '<div class="aw-badge">'+esc(c.label)+'</div><div class="aw-detail-title" style="margin-top:8px">'+esc(s.name)+'</div><div class="aw-detail-copy">'+esc(s.description||'')+'</div><div class="aw-detail-count">'+(count==null?'—':fmt(count))+' <small>contactos</small></div><div class="aw-detail-meta">Conteo: '+esc(fresh?dt(fresh):'pendiente de actualización')+'</div><div class="aw-detail-actions"><button id="aw-preview-btn" class="aw-btn aw-primary">Ver 25 contactos</button><button id="aw-export-btn" class="aw-btn aw-secondary">Descargar CSV</button><button id="aw-use-btn" class="aw-btn aw-success wide" '+(s.__all?'disabled':'')+'>Usar audiencia</button></div><div id="aw-preview" class="aw-preview">'+previewTable()+'</div>';
 }
 function renderAudiences(){
   var root=document.getElementById('aw-view-audiences');if(!root)return;
@@ -226,7 +229,7 @@ function selectAudience(key){
 }
 function bindDetail(){
   var p=document.getElementById('aw-preview-btn'),e=document.getElementById('aw-export-btn'),u=document.getElementById('aw-use-btn');
-  if(p)p.onclick=loadPreview;if(e)e.onclick=downloadSelected;if(u)u.onclick=function(){state.planner=null;switchTab('distribution');toast('Audiencia lista para distribución')};
+  if(p)p.onclick=loadPreview;if(e)e.onclick=downloadSelected;if(u)u.onclick=prepareSelectedForDistribution;
 }
 function refreshCatalog(){
   var b=document.getElementById('aw-refresh');if(!b)return;b.disabled=true;b.textContent='Actualizando…';
@@ -280,6 +283,14 @@ function ensurePersisted(){
   return rpc('CREATE_AUDIENCE',{name:s.name,description:s.description||'',filter:s.dsl,reason:'CIA_WORKSPACE_V3_DISTRIBUTION'},{key:'persist'}).then(function(d){
     var a=normalizeAudience(d.audience||d);s.persisted=a;return loadLibrary().then(function(){return a});
   });
+}
+function prepareSelectedForDistribution(){
+  var s=state.selected,b=document.getElementById('aw-use-btn');if(!s||s.__all)return;
+  if(b){b.disabled=true;b.textContent='Preparando…'}
+  ensurePersisted().then(function(a){
+    state.prepared={audience_id:a.id,version:a.version||1,name:s.name,count:currentCount(s),prepared_at:new Date().toISOString()};
+    state.planner=null;switchTab('distribution');toast('Audiencia preparada; el snapshot se congelará al activar');
+  }).catch(report).then(function(){var x=document.getElementById('aw-use-btn');if(x){x.disabled=false;x.textContent='Usar audiencia'}});
 }
 function advisors(){var a=state.boot&&Array.isArray(state.boot.advisors)?state.boot.advisors:[];return a.filter(function(x){return Array.isArray(x.panels)&&x.panels.indexOf('advisor-calls')>=0})}
 function canaryText(){
