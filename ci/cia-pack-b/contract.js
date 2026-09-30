@@ -12,7 +12,7 @@ const reliability=read('supabase/migrations/20260918231000_cia_workspace_canary_
 const distUx=read('supabase/migrations/20260919003000_cia_distribution_ux_v2.sql')
 const cc72=read('supabase/migrations/20260921193000_cc_rolling_72h_workspace_io_v2.sql')
 
-ok(shell.includes('/cia-audience-workspace-v3.js?v=20260921-1'),'Audience Workspace V3 loader/cache-bust missing')
+ok(shell.includes('/cia-audience-workspace-v3.js?v=20260930-a3'),'Audience Workspace V3 loader/cache-bust missing')
 ok(!shell.includes('/cia-audience-control-center-v1.js?v=20260917-3'),'legacy Audience Center must not be the active shell asset')
 ok(shell.includes('__AOS_CIA_INSTALL_AUDIENCE_BUTTON_V1__'),'shared shell observer must own CIA button install')
 
@@ -31,6 +31,8 @@ ok(!workspace.includes('confirm('),'native confirm is forbidden for assignment a
 ok(!workspace.includes('setInterval('),'Audience Workspace must not poll')
 ok(!workspace.includes('Human Canary')&&!workspace.includes('readback técnico')&&!workspace.includes('resolver v2'),'engineering labels must not leak into normal admin UX')
 ok(workspace.includes('Audiencias')&&workspace.includes('Distribución')&&workspace.includes('Actividad')&&workspace.includes('Explorar'),'product workspaces missing')
+ok(workspace.includes("ACQUISITION:{label:'Adquisición'")&&workspace.includes('Constructor de audiencia'),'Acquisition Workspace A3 missing')
+ok(workspace.includes('Usar audiencia')&&workspace.includes('snapshot se congelará al activar'),'A4 prepare-to-distribution UX missing')
 ok(workspace.includes('loadMeta().catch')&&workspace.includes('loadBoot();loadLibrary();'),'catalog must load independently from bootstrap/library')
 
 ok(catalog.includes('aos_audience_preset_runtime_cache_v1'),'catalog count cache missing')
