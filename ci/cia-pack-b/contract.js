@@ -11,6 +11,8 @@ const catalog=read('supabase/migrations/20260918015000_cia_audience_workspace_v3
 const reliability=read('supabase/migrations/20260918231000_cia_workspace_canary_io_v1.sql')
 const distUx=read('supabase/migrations/20260919003000_cia_distribution_ux_v2.sql')
 const cc72=read('supabase/migrations/20260921193000_cc_rolling_72h_workspace_io_v2.sql')
+const a3=read('supabase/migrations/20260930205500_cia_a3_acquisition_builder_support_v1.sql')
+const a3Explain=read('supabase/migrations/20260930205800_cia_a3_acquisition_explain_v1.sql')
 
 ok(shell.includes('/cia-audience-workspace-v3.js?v=20260930-a3'),'Audience Workspace V3 loader/cache-bust missing')
 ok(!shell.includes('/cia-audience-control-center-v1.js?v=20260917-3'),'legacy Audience Center must not be the active shell asset')
@@ -33,6 +35,8 @@ ok(!workspace.includes('Human Canary')&&!workspace.includes('readback técnico')
 ok(workspace.includes('Audiencias')&&workspace.includes('Distribución')&&workspace.includes('Actividad')&&workspace.includes('Explorar'),'product workspaces missing')
 ok(workspace.includes("ACQUISITION:{label:'Adquisición'")&&workspace.includes('Constructor de audiencia'),'Acquisition Workspace A3 missing')
 ok(workspace.includes('Usar audiencia')&&workspace.includes('snapshot se congelará al activar'),'A4 prepare-to-distribution UX missing')
+ok(a3.includes("'acquisition.web_booking_count'")&&a3.includes("'acquisition.landing_code'")&&a3.includes('aos_cia_audience_preview_v2'),'A3 acquisition resolver/preview support missing')
+ok(a3Explain.includes("'source_key','ACQUISITION'")&&a3Explain.includes('aos_cia_acquisition_adapter_v1'),'A3 acquisition explain support missing')
 ok(workspace.includes('loadMeta().catch')&&workspace.includes('loadBoot();loadLibrary();'),'catalog must load independently from bootstrap/library')
 
 ok(catalog.includes('aos_audience_preset_runtime_cache_v1'),'catalog count cache missing')
