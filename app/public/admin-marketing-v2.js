@@ -6,7 +6,7 @@
 (function(){
 'use strict';
 
-var RELEASE='2026-09-29-mkt-investment-v2';
+var RELEASE='2026-09-29-mkt-fast-read-v3';
 var G=window.__AOS_MKT_PERF_V1;
 
 // SPA remounts can keep an older fetch wrapper alive. Upgrade deterministically by
@@ -35,6 +35,7 @@ if(!G){
     aos_marketing_dashboard:2500,
     aos_marketing_dashboard_anio:2500,
     aos_marketing_period_summary_v2:10000,
+    aos_marketing_leads_detalle:15000,
     aos_marketing_attribution_public_v3:10000,
     aos_marketing_attribution_public_v2_anio:10000,
     aos_marketing_intent_public_v2:10000,
@@ -58,13 +59,14 @@ if(!G){
     aos_marketing_lineage_admin_v43:true
   };
   var annualReads={
-    aos_marketing_historico_public_v2:true,
     aos_marketing_ltv_public_v2:true,
     aos_marketing_value_map_public_v43:true
   };
   var criticalReads={
     aos_marketing_dashboard:true,
     aos_marketing_period_summary_v2:true,
+    aos_marketing_leads_detalle:true,
+    aos_marketing_historico_public_v2:true,
     aos_marketing_attribution_public_v3:true,
     aos_marketing_intent_public_v2:true,
     aos_marketing_intent_detail_public_v3:true
@@ -272,7 +274,7 @@ if(!G){
       else stats.failedNotCached++;
       // The legacy HTML starts its first dashboard request before this wrapper is
       // mounted. Once the first governed monthly summary completes, hydrate the
-      // legacy operational tail through the same server gateway.
+      // legacy operational tail through the same server gateway if it is still pending.
       if(successful(x)&&fn==='aos_marketing_period_summary_v2')maybeHydrateInitialOperationalBlocks();
       return x;
     }).finally(function(){inflight.delete(key);});
@@ -293,9 +295,9 @@ if(!G){
 }
 
 function loadCore(){
-  // Every Marketing mount gets one operational hydration opportunity. The wrapper
-  // consumes this flag only after the governed summary is available, including
-  // cache-hit remounts, so SPA navigation cannot leave the legacy tail blank.
+  // Every Marketing mount gets one operational hydration opportunity. It is started
+  // immediately through the governed dashboard read so visible KPIs/tables do not
+  // wait behind the deeper period-summary/lineage chain.
   window.__AOS_MKT_OPERATIONAL_HYDRATION_NEEDED=true;
   var old=document.getElementById('aos-marketing-v2-core');if(old)old.remove();
   var s=document.createElement('script');
@@ -446,6 +448,7 @@ function loadWebBookingsModule(){
 
 installInvestmentGuards();
 loadCore();
+maybeHydrateInitialOperationalBlocks();
 loadWebBookingsModule();
 console.log('[ASCENDA] Marketing P0 server-read gateway mounted');
 })();
