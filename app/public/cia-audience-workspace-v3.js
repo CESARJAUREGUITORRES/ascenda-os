@@ -49,6 +49,7 @@ function friendly(e){var m=String(e&&e.message||'Error inesperado'),x={
   UNAUTHORIZED:'Tu sesión venció. Vuelve a ingresar.',
   FORBIDDEN_ADMIN_CALLS_2FA_REQUIRED:'Esta acción requiere sesión de administrador verificada.',
   CANARY_ALREADY_ACTIVE:'Ya existe una prueba activa. Ciérrala antes de iniciar otra.',
+  CANARY_NO_ASSIGNABLE_CONTACTS:'La audiencia no tiene contactos asignables ahora. Revisa los bloqueos de la simulación antes de probar.',
   ROUTING_NOT_BASELINE:'Call Center no está en modo normal. No se inició la prueba.',
   INVALID_CALL_ADVISOR:'El asesor seleccionado no tiene Call Center habilitado.',
   EXPORT_LIMIT_EXCEEDED:'La exportación supera el límite seguro.',
@@ -61,16 +62,16 @@ function rpc(action,payload,opt){
   var key=opt.key||String(action||'main');
   if(opt.replace!==false&&state.controllers[key])try{state.controllers[key].abort('REQUEST_REPLACED')}catch(_e){}
   var ctl=new AbortController();state.controllers[key]=ctl;state.seq[key]=(state.seq[key]||0)+1;var seq=state.seq[key];
-  var a=String(action||'').toUpperCase(),endpoint='aos_cia_control_center_app_v6',body={p_app_token:t,p_action:action,p_payload:payload};
+  var a=String(action||'').toUpperCase(),endpoint='aos_cia_control_center_app_v7',body={p_app_token:t,p_action:action,p_payload:payload};
   if(a==='PREVIEW_CATALOG'){
     endpoint='aos_cia_workspace_preview_app_v2';
     body={p_app_token:t,p_preset_key:payload.preset_key||null,p_all_contacts:!!payload.all_contacts,p_limit:payload.limit||25,p_offset:payload.offset||0};
   }else if(a==='EXPORT_CSV_FAST'){
     endpoint='aos_cia_workspace_export_app_v2';
     body={p_app_token:t,p_preset_key:payload.preset_key||null,p_all_contacts:!!payload.all_contacts,p_filename:payload.filename||'audiencia'};
-  }else if(a==='DISTRIBUTION_PREVIEW'&&payload.preset_key){
-    endpoint='aos_cia_distribution_preview_app_v2';
-    body={p_app_token:t,p_preset_key:payload.preset_key||null,p_source_limit:payload.source_limit||100,p_all_available:!!payload.all_available,p_targets:payload.targets||[]};
+  }else if(a==='DISTRIBUTION_PREVIEW'){
+    endpoint='aos_cia_distribution_preview_app_v3';
+    body={p_app_token:t,p_preset_key:payload.preset_key||null,p_filter:payload.filter||null,p_source_limit:payload.source_limit||100,p_all_available:!!payload.all_available,p_targets:payload.targets||[]};
   }
   return fetch(c.sb+'/rest/v1/rpc/'+endpoint,{
     method:'POST',signal:ctl.signal,cache:'no-store',
