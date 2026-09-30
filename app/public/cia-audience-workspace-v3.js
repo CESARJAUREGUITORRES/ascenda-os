@@ -62,7 +62,7 @@ function rpc(action,payload,opt){
   var key=opt.key||String(action||'main');
   if(opt.replace!==false&&state.controllers[key])try{state.controllers[key].abort('REQUEST_REPLACED')}catch(_e){}
   var ctl=new AbortController();state.controllers[key]=ctl;state.seq[key]=(state.seq[key]||0)+1;var seq=state.seq[key];
-  var a=String(action||'').toUpperCase(),endpoint='aos_cia_control_center_app_v8',body={p_app_token:t,p_action:action,p_payload:payload};
+  var a=String(action||'').toUpperCase(),endpoint='aos_cia_control_center_app_v9',body={p_app_token:t,p_action:action,p_payload:payload};
   if(a==='PREVIEW_CATALOG'){
     endpoint='aos_cia_workspace_preview_app_v2';
     body={p_app_token:t,p_preset_key:payload.preset_key||null,p_all_contacts:!!payload.all_contacts,p_limit:payload.limit||25,p_offset:payload.offset||0};
