@@ -78,7 +78,6 @@
       <span class="chip" onclick="openChip('stl')">🚀 Speed-to-Lead</span>
       <span class="chip" onclick="openChip('curva')">🎯 Curva de Intentos</span>
       <span class="chip" onclick="openChip('metas')">⚙ Metas</span>
-      <span class="chip" style="background:#0A4FBF;color:#fff;border-color:#0A4FBF;" onclick="openChip('bases')">🗂 Gestión de Bases</span>
     </div>
   </div>
   <div class="ticker-wrap"><div class="ticker-inner" id="ac-ticker"></div></div>
@@ -152,38 +151,23 @@
   </div>
 </div>
 </div></div></div>
-<div class="mov" id="m-bases" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal" style="max-width:960px;"><div class="mhd" style="background:linear-gradient(135deg,#071D4A,#0D2D6E);border-radius:20px 20px 0 0;border:none;">
-  <div class="mtit" style="color:#fff;">🗂 Gestión de Bases y Distribución</div>
-  <div style="flex:1;"></div>
-  <input class="mi" type="text" placeholder="🔍 Buscar campaña, estado..." style="width:220px;font-size:10px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.15);color:#fff;" id="bases-search" oninput="rBases()">
-  <button class="mx" style="background:rgba(255,255,255,.1);color:#fff;" onclick="el('m-bases').classList.remove('open')">✕</button>
-</div><div class="mbody" style="padding:14px 20px;">
-  <div class="btabs" id="ac-btabs"><button class="btab act" data-t="campana" onclick="bTab(this)">Campaña</button><button class="btab" data-t="tipificacion" onclick="bTab(this)">Tipificación</button><button class="btab" data-t="cita" onclick="bTab(this)">Estado cita</button><button class="btab" data-t="compra" onclick="bTab(this)">Tipo compra</button><button class="btab" data-t="pago" onclick="bTab(this)">Método pago</button><button class="btab" data-t="servicio" onclick="bTab(this)">Servicio</button><button class="btab" data-t="mes" onclick="bTab(this)">Mes ingreso</button><button class="btab" data-t="provincia" onclick="bTab(this)">Provincia</button><button class="btab" data-t="cola" onclick="bTab(this)">📋 Colas</button></div>
-  <div id="ac-bases-summary" style="margin-bottom:8px;"></div>
-  <div id="ac-bases" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;"></div>
-  <div id="ac-cola-section" style="display:none;margin-top:10px;">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="ac-colas"></div>
-    <div id="ac-cola-detail" style="margin-top:10px;display:none;"></div>
-  </div>
-</div></div></div>
+
 <script>
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-var ASESORES=['WILMER','RUVILA','MIREYA','SRA. CARMEN'];var D={};var MODO='mes';var TAB_ACT='campana';var SHOW_VALS=false;
-function rpc(fn,p,ok){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(function(e){console.error(fn,e);});}
+var ASESORES=['WILMER','RUVILA','MIREYA','SRA. CARMEN'];var D={};var MODO='mes';var SHOW_VALS=false;
+function rpc(fn,p,ok,fail){var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort();},8000);fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{}),signal:ctl.signal}).then(function(r){clearTimeout(tm);if(!r.ok){return r.text().then(function(t){throw new Error(fn+' HTTP '+r.status+' '+String(t||'').slice(0,120));});}return r.json();}).then(ok||function(){}).catch(function(e){clearTimeout(tm);console.error(fn,e);if(fail)fail(e);});}
 function el(id){return document.getElementById(id);}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');}
 function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{maximumFractionDigits:0});}
 function hoyLima(){var d=new Date();var lima=new Date(d.toLocaleString('en-US',{timeZone:'America/Lima'}));return lima.getFullYear()+'-'+(''+(lima.getMonth()+1)).padStart(2,'0')+'-'+(''+(lima.getDate())).padStart(2,'0');}
-(function(){var hoy=hoyLima();el('ac-d1').value=hoy.slice(0,8)+'01';el('ac-d2').value=hoy;el('meta-desde').value=hoy;el('ac-mon-date').value=hoy;acLoad();})();
+(function(){var hoy=hoyLima();el('ac-d1').value=hoy.slice(0,8)+'01';el('ac-d2').value=hoy;el('meta-desde').value=hoy;el('ac-mon-date').value=hoy;loadMonDate(hoy);acLoad();})();
 function acMd(btn){document.querySelectorAll('.ac-mode').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');MODO=btn.getAttribute('data-m');var isR=MODO==='rango';el('ac-d1').style.display=isR?'':'none';el('ac-d2').style.display=isR?'':'none';el('ac-al').style.display=isR?'':'none';acLoad();}
-function acLoad(){var asesor=el('ac-asesor').value;var params={p_modo:MODO,p_asesor:asesor};if(MODO==='rango'){params.p_desde=el('ac-d1').value;params.p_hasta=el('ac-d2').value;}rpc('aos_admin_calls_v2',params,function(d){if(!d||!d.ok)return;D=d;el('ac-per').textContent=d.filtro.label+(asesor?' — '+asesor:'');rTicker(d.horas);rTK(d.embudo);rChart(d.progreso_diario);rTipif(d.bases_tipificacion);rHist(d.historico);rEmb(d.embudo);rProd(d.productividad);rColas(d.productividad);
-    var monDate=el('ac-mon-date').value||hoyLima();
-    loadMonDate(monDate);
-  });}
+function acDashboardFail(){el('ac-per').textContent='Indicadores no disponibles · reintenta';if(!el('ac-chart').innerHTML)el('ac-chart-tag').textContent='sin conexión';if(!el('ac-tipif').innerHTML)el('ac-tipif').innerHTML='<div class="ld">No disponible · reintenta</div>';if(!el('ac-hist').innerHTML)el('ac-hist').innerHTML='<tr><td colspan="10" class="ld">No disponible · reintenta</td></tr>';if(!el('ac-emb').innerHTML)el('ac-emb').innerHTML='<div class="ld">No disponible · reintenta</div>';if(!el('ac-prod').innerHTML)el('ac-prod').innerHTML='<tr><td colspan="8" class="ld">No disponible · reintenta</td></tr>';}
+function acLoad(){var asesor=el('ac-asesor').value;var params={p_modo:MODO,p_asesor:asesor};if(MODO==='rango'){params.p_desde=el('ac-d1').value;params.p_hasta=el('ac-d2').value;}el('ac-per').textContent='Cargando indicadores…';rpc('aos_admin_calls_v2',params,function(d){if(!d||!d.ok){acDashboardFail();return;}D=d;el('ac-per').textContent=d.filtro.label+(asesor?' — '+asesor:'');rTicker(d.horas);rTK(d.embudo);rChart(d.progreso_diario);rTipif(d.bases_tipificacion);rHist(d.historico);rEmb(d.embudo);rProd(d.productividad);},function(){acDashboardFail();});}
 var MON_DATE='';
 function monFecha(tipo){if(tipo==='hoy'){var h=hoyLima();el('ac-mon-date').value=h;loadMonDate(h);}else{loadMonDate(el('ac-mon-date').value);}}
-function loadMonDate(fecha){MON_DATE=fecha;el('ac-mon-tag').textContent=fecha;rpc('aos_monitoreo_equipo',{p_hoy:fecha},function(rows){rMon(rows||[]);});loadActiv(fecha);}
-function loadActiv(fecha){rpc('aos_actividad_minutos',{p_fecha:fecha,p_intervalo:5},function(data){rActiv(data,fecha);});}
+function loadMonDate(fecha){MON_DATE=fecha;el('ac-mon-tag').textContent=fecha;rpc('aos_monitoreo_equipo',{p_hoy:fecha},function(rows){rMon(rows||[]);},function(){el('ac-mon').innerHTML='<tr><td colspan="8" class="ld">No disponible · reintenta</td></tr>';});loadActiv(fecha);}
+function loadActiv(fecha){rpc('aos_actividad_minutos',{p_fecha:fecha,p_intervalo:5},function(data){rActiv(data,fecha);},function(){var w=el('ac-activ-wrap');if(w)w.innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:30px">No disponible · reintenta</div>';});}
 function rMon(mon){
   if(!mon||!mon.length){el('ac-mon').innerHTML='<tr><td colspan="8" class="ld">Sin actividad</td></tr>';return;}
   el('ac-mon').innerHTML=mon.map(function(m){
@@ -234,7 +218,6 @@ function openChip(id){
   if(id==='stl')rSTL();
   if(id==='curva')rCurva();
   if(id==='metas')rMetas();
-  if(id==='bases'){TAB_ACT='campana';document.querySelectorAll('.btab').forEach(function(t){t.classList.remove('act');});document.querySelector('.btab[data-t="campana"]').classList.add('act');rBases();}
 }
 
 /* TICKER TOP 5 */
@@ -341,40 +324,6 @@ function showAsesor(nombre){
     el('ac-cumpl').innerHTML=html;
   });
 }
-function assignBase(tab,valor,asesor){showToast('Base Asignada',h(valor)+' → '+h(asesor||'pendiente'));}
-
-/* COLAS (dentro de modal bases) */
-function rColas(prod){el('ac-colas').innerHTML=ASESORES.map(function(a){var p=(prod||[]).find(function(x){return x.asesor===a;});return '<div class="cola-card" onclick="selCola(this,\''+a+'\')"><div class="cola-name">'+a+'</div><div class="cola-cnt">'+fmt(p?p.llamadas:0)+' llam</div><div style="font-size:9px;color:#0A4FBF;font-weight:700;">'+(p?p.citas:0)+' citas</div><div class="cola-lbl">Lógica activa</div></div>';}).join('');el('ac-cola-detail').style.display='none';}
-var COLA_SEL='';
-function selCola(card,asesor){COLA_SEL=asesor;document.querySelectorAll('.cola-card').forEach(function(c){c.classList.remove('sel');});card.classList.add('sel');var det=el('ac-cola-detail');det.style.display='block';det.innerHTML='<div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;margin-bottom:6px;">'+h(asesor)+' — Tipo de cola</div><div class="qt">'+[{i:'⚙',t:'Lógica global',d:'Vírgenes → sin llamar → react.'},{i:'🎯',t:'Campaña',d:'Solo un tratamiento'},{i:'⭐',t:'Pacientes activos',d:'Últimos 90 días'},{i:'💰',t:'Adelanto pend.',d:'Pago incompleto'},{i:'📅',t:'No asistió',d:'Cita sin asistir'},{i:'📞',t:'Sin contacto',d:'Nunca contestaron'},{i:'🏷',t:'Tipificación',d:'Estado específico'},{i:'📆',t:'Mes ingreso',d:'Leads de un mes'},{i:'📍',t:'Provincia',d:'Fuera de Lima'}].map(function(q){return '<div class="qt-o" onclick="alert(\'Cola '+q.t+' → '+COLA_SEL+'\')"><div class="qt-i">'+q.i+'</div><div class="qt-t">'+q.t+'</div><div class="qt-d">'+q.d+'</div></div>';}).join('')+'</div>';}
-
-/* BASES */
-function bTab(btn){document.querySelectorAll('.btab').forEach(function(t){t.classList.remove('act');});btn.classList.add('act');TAB_ACT=btn.getAttribute('data-t');rBases();}
-function rBases(){
-  var isCola=TAB_ACT==='cola';
-  el('ac-bases').style.display=isCola?'none':'grid';el('ac-cola-section').style.display=isCola?'block':'none';el('ac-bases-summary').style.display=isCola?'none':'block';
-  if(isCola)return;
-  var box=el('ac-bases');var search=(el('bases-search').value||'').toUpperCase();var data=[];
-  switch(TAB_ACT){
-    case 'campana':data=(D.bases_campana||[]).map(function(b){var act=b.total-b.sin_llamar;var convP=b.total>0?Math.round(b.citas/b.total*100):0;return{n:b.campana,total:b.total,v2:'S/'+fmt(b.facturado),stats:[{l:'Activos',v:act,c:'#059669'},{l:'Sin llamar',v:b.sin_llamar,c:'#DC2626'},{l:'Citas',v:b.citas,c:'#00C9A7'},{l:'Conv.',v:convP+'%',c:'#0A4FBF'}],col:'#0A4FBF',bg:'#EBF2FF'};});break;
-    case 'tipificacion':data=(D.bases_tipificacion||[]).map(function(b){var cs={'SIN CONTACTO':['#6B7BA8','#F0F4FC'],'CITA CONFIRMADA':['#059669','#F0FDF4'],'NO LE INTERESA':['#DC2626','#FEF2F2'],'SEGUIMIENTO':['#D97706','#FFFBEB'],'SACAR DE LA BASE':['#9AAAC8','#F8FAFF'],'PROVINCIA':['#7C3AED','#F5F3FF'],'NO CONTESTA':['#0A4FBF','#EBF2FF']};var c=cs[b.estado]||['#0A4FBF','#EBF2FF'];return{n:b.estado,total:b.total,col:c[0],bg:c[1]};});break;
-    case 'cita':data=(D.bases_cita||[]).map(function(b){var cs={'ASISTIO':['#059669','#F0FDF4'],'NO ASISTIO':['#DC2626','#FEF2F2'],'PENDIENTE':['#D97706','#FFFBEB'],'CANCELADA':['#9AAAC8','#F8FAFF'],'EFECTIVA':['#00C9A7','#F0FDFA']};var c=cs[b.estado]||['#0A4FBF','#EBF2FF'];return{n:b.estado,total:b.total,col:c[0],bg:c[1]};});break;
-    case 'compra':data=(D.bases_compra||[]).map(function(b){return{n:b.tipo,total:b.total,v2:'S/'+fmt(b.facturado),col:b.tipo==='ADELANTO'?'#D97706':'#059669',bg:b.tipo==='ADELANTO'?'#FFFBEB':'#F0FDF4'};});break;
-    case 'pago':data=(D.bases_pago||[]).map(function(b){return{n:b.metodo,total:b.total,v2:'S/'+fmt(b.facturado),col:'#0A4FBF',bg:'#EBF2FF'};});break;
-    case 'servicio':data=(D.bases_servicio||[]).map(function(b){return{n:b.servicio,total:b.total,v2:'S/'+fmt(b.facturado),stats:[{l:'Ticket',v:'S/'+fmt(b.ticket_prom),c:'#00C9A7'}],col:'#00C9A7',bg:'#F0FDFA'};});break;
-    case 'mes':data=(D.bases_mes_ingreso||[]).map(function(b){return{n:b.mes,total:b.total,stats:[{l:'Llamados',v:b.llamados,c:'#0A4FBF'},{l:'Sin llamar',v:b.sin_llamar,c:'#DC2626'}],col:'#7C3AED',bg:'#F5F3FF'};});break;
-    case 'provincia':var pv=D.bases_provincia||{};data=[{n:'PROVINCIA',total:pv.provincia||0,col:'#7C3AED',bg:'#F5F3FF'},{n:'LIMA',total:pv.lima||0,col:'#0A4FBF',bg:'#EBF2FF'}];break;
-  }
-  if(search)data=data.filter(function(d){return d.n.toUpperCase().indexOf(search)>=0;});
-  var totalNums=data.reduce(function(s,d){return s+(d.total||0);},0);
-  el('ac-bases-summary').innerHTML='<div style="display:flex;gap:10px;align-items:center;"><span style="font-size:10px;color:#6B7BA8;"><b>'+data.length+'</b> bases · <b>'+fmt(totalNums)+'</b> números</span></div>';
-  box.innerHTML=data.length?data.map(function(d){
-    var statsHtml='';
-    if(d.stats){statsHtml='<div style="display:grid;grid-template-columns:repeat('+Math.min(d.stats.length,4)+',1fr);gap:4px;margin-top:6px;">'+d.stats.map(function(s){return '<div style="text-align:center;background:rgba(255,255,255,.6);border-radius:4px;padding:3px;"><div style="font-size:7px;color:#9AAAC8;text-transform:uppercase;">'+s.l+'</div><div style="font-size:11px;font-weight:800;color:'+s.c+';">'+s.v+'</div></div>';}).join('')+'</div>';}
-    return '<div style="background:'+d.bg+';border:1px solid rgba(0,0,0,.06);border-radius:12px;padding:12px;position:relative;overflow:hidden;"><div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:'+d.col+';margin-bottom:2px;">● '+h(d.n)+'</div><div style="font-family:\'Exo 2\';font-weight:800;font-size:22px;color:'+d.col+';">'+fmt(d.total)+'</div><div style="font-size:8px;color:#9AAAC8;">contactos</div>'+(d.v2?'<div style="font-family:\'Exo 2\';font-weight:800;font-size:13px;color:'+d.col+';margin-top:2px;">'+d.v2+'</div>':'')+statsHtml+'<div style="margin-top:8px;display:flex;gap:4px;">'+ASESORES.slice(0,3).map(function(a){return '<button style="flex:1;padding:3px;border-radius:6px;border:1px solid '+d.col+';background:rgba(255,255,255,.7);color:'+d.col+';font-size:7px;font-weight:700;cursor:pointer;font-family:DM Sans;" onclick="assignBase(\''+TAB_ACT+'\',\''+h(d.n)+'\',\''+a+'\')">'+a.slice(0,3)+'</button>';}).join('')+'</div></div>';
-  }).join(''):'<div class="ld" style="grid-column:1/-1;">Sin datos para esta dimensión</div>';
-}
-
 /* MODAL STL */
 function rSTL(){var stl=D.speed_to_lead||[];if(!stl.length){el('stl-body').innerHTML='<div class="ld">Sin datos</div>';return;}var mx=Math.max.apply(null,stl.map(function(s){return s.leads;}));el('stl-body').innerHTML='<table class="vt"><thead><tr><th>Tiempo</th><th>Leads</th><th>Con cita</th><th>Conv%</th><th style="width:80px"></th></tr></thead><tbody>'+stl.map(function(s){var w=mx>0?Math.round(s.leads/mx*100):0;var col=parseFloat(s.conv_pct)>=15?'#059669':parseFloat(s.conv_pct)>=12?'#D97706':'#DC2626';return '<tr><td style="font-weight:700;">'+h(s.rango)+'</td><td>'+s.leads+'</td><td class="hi hi-c">'+s.con_cita+'</td><td style="color:'+col+';font-weight:700;">'+s.conv_pct+'%</td><td><div class="pb"><div class="pb-f" style="width:'+w+'%;background:'+col+';"></div></div></td></tr>';}).join('')+'</tbody></table><div class="ins" style="margin-top:10px;">Llamar el mismo día = mejor conversión. Cada día de espera reduce la probabilidad.</div>';}
 
