@@ -87,3 +87,20 @@ test('generic background failures do not stall appointment delivery lanes',()=>{
   assert.equal(runtime.circuitOpen('notification-push-claim'),true);
   assert.equal(runtime.circuitOpen('google-sync-claim'),false,'push failure must not freeze Google delivery');
 });
+
+
+test('VAPID delivery config is isolated from unrelated background cooldowns',()=>{
+  const h=harness();
+  const runtime=h.localGlobal.__AOS_BUSINESS_PRIORITY_V1__;
+  const host='ituyqwstonmhnfshnaqz.supabase.co';
+  const generic={hostname:host,path:'/rest/v1/aos_email_plantillas?select=tipo,html_body&activo=eq.true'};
+  const vapid={hostname:host,path:'/rest/v1/rpc/aos_push_vapid_runtime_config_v2'};
+
+  const failing=h.fakeHttps.request(generic,function(){});
+  failing.emit('response',{statusCode:524});
+  assert.equal(runtime.circuitOpen('email-template-cache'),true);
+
+  h.fakeHttps.request(vapid,function(){});
+  assert.equal(h.getBaseCalls(),2,'VAPID delivery config must bypass unrelated generic background cooldown');
+  assert.equal(runtime.isDeliveryKey('notification-vapid-runtime-config'),true);
+});

@@ -33,7 +33,13 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   const rawDeliveryBudget = Number(process.env.AOS_DELIVERY_REQUEST_BUDGET_MS || 11500)
   const DELIVERY_REQUEST_BUDGET_MS = Number.isFinite(rawDeliveryBudget) ? Math.max(5000, Math.min(15000, Math.round(rawDeliveryBudget))) : 11500
   const SHIELD_KEY = 'background-shield'
-  const DELIVERY_KEYS = new Set(['notification-push-claim', 'google-sync-claim'])
+  const DELIVERY_KEYS = new Set([
+    'notification-push-claim',
+    'notification-vapid-config',
+    'notification-vapid-store',
+    'notification-vapid-runtime-config',
+    'google-sync-claim'
+  ])
   const states = new Map()
 
   function targetOf(first) {
