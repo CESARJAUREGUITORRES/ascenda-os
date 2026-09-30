@@ -30,7 +30,10 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   const FOREGROUND_PRIORITY_MODE = /^(1|true|yes|on)$/i.test(String(process.env.AOS_FOREGROUND_PRIORITY_MODE || 'false'))
   const rawBudget = Number(process.env.AOS_BACKGROUND_REQUEST_BUDGET_MS || 1800)
   const BACKGROUND_REQUEST_BUDGET_MS = Number.isFinite(rawBudget) ? Math.max(500, Math.min(5000, Math.round(rawBudget))) : 1800
+  const rawDeliveryBudget = Number(process.env.AOS_DELIVERY_REQUEST_BUDGET_MS || 5000)
+  const DELIVERY_REQUEST_BUDGET_MS = Number.isFinite(rawDeliveryBudget) ? Math.max(1800, Math.min(8000, Math.round(rawDeliveryBudget))) : 5000
   const SHIELD_KEY = 'background-shield'
+  const DELIVERY_KEYS = new Set(['notification-push-claim', 'google-sync-claim'])
   const states = new Map()
 
   function targetOf(first) {
@@ -90,9 +93,14 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     return false
   }
 
-  function shieldState() {
-    if (!states.has(SHIELD_KEY)) states.set(SHIELD_KEY, { openUntil: 0, lastLogUntil: 0, lastKey: '' })
-    return states.get(SHIELD_KEY)
+  function isDeliveryKey(key) {
+    return DELIVERY_KEYS.has(String(key || ''))
+  }
+
+  function shieldState(key) {
+    const stateKey = isDeliveryKey(key) ? 'delivery-shield:' + key : SHIELD_KEY
+    if (!states.has(stateKey)) states.set(stateKey, { openUntil: 0, lastLogUntil: 0, lastKey: '' })
+    return states.get(stateKey)
   }
 
   function keyState(key) {
@@ -116,11 +124,13 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   function markFailure(key, reason) {
     if (!key) return
     const now = Date.now()
-    const s = shieldState()
+    const s = shieldState(key)
     const k = keyState(key)
     k.failures += 1
     k.lastFailureAt = now
-    const wait = k.failures >= 2 ? 1800000 : 600000
+    const wait = isDeliveryKey(key)
+      ? (k.failures >= 2 ? 60000 : 15000)
+      : (k.failures >= 2 ? 1800000 : 600000)
     s.lastKey = key
     s.openUntil = Math.max(s.openUntil, now + wait)
     if (now >= s.lastLogUntil) {
@@ -130,7 +140,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   }
 
   function circuitOpen(key) {
-    return !!key && Date.now() < shieldState().openUntil
+    return !!key && Date.now() < shieldState(key).openUntil
   }
 
   function syntheticResponse() {
@@ -195,10 +205,11 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
         failedByTransport = true
         markFailure(key, reason)
       }
+      const requestBudgetMs = isDeliveryKey(key) ? DELIVERY_REQUEST_BUDGET_MS : BACKGROUND_REQUEST_BUDGET_MS
       budgetTimer = setTimeout(function() {
         failOnce('BACKGROUND_BUDGET_EXCEEDED')
         try { req.destroy(Object.assign(new Error('AOS_BACKGROUND_BUDGET_EXCEEDED'), { code: 'AOS_BACKGROUND_BUDGET_EXCEEDED' })) } catch (_) {}
-      }, BACKGROUND_REQUEST_BUDGET_MS)
+      }, requestBudgetMs)
       if (budgetTimer && typeof budgetTimer.unref === 'function') budgetTimer.unref()
 
       req.once('response', function(res) {
@@ -228,6 +239,8 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
     circuitOpen: circuitOpen,
     foregroundPriorityMode: FOREGROUND_PRIORITY_MODE,
     backgroundRequestBudgetMs: BACKGROUND_REQUEST_BUDGET_MS,
+    deliveryRequestBudgetMs: DELIVERY_REQUEST_BUDGET_MS,
+    isDeliveryKey: isDeliveryKey,
     isForegroundEssential: isForegroundEssential,
     isReminderWindow: isReminderWindow,
     limaHour: limaHour
@@ -236,6 +249,7 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   console.log('[BUSINESS-PRIORITY] auth-first background shield active', {
     foregroundPriorityMode: FOREGROUND_PRIORITY_MODE,
     backgroundRequestBudgetMs: BACKGROUND_REQUEST_BUDGET_MS,
+    deliveryRequestBudgetMs: DELIVERY_REQUEST_BUDGET_MS,
     emergencyBackgroundLane: 'NONE',
     notificationPump: FOREGROUND_PRIORITY_MODE ? 'PAUSED' : 'BUDGETED',
     reminderCron: FOREGROUND_PRIORITY_MODE ? 'PAUSED' : 'BUDGETED',

@@ -299,6 +299,14 @@ function createBookingConnectV1(opts) {
       return Array.isArray(rows) ? rows : []
     })
   }
+  async function loadNativeLanding() {
+    return cachedRead('native-landing', 60 * 1000, async () => {
+      try {
+        const rows = await get('aos_landing_registry?landing_code=eq.ZIVITAL-WEB-NATIVE&activo=eq.true&select=token,landing_code,nombre,landing_url,plataforma,campaign_code,campaign_name,ad_code,ad_name&limit=1')
+        return Array.isArray(rows) && rows[0] ? rows[0] : null
+      } catch (_) { return null }
+    })
+  }
   async function findEntry(id) {
     const raw = await loadCatalog()
     return (Array.isArray(raw) ? raw : []).find(x => String(x.id) === String(id)) || null
@@ -395,6 +403,7 @@ function createBookingConnectV1(opts) {
           if (!p || roleOfProfile(p) !== 'DOCTORA' || !profileSupports(p, entry.nombre)) return json(res, 409, { ok: false, error: 'PROVIDER_NOT_ELIGIBLE' }, origin)
         }
         const context = d.context && typeof d.context === 'object' ? d.context : {}
+        const attribution = d.attribution && typeof d.attribution === 'object' ? d.attribution : {}
         const contextParts = [
           'domain=' + cleanText(context.domain, 30),
           'approach=' + cleanText(context.approach, 80),
@@ -404,24 +413,66 @@ function createBookingConnectV1(opts) {
         if (note) note += '\n'
         note += '[ZIVITAL_WEB_NATIVE_V1]'
         if (contextParts.length) note += ' ' + contextParts.join(';')
-        const r = await rpc('aos_agendar_publica_v2', {
-          p_token: token || '__permanent__',
-          p_nombre: name,
-          p_apellido: surname,
-          p_telefono: phone,
-          p_treatment_id: treatmentId,
-          p_fecha: date,
-          p_hora: time,
-          p_sede: SITE,
-          p_profesional_id: role === 'DOCTORA' ? providerId : null,
-          p_dni: dni,
-          p_email: email,
-          p_nota: note,
-          p_tipo_cita: appointmentType
-        })
+
+        const requestedLandingToken = cleanText(d.landing_token, 160)
+        const nativeLanding = requestedLandingToken ? null : await loadNativeLanding()
+        const landingToken = requestedLandingToken || cleanText(nativeLanding && nativeLanding.token, 160)
+        const idempotencyKey = cleanText(d.idempotency_key || d.client_event_id, 128)
+        let r
+        if (landingToken) {
+          r = await rpc('aos_agendar_publica_landing_v1', {
+            p_landing_token: landingToken,
+            p_idempotency_key: idempotencyKey,
+            p_nombre: name,
+            p_apellido: surname,
+            p_telefono: phone,
+            p_treatment_id: treatmentId,
+            p_fecha: date,
+            p_hora: time,
+            p_sede: SITE,
+            p_profesional_id: role === 'DOCTORA' ? providerId : null,
+            p_dni: dni,
+            p_email: email,
+            p_nota: note,
+            p_tipo_cita: appointmentType,
+            p_utm_source: cleanText(attribution.utm_source, 160) || null,
+            p_utm_medium: cleanText(attribution.utm_medium, 160) || null,
+            p_utm_campaign: cleanText(attribution.utm_campaign, 200) || null,
+            p_utm_content: cleanText(attribution.utm_content, 200) || null,
+            p_utm_term: cleanText(attribution.utm_term, 200) || null,
+            p_referrer_url: cleanText(attribution.referrer_url || context.page, 500) || null,
+            p_client_event_id: cleanText(d.client_event_id, 160) || null
+          })
+        } else {
+          r = await rpc('aos_agendar_publica_v2', {
+            p_token: token || '__permanent__',
+            p_nombre: name,
+            p_apellido: surname,
+            p_telefono: phone,
+            p_treatment_id: treatmentId,
+            p_fecha: date,
+            p_hora: time,
+            p_sede: SITE,
+            p_profesional_id: role === 'DOCTORA' ? providerId : null,
+            p_dni: dni,
+            p_email: email,
+            p_nota: note,
+            p_tipo_cita: appointmentType
+          })
+        }
         if (!r || !r.ok) return json(res, 409, { ok: false, error: cleanText((r && r.error) || 'BOOKING_REJECTED', 120) }, origin)
         invalidateDaysCache()
-        return json(res, 200, { ok: true, agenda_id: cleanText(r.agenda_id, 80), source_channel: cleanText(r.source_channel, 40), source_campaign: cleanText(r.source_campaign, 100), advisor_code: cleanText(r.advisor_code, 100) }, origin)
+        return json(res, 200, {
+          ok: true,
+          agenda_id: cleanText(r.agenda_id, 80),
+          source_channel: cleanText(r.source_channel, 40),
+          source_campaign: cleanText(r.source_campaign, 100),
+          advisor_code: cleanText(r.advisor_code, 100),
+          acquisition_channel: cleanText(r.acquisition_channel, 40),
+          landing_code: cleanText(r.landing_code, 100),
+          campaign_name: cleanText(r.campaign_name, 160),
+          ad_name: cleanText(r.ad_name, 160)
+        }, origin)
       }
 
       if (op === '/confirmation' && req.method === 'POST') {

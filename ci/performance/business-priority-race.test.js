@@ -64,3 +64,26 @@ test('sibling success cannot close a shield opened by another background failure
   h.fakeHttps.request({hostname:host,path:'/rest/v1/rpc/aos_wa3_actor_v1'},function(){});
   assert.equal(h.getBaseCalls(),5,'critical business traffic must remain outside the shield');
 });
+
+
+test('generic background failures do not stall appointment delivery lanes',()=>{
+  const h=harness();
+  const runtime=h.localGlobal.__AOS_BUSINESS_PRIORITY_V1__;
+  const host='ituyqwstonmhnfshnaqz.supabase.co';
+  const template={hostname:host,path:'/rest/v1/aos_email_plantillas?select=tipo,html_body&activo=eq.true'};
+  const push={hostname:host,path:'/rest/v1/rpc/aos_notification_push_claim_v1'};
+  const google={hostname:host,path:'/rest/v1/rpc/aos_google_claim_sync_v1'};
+
+  const failing=h.fakeHttps.request(template,function(){});
+  failing.emit('response',{statusCode:524});
+  assert.equal(runtime.circuitOpen('email-template-cache'),true);
+
+  h.fakeHttps.request(push,function(){});
+  h.fakeHttps.request(google,function(){});
+  assert.equal(h.getBaseCalls(),3,'appointment push and Google delivery must bypass unrelated generic background cooldown');
+
+  const pushFail=h.fakeHttps.request(push,function(){});
+  pushFail.emit('response',{statusCode:524});
+  assert.equal(runtime.circuitOpen('notification-push-claim'),true);
+  assert.equal(runtime.circuitOpen('google-sync-claim'),false,'push failure must not freeze Google delivery');
+});
