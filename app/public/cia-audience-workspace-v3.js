@@ -115,6 +115,14 @@ function styles(){
 .aw-detail{background:#fff;border-left:1px solid var(--line);padding:15px;overflow:auto}.aw-detail-empty{height:100%;display:grid;place-items:center;text-align:center;color:#8999b5;font-size:10px;padding:30px}.aw-detail-title{font-size:17px;font-weight:900;color:var(--ink)}.aw-detail-copy{font-size:10px;line-height:1.45;color:var(--muted);margin:5px 0 12px}.aw-detail-count{font-size:34px;font-weight:900;color:var(--navy)}.aw-detail-count small{font-size:9px;color:#8997b0;font-weight:700}.aw-detail-meta{font-size:8px;color:#8997b0;margin:2px 0 10px}.aw-detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:10px 0}.aw-detail-actions .wide{grid-column:1/-1}.aw-preview{border:1px solid #edf1f6;border-radius:11px;overflow:auto;max-height:400px}.aw-preview table{width:100%;border-collapse:collapse;font-size:8px}.aw-preview th{text-align:left;background:#f7f9fc;padding:7px;position:sticky;top:0}.aw-preview td{padding:7px;border-top:1px solid #edf1f6}.aw-muted{font-size:7px;color:#8b99b1;margin-top:2px}
 .aw-panel{height:100%;overflow:auto;padding:14px}.aw-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px}.aw-panel-title{font-size:15px;font-weight:900;color:var(--ink)}.aw-panel-copy{font-size:10px;line-height:1.45;color:var(--muted);margin-top:4px}.aw-dist-grid{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:12px}.aw-selection{margin:10px 0;background:#f7faff;border:1px solid #dce6f3;border-radius:11px;padding:10px}.aw-selection b{display:block;color:var(--ink);font-size:11px}.aw-selection span{font-size:9px;color:var(--muted)}.aw-channels{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}.aw-channel{border:1px solid var(--line);border-radius:12px;padding:10px}.aw-channel b{font-size:11px}.aw-channel p{font-size:9px;line-height:1.4;color:var(--muted);min-height:38px}.aw-state{font-size:9px;line-height:1.45;border:1px solid #e1e8f2;background:#f8fafc;border-radius:10px;padding:9px;margin-top:8px;color:#657797}.aw-state-warn{background:#fff8e8;border-color:#efdba5;color:#765815}.aw-state-good{background:#eafaf5;border-color:#b9e8d9;color:#086a58}.aw-label{display:block;font-size:9px;font-weight:800;color:#617394;margin:10px 0 4px}.aw-select{width:100%;border:1px solid #cfd8e7;border-radius:10px;padding:9px 10px;background:#fff}.aw-plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.aw-advisor-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:7px}.aw-advisor-check{display:flex;align-items:center;gap:7px;border:1px solid #e0e7f1;border-radius:9px;padding:8px;background:#fff;font-size:9px;color:#405578;cursor:pointer}.aw-advisor-check input{margin:0}.aw-projection{margin-top:8px;border:1px solid #dbe5f2;border-radius:10px;overflow:hidden}.aw-projection-row{display:grid;grid-template-columns:1fr 90px;gap:8px;padding:8px 9px;border-top:1px solid #edf1f6;font-size:9px}.aw-projection-row:first-child{border-top:0}.aw-projection-row b:last-child{text-align:right}.aw-lock{margin-top:8px;padding:9px;border-radius:9px;background:#fff7e7;border:1px solid #edd69b;color:#755912;font-size:9px;line-height:1.4}
 .aw-activity{margin-top:10px}.aw-activity-row{display:grid;grid-template-columns:minmax(180px,1.2fr) 110px 100px 100px 100px 100px;gap:8px;align-items:center;padding:10px;border-top:1px solid #edf1f6;font-size:9px}.aw-activity-row.head{font-weight:900;color:#697b9c;background:#f7f9fc;border-top:0}.aw-activity-row b{font-size:10px}.aw-filter-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}.aw-filter-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px}.aw-filter-card b{font-size:11px}.aw-filter-card p{font-size:8px;color:var(--muted)}.aw-field{display:inline-block;font-size:8px;padding:4px 6px;border-radius:999px;background:#f0f4fa;color:#566b90;margin:2px}
+.aw-filter-card.acquisition{border-color:#9fdccc;background:#f3fcf9;box-shadow:inset 0 0 0 1px rgba(0,168,138,.05)}
+.aw-builder{margin-top:10px}.aw-builder-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.aw-builder-name{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:10px}
+.aw-builder-input{width:100%;border:1px solid #cfd8e7;border-radius:9px;padding:8px 9px;background:#fff;font-size:9px}
+.aw-rule-row{display:grid;grid-template-columns:minmax(210px,1.6fr) minmax(130px,.8fr) minmax(160px,1fr) 34px;gap:7px;align-items:center;margin-top:7px}
+.aw-rule-remove{width:34px;height:34px;border:1px solid #ebc0bc;background:#fff;color:#a52a20;border-radius:9px;cursor:pointer}
+.aw-builder-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.aw-builder-result{margin-top:9px}
+.aw-builder-preview{margin-top:8px;border:1px solid #e4eaf3;border-radius:10px;overflow:auto;max-height:280px}
 
 .aw-distribution-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .aw-test-launch{border:1px solid #b8c8df;background:#fff;color:#264d83;border-radius:10px;padding:9px 12px;font-size:9px;font-weight:900;cursor:pointer;white-space:nowrap}
@@ -287,7 +295,8 @@ function ensurePersisted(){
 function prepareSelectedForDistribution(){
   var s=state.selected,b=document.getElementById('aw-use-btn');if(!s||s.__all)return;
   if(b){b.disabled=true;b.textContent='Preparando…'}
-  ensurePersisted().then(function(a){
+  var countP=currentCount(s)==null&&s.dsl?rpc('COUNT',{filter:s.dsl},{key:'prepare-count'}).then(function(d){s.count_cache=Number(d.count||0);s.count_refreshed_at=d.observed_at||new Date().toISOString();return d}):Promise.resolve(null);
+  countP.then(function(){return ensurePersisted()}).then(function(a){
     state.prepared={audience_id:a.id,version:a.version||1,name:s.name,count:currentCount(s),prepared_at:new Date().toISOString()};
     state.planner=null;switchTab('distribution');toast('Audiencia preparada; el snapshot se congelará al activar');
   }).catch(report).then(function(){var x=document.getElementById('aw-use-btn');if(x){x.disabled=false;x.textContent='Usar audiencia'}});
@@ -429,12 +438,84 @@ function loadActivity(force){
   var root=document.getElementById('aw-view-activity');if(!root)return;if(state.activity!==null&&!force){renderActivity();return}
   state.activity=null;renderActivity();rpc('ACTIVITY_SUMMARY',{limit:50},{key:'activity'}).then(function(d){state.activity=d.items||[];renderActivity()}).catch(function(e){state.activity=[];renderActivity();report(e)});
 }
+function filterDefs(){return state.meta&&Array.isArray(state.meta.filters)?state.meta.filters:[]}
+function builderField(key){return filterDefs().find(function(f){return f.field_key===key})||null}
+function noValueOperator(op){return ['is_true','is_false','exists','not_exists','is_unknown'].indexOf(String(op||''))>=0}
+function builderDsl(){
+  var rules=state.builder.rules.map(function(r){
+    var f=builderField(r.field),op=r.operator||(f&&f.allowed_operators&&f.allowed_operators[0])||'eq',o={field:r.field,operator:op};
+    if(!noValueOperator(op)){
+      var v=r.value;
+      if(op==='in'||op==='not_in')v=String(v||'').split(',').map(function(x){return x.trim()}).filter(Boolean);
+      else if(f&&(f.data_type==='integer'||f.data_type==='numeric'))v=Number(v||0);
+      o.value=v;
+    }
+    return o;
+  }).filter(function(x){return !!x.field});
+  return {version:1,root:{op:'AND',rules:rules}};
+}
+function builderFieldOptions(selected){
+  var groups={};filterDefs().forEach(function(f){(groups[f.category]||(groups[f.category]=[])).push(f)});
+  return Object.keys(groups).sort(function(a,b){return a==='ACQUISITION'?-1:b==='ACQUISITION'?1:a.localeCompare(b)}).map(function(k){
+    var ca=cat(k);return '<optgroup label="'+esc(ca.label)+'">'+groups[k].map(function(f){return '<option value="'+esc(f.field_key)+'" '+(f.field_key===selected?'selected':'')+'>'+esc(f.label)+'</option>'}).join('')+'</optgroup>';
+  }).join('');
+}
+function builderRuleHtml(r,i){
+  var f=builderField(r.field)||filterDefs()[0]||{},ops=Array.isArray(f.allowed_operators)?f.allowed_operators:['eq'],op=ops.indexOf(r.operator)>=0?r.operator:ops[0];
+  r.operator=op;
+  var opHtml=ops.map(function(x){return '<option value="'+esc(x)+'" '+(x===op?'selected':'')+'>'+esc(x.replace(/_/g,' '))+'</option>'}).join('');
+  var val=noValueOperator(op)?'<div class="aw-state" style="margin:0;padding:8px">Sin valor</div>':'<input class="aw-builder-input" data-rule-value="'+i+'" type="'+(f.data_type==='date'?'date':(f.data_type==='integer'||f.data_type==='numeric'?'number':'text'))+'" value="'+esc(r.value==null?'':r.value)+'" placeholder="Valor">';
+  return '<div class="aw-rule-row"><select class="aw-builder-input" data-rule-field="'+i+'">'+builderFieldOptions(r.field)+'</select><select class="aw-builder-input" data-rule-op="'+i+'">'+opHtml+'</select>'+val+'<button class="aw-rule-remove" data-rule-remove="'+i+'" '+(state.builder.rules.length<=1?'disabled':'')+'>×</button></div>';
+}
+function builderPreviewHtml(){
+  var a=state.builder.preview||[];if(!a.length)return '<div class="aw-empty" style="padding:18px">Calcula o previsualiza para revisar miembros.</div>';
+  return '<table class="aw-table"><thead><tr><th>Contacto</th><th>Origen</th><th>Campaña</th><th>Tratamiento</th></tr></thead><tbody>'+a.map(function(x){
+    return '<tr><td><b>'+esc(x.name||x.contact_key||'Contacto')+'</b><div class="aw-muted">'+esc(x.contact_key||'')+(x.canonical_email?' · '+esc(x.canonical_email):'')+'</div></td><td>'+esc([x.latest_platform,x.latest_landing_name].filter(Boolean).join(' · ')||'—')+'</td><td>'+esc(x.latest_campaign_name||'—')+'</td><td>'+esc(x.latest_treatment||x.latest_interest||'—')+'</td></tr>';
+  }).join('')+'</tbody></table>';
+}
+function bindBuilder(){
+  var root=document.getElementById('aw-view-explore');if(!root)return;
+  var n=document.getElementById('aw-builder-name'),d=document.getElementById('aw-builder-desc');
+  if(n)n.oninput=function(){state.builder.name=this.value};if(d)d.oninput=function(){state.builder.description=this.value};
+  root.querySelectorAll('[data-rule-field]').forEach(function(el){el.onchange=function(){var i=Number(el.dataset.ruleField),f=builderField(el.value);state.builder.rules[i]={field:el.value,operator:(f&&f.allowed_operators&&f.allowed_operators[0])||'eq',value:''};state.builder.count=null;state.builder.preview=[];renderExplore()}});
+  root.querySelectorAll('[data-rule-op]').forEach(function(el){el.onchange=function(){var i=Number(el.dataset.ruleOp);state.builder.rules[i].operator=el.value;state.builder.count=null;state.builder.preview=[];renderExplore()}});
+  root.querySelectorAll('[data-rule-value]').forEach(function(el){el.oninput=function(){state.builder.rules[Number(el.dataset.ruleValue)].value=this.value;state.builder.count=null;state.builder.preview=[]}});
+  root.querySelectorAll('[data-rule-remove]').forEach(function(el){el.onclick=function(){if(state.builder.rules.length<=1)return;state.builder.rules.splice(Number(el.dataset.ruleRemove),1);state.builder.count=null;state.builder.preview=[];renderExplore()}});
+  var add=document.getElementById('aw-builder-add');if(add)add.onclick=function(){var f=filterDefs().find(function(x){return x.category==='ACQUISITION'})||filterDefs()[0];if(!f)return;state.builder.rules.push({field:f.field_key,operator:(f.allowed_operators||['eq'])[0],value:''});renderExplore()};
+  var count=document.getElementById('aw-builder-count');if(count)count.onclick=countBuilder;
+  var prev=document.getElementById('aw-builder-preview');if(prev)prev.onclick=previewBuilder;
+  var save=document.getElementById('aw-builder-save');if(save)save.onclick=function(){saveBuilder(false)};
+  var use=document.getElementById('aw-builder-use');if(use)use.onclick=function(){saveBuilder(true)};
+}
+function countBuilder(){
+  var dsl=builderDsl(),b=document.getElementById('aw-builder-count');if(!dsl.root.rules.length)return toast('Agrega al menos una regla',true);
+  if(b){b.disabled=true;b.textContent='Calculando…'}
+  rpc('COUNT',{filter:dsl},{key:'builder-count'}).then(function(d){state.builder.count=Number(d.count||0);state.builder.lastDsl=dsl;renderExplore();toast(fmt(state.builder.count)+' contactos coinciden')}).catch(report);
+}
+function previewBuilder(){
+  var dsl=builderDsl(),b=document.getElementById('aw-builder-preview');if(!dsl.root.rules.length)return toast('Agrega al menos una regla',true);
+  if(b){b.disabled=true;b.textContent='Cargando…'}
+  rpc('PREVIEW',{filter:dsl,limit:25,offset:0},{key:'builder-preview'}).then(function(d){state.builder.count=Number(d.count||0);state.builder.preview=d.items||[];state.builder.lastDsl=dsl;renderExplore()}).catch(report);
+}
+function saveBuilder(useAfter){
+  var name=String(state.builder.name||'').trim(),dsl=builderDsl();if(name.length<3)return toast('Escribe un nombre para la audiencia',true);
+  if(!dsl.root.rules.length)return toast('Agrega al menos una regla',true);
+  var s={name:name,description:String(state.builder.description||'').trim(),category:'CUSTOM',dsl:dsl,count_cache:state.builder.count,count_refreshed_at:new Date().toISOString()};
+  state.selected=s;
+  var countP=state.builder.count==null?rpc('COUNT',{filter:dsl},{key:'builder-save-count'}).then(function(d){s.count_cache=Number(d.count||0);state.builder.count=s.count_cache}):Promise.resolve(null);
+  countP.then(function(){return ensurePersisted()}).then(function(a){s.persisted=a;return loadLibrary()}).then(function(){toast('Audiencia guardada');if(useAfter)prepareSelectedForDistribution();else renderExplore()}).catch(report);
+}
 function renderExplore(){
   var root=document.getElementById('aw-view-explore');if(!root)return;if(!state.meta){root.innerHTML='<div class="aw-empty">Cargando dimensiones…</div>';return}
-  var groups={};(state.meta.filters||[]).forEach(function(f){(groups[f.category]||(groups[f.category]=[])).push(f)});
-  var lib=libraryItems();
-  root.innerHTML='<div class="aw-panel"><div class="aw-card"><div class="aw-panel-title">Explorar la base</div><div class="aw-panel-copy">Estas son las dimensiones gobernadas disponibles para construir casos especiales. El uso cotidiano debe partir del catálogo de Audiencias.</div><div class="aw-filter-grid">'+Object.keys(groups).sort().map(function(k){var c=cat(k),a=groups[k];return '<article class="aw-filter-card"><b>'+c.icon+' '+esc(c.label)+'</b><p>'+a.length+' dimensiones disponibles</p>'+a.slice(0,12).map(function(f){return '<span class="aw-field">'+esc(f.label)+'</span>'}).join('')+(a.length>12?'<span class="aw-field">+'+(a.length-12)+' más</span>':'')+'</article>'}).join('')+'</div></div><div class="aw-card" style="margin-top:10px"><div class="aw-panel-title">Audiencias personalizadas guardadas</div><div class="aw-panel-copy">Combinaciones persistidas para reutilización. No reemplazan el catálogo vivo.</div><div class="aw-table-wrap" style="margin-top:10px"><table class="aw-table"><thead><tr><th>Nombre</th><th>Versión</th><th>Acción</th></tr></thead><tbody>'+(lib.length?lib.map(function(raw){var n=normalizeAudience(raw);return '<tr><td><div class="aw-name">'+esc(n.name||'Audiencia')+'</div><div class="aw-desc">'+esc(n.description||'')+'</div></td><td>v'+esc(n.version)+'</td><td><button class="aw-btn aw-secondary" data-saved="'+esc(n.id||'')+'">Usar</button></td></tr>'}).join(''):'<tr><td colspan="3"><div class="aw-empty">Aún no hay audiencias personalizadas.</div></td></tr>')+'</tbody></table></div></div></div>';
-  root.querySelectorAll('[data-saved]').forEach(function(b){b.onclick=function(){var raw=lib.find(function(x){return String(normalizeAudience(x).id)===b.dataset.saved}),n=normalizeAudience(raw);state.selected={name:n.name,description:n.description,category:'CUSTOM',dsl:n.filter,persisted:n};switchTab('distribution')}});
+  var groups={};filterDefs().forEach(function(f){(groups[f.category]||(groups[f.category]=[])).push(f)});
+  var lib=libraryItems(),count=state.builder.count;
+  root.innerHTML='<div class="aw-panel"><div class="aw-card"><div class="aw-panel-title">Explorar la base</div><div class="aw-panel-copy">Construye audiencias gobernadas combinando datos de adquisición, citas, llamadas, ventas, email y perfil. No se ejecuta ninguna campaña desde aquí.</div><div class="aw-filter-grid">'+Object.keys(groups).sort(function(a,b){return a==='ACQUISITION'?-1:b==='ACQUISITION'?1:a.localeCompare(b)}).map(function(k){var ca=cat(k),a=groups[k],show=k==='ACQUISITION'?a:a.slice(0,12);return '<article class="aw-filter-card '+(k==='ACQUISITION'?'acquisition':'')+'"><b>'+ca.icon+' '+esc(ca.label)+'</b><p>'+a.length+' dimensiones disponibles</p>'+show.map(function(f){return '<span class="aw-field">'+esc(f.label)+'</span>'}).join('')+(k!=='ACQUISITION'&&a.length>12?'<span class="aw-field">+'+(a.length-12)+' más</span>':'')+'</article>'}).join('')+'</div></div>'+
+  '<div class="aw-card aw-builder"><div class="aw-builder-head"><div><div class="aw-panel-title">Constructor de audiencia</div><div class="aw-panel-copy">Las reglas se combinan con AND. Puedes mezclar Adquisición con citas, llamadas, ventas, email y otros dominios.</div></div><div class="aw-badge">'+(count==null?'Sin calcular':fmt(count)+' contactos')+'</div></div>'+
+  '<div class="aw-builder-name"><input id="aw-builder-name" class="aw-builder-input" placeholder="Nombre de la audiencia" value="'+esc(state.builder.name)+'"><input id="aw-builder-desc" class="aw-builder-input" placeholder="Descripción (opcional)" value="'+esc(state.builder.description)+'"></div>'+
+  '<div id="aw-builder-rules">'+state.builder.rules.map(builderRuleHtml).join('')+'</div><div class="aw-builder-actions"><button id="aw-builder-add" class="aw-btn aw-secondary">+ Agregar regla</button><button id="aw-builder-count" class="aw-btn aw-primary">Calcular</button><button id="aw-builder-preview" class="aw-btn aw-secondary">Ver 25 contactos</button><button id="aw-builder-save" class="aw-btn aw-secondary">Guardar audiencia</button><button id="aw-builder-use" class="aw-btn aw-success">Usar audiencia</button></div><div class="aw-builder-result"><div class="aw-builder-preview">'+builderPreviewHtml()+'</div></div></div>'+
+  '<div class="aw-card" style="margin-top:10px"><div class="aw-panel-title">Audiencias personalizadas guardadas</div><div class="aw-panel-copy">Definiciones versionadas y reutilizables. El snapshot de miembros se congela únicamente al activar una distribución.</div><div class="aw-table-wrap" style="margin-top:10px"><table class="aw-table"><thead><tr><th>Nombre</th><th>Versión</th><th>Acción</th></tr></thead><tbody>'+(lib.length?lib.map(function(raw){var n=normalizeAudience(raw);return '<tr><td><div class="aw-name">'+esc(n.name||'Audiencia')+'</div><div class="aw-desc">'+esc(n.description||'')+'</div></td><td>v'+esc(n.version)+'</td><td><button class="aw-btn aw-secondary" data-saved="'+esc(n.id||'')+'">Usar audiencia</button></td></tr>'}).join(''):'<tr><td colspan="3"><div class="aw-empty">Aún no hay audiencias personalizadas.</div></td></tr>')+'</tbody></table></div></div></div>';
+  bindBuilder();
+  root.querySelectorAll('[data-saved]').forEach(function(b){b.onclick=function(){var raw=lib.find(function(x){return String(normalizeAudience(x).id)===b.dataset.saved}),n=normalizeAudience(raw);state.selected={name:n.name,description:n.description,category:'CUSTOM',dsl:n.filter,persisted:n};prepareSelectedForDistribution()}});
 }
 
 function loadMeta(){
