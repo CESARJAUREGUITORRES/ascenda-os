@@ -30,8 +30,8 @@ if (!https.__AOS_BUSINESS_PRIORITY_PRELOAD_V1__) {
   const FOREGROUND_PRIORITY_MODE = /^(1|true|yes|on)$/i.test(String(process.env.AOS_FOREGROUND_PRIORITY_MODE || 'false'))
   const rawBudget = Number(process.env.AOS_BACKGROUND_REQUEST_BUDGET_MS || 1800)
   const BACKGROUND_REQUEST_BUDGET_MS = Number.isFinite(rawBudget) ? Math.max(500, Math.min(5000, Math.round(rawBudget))) : 1800
-  const rawDeliveryBudget = Number(process.env.AOS_DELIVERY_REQUEST_BUDGET_MS || 5000)
-  const DELIVERY_REQUEST_BUDGET_MS = Number.isFinite(rawDeliveryBudget) ? Math.max(1800, Math.min(8000, Math.round(rawDeliveryBudget))) : 5000
+  const rawDeliveryBudget = Number(process.env.AOS_DELIVERY_REQUEST_BUDGET_MS || 11500)
+  const DELIVERY_REQUEST_BUDGET_MS = Number.isFinite(rawDeliveryBudget) ? Math.max(5000, Math.min(15000, Math.round(rawDeliveryBudget))) : 11500
   const SHIELD_KEY = 'background-shield'
   const DELIVERY_KEYS = new Set(['notification-push-claim', 'google-sync-claim'])
   const states = new Map()
