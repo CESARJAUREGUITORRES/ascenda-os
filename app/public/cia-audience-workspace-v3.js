@@ -448,7 +448,10 @@ function builderDsl(){
     if(!noValueOperator(op)){
       var v=r.value;
       if(op==='in'||op==='not_in')v=String(v||'').split(',').map(function(x){return x.trim()}).filter(Boolean);
-      else if(f&&(f.data_type==='integer'||f.data_type==='numeric'))v=Number(v||0);
+      else if(op==='between'){
+        v=String(v||'').split(',').map(function(x){return x.trim()}).filter(Boolean).slice(0,2);
+        if(f&&(f.data_type==='integer'||f.data_type==='numeric'))v=v.map(function(x){return Number(x)});
+      }else if(op==='within_last_days'||op==='older_than_days'||(f&&(f.data_type==='integer'||f.data_type==='numeric')))v=Number(v||0);
       o.value=v;
     }
     return o;
@@ -465,7 +468,9 @@ function builderRuleHtml(r,i){
   var f=builderField(r.field)||filterDefs()[0]||{},ops=Array.isArray(f.allowed_operators)?f.allowed_operators:['eq'],op=ops.indexOf(r.operator)>=0?r.operator:ops[0];
   r.operator=op;
   var opHtml=ops.map(function(x){return '<option value="'+esc(x)+'" '+(x===op?'selected':'')+'>'+esc(x.replace(/_/g,' '))+'</option>'}).join('');
-  var val=noValueOperator(op)?'<div class="aw-state" style="margin:0;padding:8px">Sin valor</div>':'<input class="aw-builder-input" data-rule-value="'+i+'" type="'+(f.data_type==='date'?'date':(f.data_type==='integer'||f.data_type==='numeric'?'number':'text'))+'" value="'+esc(r.value==null?'':r.value)+'" placeholder="Valor">';
+  var valType=(op==='within_last_days'||op==='older_than_days'||f.data_type==='integer'||f.data_type==='numeric')?'number':(f.data_type==='date'&&op!=='between'?'date':'text');
+  var placeholder=op==='between'?'desde,hasta':((op==='in'||op==='not_in')?'valor1, valor2':'Valor');
+  var val=noValueOperator(op)?'<div class="aw-state" style="margin:0;padding:8px">Sin valor</div>':'<input class="aw-builder-input" data-rule-value="'+i+'" type="'+valType+'" value="'+esc(r.value==null?'':r.value)+'" placeholder="'+placeholder+'">';
   return '<div class="aw-rule-row"><select class="aw-builder-input" data-rule-field="'+i+'">'+builderFieldOptions(r.field)+'</select><select class="aw-builder-input" data-rule-op="'+i+'">'+opHtml+'</select>'+val+'<button class="aw-rule-remove" data-rule-remove="'+i+'" '+(state.builder.rules.length<=1?'disabled':'')+'>×</button></div>';
 }
 function builderPreviewHtml(){
