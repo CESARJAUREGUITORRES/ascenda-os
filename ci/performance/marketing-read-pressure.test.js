@@ -25,6 +25,7 @@ test('single-flight and cache are scoped to Marketing reads',()=>{
   assert.match(boot,/var inflight=new Map\(\)/);
   assert.match(boot,/aos_marketing_dashboard:2500/);
   assert.match(boot,/aos_marketing_period_summary_v2:10000/);
+  assert.match(boot,/aos_marketing_leads_detalle:15000/);
   assert.match(boot,/aos_marketing_historico_public_v2:60000/);
   assert.match(boot,/aos_marketing_ltv_public_v2:60000/);
   assert.match(boot,/aos_marketing_value_map_public_v43:60000/);
@@ -44,11 +45,12 @@ test('failed reads never poison the short-lived cache and one timeout retry is b
   assert.doesNotMatch(boot,/while\s*\([^)]*timeout/i);
 });
 
-test('expensive annual analytics are viewport gated and wait for monthly quiescence',()=>{
+test('deep annual analytics are viewport gated while visible history may run as a priority read',()=>{
   assert.match(boot,/aos_marketing_historico_public_v2:'#mk-hist'/);
   assert.match(boot,/aos_marketing_ltv_public_v2:'#mk-ltv'/);
   assert.match(boot,/aos_marketing_value_map_public_v43:'#mk-ltv'/);
   assert.match(boot,/aos_marketing_lineage_admin_v43:'#mk-ltv'/);
+  assert.match(boot,/aos_marketing_historico_public_v2:true/);
   assert.match(boot,/IntersectionObserver/);
   assert.match(boot,/rootMargin:'500px 0px'/);
   assert.match(boot,/setTimeout\(finish,12000\)/);
@@ -70,7 +72,7 @@ test('legacy LTV cohort read is suppressed from bootstrap start',()=>{
 });
 
 test('new bootstrap release replaces older SPA fetch wrapper',()=>{
-  assert.match(boot,/2026-09-29-mkt-investment-v2/);
+  assert.match(boot,/2026-09-29-mkt-fast-read-v3/);
   assert.match(boot,/G&&G\.release!==RELEASE&&typeof G\.baseFetch==='function'/);
   assert.match(boot,/window\.fetch=G\.baseFetch/);
   assert.match(boot,/delete window\.__AOS_MKT_PERF_V1/);
@@ -93,6 +95,7 @@ test('browser heavy reads use same-origin authenticated gateway instead of anon 
   assert.match(boot,/X-AOS-App-Token/);
   assert.match(boot,/sessionStorage\.getItem\('aos_app_token'\)/);
   assert.match(boot,/gatewayReads/);
+  assert.match(boot,/aos_marketing_leads_detalle:15000/);
   assert.doesNotMatch(gatewaySource,/SUPABASE_ANON_KEY/);
 });
 
@@ -106,8 +109,11 @@ test('server exposes only the Marketing read boundary and verifies admin session
   assert.match(gatewaySource,/SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(gatewaySource,/STALE_MAX_MS=10\*60\*1000/);
   assert.match(gatewaySource,/const inflight=new Map\(\)/);
-  assert.match(gatewaySource,/let tail=Promise\.resolve\(\)/);
+  assert.match(gatewaySource,/MAX_PARALLEL_READS=2/);
+  assert.match(gatewaySource,/function runBounded\(/);
+  assert.match(gatewaySource,/function drainQueue\(/);
   assert.equal(SPECS.aos_marketing_lineage_admin_v43.token,true);
+  assert.deepEqual(SPECS.aos_marketing_leads_detalle.keys,['p_fecha_desde','p_fecha_hasta']);
 });
 
 test('Marketing server gateway caches, strips unknown args, and can serve bounded stale data',async()=>{
@@ -159,6 +165,14 @@ test('period summary attribution and intent share one serialized monthly lane',(
   assert.match(boot,/monthlyTail=queued\.then/);
   assert.match(boot,/serializedMonthly/);
   assert.match(boot,/waitAnnualDrain/);
+});
+
+test('visible dashboard hydration starts immediately without waiting for period summary',()=>{
+  assert.match(boot,/loadCore\(\);\s*maybeHydrateInitialOperationalBlocks\(\);/);
+  assert.match(boot,/aos_marketing_dashboard/);
+  assert.match(boot,/safeOperationalRender\('rKPI'/);
+  assert.match(boot,/safeOperationalRender\('rAn'/);
+  assert.match(boot,/safeOperationalRender\('rCamp'/);
 });
 
 test('V4.3 value map reconciles revenue and keeps cohorts separate',()=>{

@@ -8,11 +8,13 @@ const MAX_BODY_BYTES=1024*1024
 const UPSTREAM_TIMEOUT_MS=15000
 const AUTH_TTL_MS=60000
 const STALE_MAX_MS=10*60*1000
+const MAX_PARALLEL_READS=2
 
 const SPECS={
   aos_marketing_dashboard:{keys:['p_mes','p_anio'],ttl:8000},
   aos_marketing_dashboard_anio:{keys:['p_anio'],ttl:15000},
   aos_marketing_period_summary_v2:{keys:['p_fecha_desde','p_fecha_hasta'],ttl:20000},
+  aos_marketing_leads_detalle:{keys:['p_fecha_desde','p_fecha_hasta'],ttl:15000},
   aos_marketing_attribution_public_v3:{keys:['p_mes','p_anio'],ttl:30000},
   aos_marketing_attribution_public_v2_anio:{keys:['p_anio'],ttl:60000},
   aos_marketing_intent_public_v2:{keys:['p_mes','p_anio'],ttl:30000},
@@ -91,7 +93,8 @@ function createMarketingReadGateway(config){
   const inflight=new Map()
   const authCache=new Map()
   const authInflight=new Map()
-  let tail=Promise.resolve()
+  const queue=[]
+  let activeReads=0
 
   async function verifyAdmin(token){
     token=String(token||'').trim()
@@ -123,10 +126,22 @@ function createMarketingReadGateway(config){
     return name+'|'+actor.user_id+'|'+JSON.stringify(ordered)
   }
 
-  function runSerialized(fn){
-    const queued=tail.catch(function(){}).then(fn)
-    tail=queued.then(function(){},function(){})
-    return queued
+  function drainQueue(){
+    while(activeReads<MAX_PARALLEL_READS&&queue.length){
+      const job=queue.shift()
+      activeReads++
+      Promise.resolve().then(job.fn).then(job.resolve,job.reject).finally(function(){
+        activeReads--
+        drainQueue()
+      })
+    }
+  }
+
+  function runBounded(fn){
+    return new Promise(function(resolve,reject){
+      queue.push({fn:fn,resolve:resolve,reject:reject})
+      drainQueue()
+    })
   }
 
   async function execute(input){
@@ -146,7 +161,7 @@ function createMarketingReadGateway(config){
     if(hit&&t-hit.ts<spec.ttl)return {status:200,body:hit.body,cache:'HIT'}
     if(inflight.has(key))return inflight.get(key)
 
-    const work=runSerialized(async function(){
+    const work=runBounded(async function(){
       const fresh=cache.get(key)
       if(fresh&&now()-fresh.ts<spec.ttl)return {status:200,body:fresh.body,cache:'HIT'}
       let out=null,error=null
@@ -176,6 +191,8 @@ function createMarketingReadGateway(config){
     execute:execute,
     allowedNames:function(){return Object.keys(SPECS)},
     cacheSize:function(){return cache.size},
+    activeReads:function(){return activeReads},
+    queuedReads:function(){return queue.length},
     clear:function(){cache.clear();inflight.clear();authCache.clear();authInflight.clear()}
   }
 }
