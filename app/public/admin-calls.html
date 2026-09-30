@@ -78,7 +78,6 @@
       <span class="chip" onclick="openChip('stl')">🚀 Speed-to-Lead</span>
       <span class="chip" onclick="openChip('curva')">🎯 Curva de Intentos</span>
       <span class="chip" onclick="openChip('metas')">⚙ Metas</span>
-      <span class="chip" style="background:#0A4FBF;color:#fff;border-color:#0A4FBF;" onclick="openChip('bases')">🗂 Gestión de Bases</span>
     </div>
   </div>
   <div class="ticker-wrap"><div class="ticker-inner" id="ac-ticker"></div></div>
@@ -152,38 +151,23 @@
   </div>
 </div>
 </div></div></div>
-<div class="mov" id="m-bases" onclick="if(event.target===this)this.classList.remove('open')"><div class="modal" style="max-width:960px;"><div class="mhd" style="background:linear-gradient(135deg,#071D4A,#0D2D6E);border-radius:20px 20px 0 0;border:none;">
-  <div class="mtit" style="color:#fff;">🗂 Gestión de Bases y Distribución</div>
-  <div style="flex:1;"></div>
-  <input class="mi" type="text" placeholder="🔍 Buscar campaña, estado..." style="width:220px;font-size:10px;background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.15);color:#fff;" id="bases-search" oninput="rBases()">
-  <button class="mx" style="background:rgba(255,255,255,.1);color:#fff;" onclick="el('m-bases').classList.remove('open')">✕</button>
-</div><div class="mbody" style="padding:14px 20px;">
-  <div class="btabs" id="ac-btabs"><button class="btab act" data-t="campana" onclick="bTab(this)">Campaña</button><button class="btab" data-t="tipificacion" onclick="bTab(this)">Tipificación</button><button class="btab" data-t="cita" onclick="bTab(this)">Estado cita</button><button class="btab" data-t="compra" onclick="bTab(this)">Tipo compra</button><button class="btab" data-t="pago" onclick="bTab(this)">Método pago</button><button class="btab" data-t="servicio" onclick="bTab(this)">Servicio</button><button class="btab" data-t="mes" onclick="bTab(this)">Mes ingreso</button><button class="btab" data-t="provincia" onclick="bTab(this)">Provincia</button><button class="btab" data-t="cola" onclick="bTab(this)">📋 Colas</button></div>
-  <div id="ac-bases-summary" style="margin-bottom:8px;"></div>
-  <div id="ac-bases" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;"></div>
-  <div id="ac-cola-section" style="display:none;margin-top:10px;">
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="ac-colas"></div>
-    <div id="ac-cola-detail" style="margin-top:10px;display:none;"></div>
-  </div>
-</div></div></div>
+
 <script>
 var SB='https://ituyqwstonmhnfshnaqz.supabase.co',SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml0dXlxd3N0b25taG5mc2huYXF6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NDQyMTgsImV4cCI6MjA5MDMyMDIxOH0.w_pU4ecrrgekB7WzWrQrQd_7Deu_Cxm5ybUCZry5Mh0';
-var ASESORES=['WILMER','RUVILA','MIREYA','SRA. CARMEN'];var D={};var MODO='mes';var TAB_ACT='campana';var SHOW_VALS=false;
-function rpc(fn,p,ok){fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{})}).then(function(r){return r.json();}).then(ok||function(){}).catch(function(e){console.error(fn,e);});}
+var ASESORES=['WILMER','RUVILA','MIREYA','SRA. CARMEN'];var D={};var MODO='mes';var SHOW_VALS=false;
+function rpc(fn,p,ok,fail){var ctl=new AbortController(),tm=setTimeout(function(){ctl.abort();},8000);fetch(SB+'/rest/v1/rpc/'+fn,{method:'POST',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json'},body:JSON.stringify(p||{}),signal:ctl.signal}).then(function(r){clearTimeout(tm);if(!r.ok){return r.text().then(function(t){throw new Error(fn+' HTTP '+r.status+' '+String(t||'').slice(0,120));});}return r.json();}).then(ok||function(){}).catch(function(e){clearTimeout(tm);console.error(fn,e);if(fail)fail(e);});}
 function el(id){return document.getElementById(id);}
 function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');}
 function fmt(n){return parseFloat(n||0).toLocaleString('es-PE',{maximumFractionDigits:0});}
 function hoyLima(){var d=new Date();var lima=new Date(d.toLocaleString('en-US',{timeZone:'America/Lima'}));return lima.getFullYear()+'-'+(''+(lima.getMonth()+1)).padStart(2,'0')+'-'+(''+(lima.getDate())).padStart(2,'0');}
-(function(){var hoy=hoyLima();el('ac-d1').value=hoy.slice(0,8)+'01';el('ac-d2').value=hoy;el('meta-desde').value=hoy;el('ac-mon-date').value=hoy;acLoad();})();
+(function(){var hoy=hoyLima();el('ac-d1').value=hoy.slice(0,8)+'01';el('ac-d2').value=hoy;el('meta-desde').value=hoy;el('ac-mon-date').value=hoy;loadMonDate(hoy);acLoad();})();
 function acMd(btn){document.querySelectorAll('.ac-mode').forEach(function(b){b.classList.remove('act');});btn.classList.add('act');MODO=btn.getAttribute('data-m');var isR=MODO==='rango';el('ac-d1').style.display=isR?'':'none';el('ac-d2').style.display=isR?'':'none';el('ac-al').style.display=isR?'':'none';acLoad();}
-function acLoad(){var asesor=el('ac-asesor').value;var params={p_modo:MODO,p_asesor:asesor};if(MODO==='rango'){params.p_desde=el('ac-d1').value;params.p_hasta=el('ac-d2').value;}rpc('aos_admin_calls_v2',params,function(d){if(!d||!d.ok)return;D=d;el('ac-per').textContent=d.filtro.label+(asesor?' — '+asesor:'');rTicker(d.horas);rTK(d.embudo);rChart(d.progreso_diario);rTipif(d.bases_tipificacion);rHist(d.historico);rEmb(d.embudo);rProd(d.productividad);rColas(d.productividad);
-    var monDate=el('ac-mon-date').value||hoyLima();
-    loadMonDate(monDate);
-  });}
+function acDashboardFail(){el('ac-per').textContent='Indicadores no disponibles · reintenta';if(!el('ac-chart').innerHTML)el('ac-chart-tag').textContent='sin conexión';if(!el('ac-tipif').innerHTML)el('ac-tipif').innerHTML='<div class="ld">No disponible · reintenta</div>';if(!el('ac-hist').innerHTML)el('ac-hist').innerHTML='<tr><td colspan="10" class="ld">No disponible · reintenta</td></tr>';if(!el('ac-emb').innerHTML)el('ac-emb').innerHTML='<div class="ld">No disponible · reintenta</div>';if(!el('ac-prod').innerHTML)el('ac-prod').innerHTML='<tr><td colspan="8" class="ld">No disponible · reintenta</td></tr>';}
+function acLoad(){var asesor=el('ac-asesor').value;var params={p_modo:MODO,p_asesor:asesor};if(MODO==='rango'){params.p_desde=el('ac-d1').value;params.p_hasta=el('ac-d2').value;}el('ac-per').textContent='Cargando indicadores…';rpc('aos_admin_calls_v2',params,function(d){if(!d||!d.ok){acDashboardFail();return;}D=d;el('ac-per').textContent=d.filtro.label+(asesor?' — '+asesor:'');rTicker(d.horas);rTK(d.embudo);rChart(d.progreso_diario);rTipif(d.bases_tipificacion);rHist(d.historico);rEmb(d.embudo);rProd(d.productividad);},function(){acDashboardFail();});}
 var MON_DATE='';
 function monFecha(tipo){if(tipo==='hoy'){var h=hoyLima();el('ac-mon-date').value=h;loadMonDate(h);}else{loadMonDate(el('ac-mon-date').value);}}
-function loadMonDate(fecha){MON_DATE=fecha;el('ac-mon-tag').textContent=fecha;rpc('aos_monitoreo_equipo',{p_hoy:fecha},function(rows){rMon(rows||[]);});loadActiv(fecha);}
-function loadActiv(fecha){rpc('aos_actividad_minutos',{p_fecha:fecha,p_intervalo:5},function(data){rActiv(data,fecha);});}
+function loadMonDate(fecha){MON_DATE=fecha;el('ac-mon-tag').textContent=fecha;rpc('aos_monitoreo_equipo',{p_hoy:fecha},function(rows){rMon(rows||[]);},function(){el('ac-mon').innerHTML='<tr><td colspan="8" class="ld">No disponible · reintenta</td></tr>';});loadActiv(fecha);}
+function loadActiv(fecha){rpc('aos_actividad_minutos',{p_fecha:fecha,p_intervalo:5},function(data){rActiv(data,fecha);},function(){var w=el('ac-activ-wrap');if(w)w.innerHTML='<div style="text-align:center;font-size:10px;color:#9AAAC8;padding:30px">No disponible · reintenta</div>';});}
 function rMon(mon){
   if(!mon||!mon.length){el('ac-mon').innerHTML='<tr><td colspan="8" class="ld">Sin actividad</td></tr>';return;}
   /* Cargar metas para colorear */
@@ -240,7 +224,6 @@ function openChip(id){
   if(id==='stl')rSTL();
   if(id==='curva')rCurva();
   if(id==='metas')rMetas();
-  if(id==='bases'){TAB_ACT='campana';document.querySelectorAll('.btab').forEach(function(t){t.classList.remove('act');});document.querySelector('.btab[data-t="campana"]').classList.add('act');rBases();}
 }
 
 /* TICKER TOP 5 */
@@ -347,132 +330,6 @@ function showAsesor(nombre){
     el('ac-cumpl').innerHTML=html;
   });
 }
-function assignBase(tab,valor,asesor){
-  if(!asesor){
-    // Mostrar mini-selector de asesores
-    var sel='<div style="position:fixed;inset:0;background:rgba(7,29,74,.3);z-index:999;display:flex;align-items:center;justify-content:center;" onclick="if(event.target===this)this.remove()" id="assign-overlay"><div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 60px rgba(7,29,74,.2);width:320px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;margin-bottom:4px;">Asignar Base</div><div style="font-size:10px;color:#6B7BA8;margin-bottom:12px;">'+h(valor)+' → ¿A quién?</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">'+ASESORES.map(function(a){return '<button style="padding:10px;border-radius:10px;border:1px solid #DDE4F5;background:#F8FAFF;cursor:pointer;font-family:\'DM Sans\';font-weight:700;font-size:12px;color:#0D1B3E;transition:all .15s;" onmouseover="this.style.background=\'#EBF2FF\';this.style.borderColor=\'#0A4FBF\'" onmouseout="this.style.background=\'#F8FAFF\';this.style.borderColor=\'#DDE4F5\'" onclick="doAssignBase(\''+tab+'\',\''+h(valor)+'\',\''+a+'\')">'+a+'</button>';}).join('')+'</div></div></div>';
-    document.body.insertAdjacentHTML('beforeend',sel);
-    return;
-  }
-  doAssignBase(tab,valor,asesor);
-}
-function doAssignBase(tab,valor,asesor){
-  // Determinar tipo_cola y filtro según el tab
-  var tipo='global',filtro='';
-  if(tab==='campana'){tipo='campana';filtro=valor;}
-  else if(tab==='tipificacion'){tipo='tipificacion';filtro=valor;}
-  else if(tab==='cita'&&valor==='NO ASISTIO'){tipo='no_asistio';}
-  else if(tab==='provincia'){tipo='provincia';}
-  else if(tab==='compra'||tab==='pago'||tab==='servicio'){tipo='campana';filtro=valor;}
-  // Persistir en Supabase
-  fetch(SB+'/rest/v1/aos_cola_config?asesor=eq.'+encodeURIComponent(asesor),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({tipo_cola:tipo,filtro_valor:filtro,configurado_por:'ADMIN',updated_at:new Date().toISOString()})}).then(function(r){
-    if(r.ok){
-      showToast('Cola Actualizada',asesor+' ahora trabaja: '+h(valor));
-      var ov=document.getElementById('assign-overlay');if(ov)ov.remove();
-      rColas(D.productividad);
-    } else {r.text().then(function(t){showToast('Error',t,true);});}
-  });
-}
-
-/* COLAS (dentro de modal bases) */
-function rColas(prod){
-  fetch(SB+'/rest/v1/aos_cola_config?order=asesor',{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(cfgs){
-    el('ac-colas').innerHTML=ASESORES.map(function(a){
-      var p=(prod||[]).find(function(x){return x.asesor===a;});
-      var cfg=(cfgs||[]).find(function(x){return x.asesor===a;});
-      var tipo=cfg?cfg.tipo_cola:'global';var filtro=cfg?cfg.filtro_valor:'';
-      var tipoLabel=tipo==='global'?'Lógica global':tipo==='campana'?'Campaña: '+filtro:tipo==='no_asistio'?'No asistió':tipo==='pacientes_activos'?'Pac. activos':tipo==='tipificacion'?'Tipif: '+filtro:tipo==='provincia'?'Provincia':tipo;
-      return '<div class="cola-card" onclick="selCola(this,\''+a+'\')"><div class="cola-name">'+a+'</div><div class="cola-cnt">'+fmt(p?p.llamadas:0)+' llam · '+(p?p.citas:0)+' citas</div><div style="font-size:9px;color:#0A4FBF;font-weight:700;margin-top:2px;">'+h(tipoLabel)+'</div></div>';
-    }).join('');
-    el('ac-cola-detail').style.display='none';
-  });
-}
-var COLA_SEL='';
-var COLA_TIPOS=[
-  {k:'global',i:'⚙',t:'Lógica global',d:'Tiers 1-8 automáticos'},
-  {k:'campana',i:'🎯',t:'Campaña',d:'Solo un tratamiento',needFilter:true,ph:'Ej: ENZIMAS FACIALES'},
-  {k:'pacientes_activos',i:'⭐',t:'Pacientes activos',d:'Compraron últimos 90 días'},
-  {k:'no_asistio',i:'📅',t:'No asistió a cita',d:'Tenían cita, no llegaron'},
-  {k:'tipificacion',i:'🏷',t:'Por tipificación',d:'Estado específico',needFilter:true,ph:'Ej: SEGUIMIENTO'},
-  {k:'provincia',i:'📍',t:'Solo provincia',d:'Fuera de Lima'}
-];
-function selCola(card,asesor){
-  COLA_SEL=asesor;document.querySelectorAll('.cola-card').forEach(function(c){c.classList.remove('sel');});card.classList.add('sel');
-  // Leer config actual
-  fetch(SB+'/rest/v1/aos_cola_config?asesor=eq.'+encodeURIComponent(asesor),{headers:{'apikey':SK,'Authorization':'Bearer '+SK}}).then(function(r){return r.json();}).then(function(rows){
-    var cfg=rows&&rows[0]?rows[0]:{tipo_cola:'global',filtro_valor:''};
-    var det=el('ac-cola-detail');det.style.display='block';
-    det.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;">'+h(asesor)+'</div><span style="font-size:9px;color:#9AAAC8;">Cola actual: <b style="color:#0A4FBF;">'+h(cfg.tipo_cola)+'</b>'+(cfg.filtro_valor?' · '+h(cfg.filtro_valor):'')+'</span></div><div class="qt">'+COLA_TIPOS.map(function(q){
-      var isSel=cfg.tipo_cola===q.k;
-      return '<div class="qt-o" style="'+(isSel?'border-color:#0A4FBF;background:#EBF2FF;':'')+'" onclick="asignarCola(\''+q.k+'\','+(q.needFilter?'true':'false')+')"><div class="qt-i">'+q.i+'</div><div class="qt-t">'+q.t+(isSel?' ✓':'')+'</div><div class="qt-d">'+q.d+'</div></div>';
-    }).join('')+'</div>';
-  });
-}
-function asignarCola(tipo,needFilter){
-  var filtro='';
-  if(needFilter){
-    /* Modal bonito para elegir filtro en vez de prompt() */
-    var bases=[];
-    if(tipo==='campana')bases=(D.bases_campana||[]).map(function(b){return b.campana;});
-    else if(tipo==='tipificacion')bases=(D.bases_tipificacion||[]).map(function(b){return b.estado;});
-    if(!bases.length){
-      /* Modal styled en vez de prompt nativo */
-      var ovp=document.createElement('div');ovp.id='cola-prompt-ov';ovp.style.cssText='position:fixed;inset:0;background:rgba(7,29,74,.3);z-index:9999;display:flex;align-items:center;justify-content:center;';ovp.onclick=function(e){if(e.target===ovp)ovp.remove();};
-      ovp.innerHTML='<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 60px rgba(7,29,74,.2);width:340px"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;margin-bottom:4px">Filtro de cola</div><div style="font-size:10px;color:#6B7BA8;margin-bottom:12px">Ingresa el filtro para "'+tipo+'":</div><input type="text" id="cola-prompt-inp" autofocus style="width:100%;padding:10px 12px;border:1.5px solid #DDE4F5;border-radius:10px;font-family:\'DM Sans\';font-size:12px;outline:none;margin-bottom:12px;text-transform:uppercase" placeholder="Escribe el filtro..."><div style="display:flex;gap:8px"><button onclick="document.getElementById(\'cola-prompt-ov\').remove()" style="flex:1;padding:9px;border-radius:10px;border:1px solid #DDE4F5;background:#F8FAFF;cursor:pointer;font-family:\'DM Sans\';font-weight:700;font-size:11px;color:#6B7BA8">Cancelar</button><button id="cola-prompt-ok" style="flex:1;padding:9px;border-radius:10px;border:none;background:#0A4FBF;color:#fff;cursor:pointer;font-family:\'DM Sans\';font-weight:700;font-size:11px">Aplicar</button></div></div>';
-      document.body.appendChild(ovp);
-      var inp=document.getElementById('cola-prompt-inp');setTimeout(function(){inp.focus()},50);
-      var okBtn=document.getElementById('cola-prompt-ok');
-      var aplicar=function(){var v=inp.value.trim().toUpperCase();if(!v)return;ovp.remove();doAsignarCola(tipo,v);};
-      okBtn.onclick=aplicar;
-      inp.onkeydown=function(e){if(e.key==='Enter')aplicar();if(e.key==='Escape')ovp.remove();};
-      return;
-    }
-    else{
-      var ov=document.createElement('div');ov.id='cola-filter-ov';ov.style.cssText='position:fixed;inset:0;background:rgba(7,29,74,.3);z-index:999;display:flex;align-items:center;justify-content:center;';ov.onclick=function(e){if(e.target===ov)ov.remove();};
-      var md='<div style="background:#fff;border-radius:16px;padding:20px;box-shadow:0 20px 60px rgba(7,29,74,.2);width:380px;max-height:70vh;overflow-y:auto"><div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;margin-bottom:4px">Seleccionar base</div><div style="font-size:10px;color:#6B7BA8;margin-bottom:12px">'+COLA_SEL+' → '+tipo+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-      bases.forEach(function(b){md+='<button style="padding:8px;border-radius:10px;border:1px solid #DDE4F5;background:#F8FAFF;cursor:pointer;font-family:\'DM Sans\';font-weight:700;font-size:10px;color:#0D1B3E;transition:all .15s;text-align:left" onmouseover="this.style.background=\'#EBF2FF\';this.style.borderColor=\'#0A4FBF\'" onmouseout="this.style.background=\'#F8FAFF\';this.style.borderColor=\'#DDE4F5\'" onclick="doAsignarCola(\''+tipo+'\',\''+b.replace(/'/g,"\\'")+'\')">'+h(b)+'</button>';});
-      md+='</div><button style="margin-top:10px;padding:6px 14px;border-radius:8px;border:1px solid #DDE4F5;background:transparent;cursor:pointer;font-size:10px;color:#6B7BA8" onclick="document.getElementById(\'cola-filter-ov\').remove()">Cancelar</button></div>';
-      ov.innerHTML=md;document.body.appendChild(ov);return;
-    }
-  }
-  doAsignarCola(tipo,filtro);
-}
-function doAsignarCola(tipo,filtro){
-  var ov=document.getElementById('cola-filter-ov');if(ov)ov.remove();
-  fetch(SB+'/rest/v1/aos_cola_config?asesor=eq.'+encodeURIComponent(COLA_SEL),{method:'PATCH',headers:{'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({tipo_cola:tipo,filtro_valor:filtro||'',configurado_por:'ADMIN',updated_at:new Date().toISOString()})}).then(function(r){
-    if(r.ok){showToast('Cola Actualizada',COLA_SEL+' → '+tipo+(filtro?' · '+filtro:''));rColas(D.productividad);selCola(document.querySelector('.cola-card.sel'),COLA_SEL);}
-    else{r.text().then(function(t){showToast('Error',t,true);});}
-  });
-}
-
-/* BASES */
-function bTab(btn){document.querySelectorAll('.btab').forEach(function(t){t.classList.remove('act');});btn.classList.add('act');TAB_ACT=btn.getAttribute('data-t');rBases();}
-function rBases(){
-  var isCola=TAB_ACT==='cola';
-  el('ac-bases').style.display=isCola?'none':'grid';el('ac-cola-section').style.display=isCola?'block':'none';el('ac-bases-summary').style.display=isCola?'none':'block';
-  if(isCola)return;
-  var box=el('ac-bases');var search=(el('bases-search').value||'').toUpperCase();var data=[];
-  switch(TAB_ACT){
-    case 'campana':data=(D.bases_campana||[]).map(function(b){var act=b.total-b.sin_llamar;var convP=b.total>0?Math.round(b.citas/b.total*100):0;return{n:b.campana,total:b.total,v2:'S/'+fmt(b.facturado),stats:[{l:'Activos',v:act,c:'#059669'},{l:'Sin llamar',v:b.sin_llamar,c:'#DC2626'},{l:'Citas',v:b.citas,c:'#00C9A7'},{l:'Conv.',v:convP+'%',c:'#0A4FBF'}],col:'#0A4FBF',bg:'#EBF2FF'};});break;
-    case 'tipificacion':data=(D.bases_tipificacion||[]).map(function(b){var cs={'SIN CONTACTO':['#6B7BA8','#F0F4FC'],'CITA CONFIRMADA':['#059669','#F0FDF4'],'NO LE INTERESA':['#DC2626','#FEF2F2'],'SEGUIMIENTO':['#D97706','#FFFBEB'],'SACAR DE LA BASE':['#9AAAC8','#F8FAFF'],'PROVINCIA':['#7C3AED','#F5F3FF'],'NO CONTESTA':['#0A4FBF','#EBF2FF']};var c=cs[b.estado]||['#0A4FBF','#EBF2FF'];return{n:b.estado,total:b.total,col:c[0],bg:c[1]};});break;
-    case 'cita':data=(D.bases_cita||[]).map(function(b){var cs={'ASISTIO':['#059669','#F0FDF4'],'NO ASISTIO':['#DC2626','#FEF2F2'],'PENDIENTE':['#D97706','#FFFBEB'],'CANCELADA':['#9AAAC8','#F8FAFF'],'EFECTIVA':['#00C9A7','#F0FDFA']};var c=cs[b.estado]||['#0A4FBF','#EBF2FF'];return{n:b.estado,total:b.total,col:c[0],bg:c[1]};});break;
-    case 'compra':data=(D.bases_compra||[]).map(function(b){return{n:b.tipo,total:b.total,v2:'S/'+fmt(b.facturado),col:b.tipo==='ADELANTO'?'#D97706':'#059669',bg:b.tipo==='ADELANTO'?'#FFFBEB':'#F0FDF4'};});break;
-    case 'pago':data=(D.bases_pago||[]).map(function(b){return{n:b.metodo,total:b.total,v2:'S/'+fmt(b.facturado),col:'#0A4FBF',bg:'#EBF2FF'};});break;
-    case 'servicio':data=(D.bases_servicio||[]).map(function(b){return{n:b.servicio,total:b.total,v2:'S/'+fmt(b.facturado),stats:[{l:'Ticket',v:'S/'+fmt(b.ticket_prom),c:'#00C9A7'}],col:'#00C9A7',bg:'#F0FDFA'};});break;
-    case 'mes':data=(D.bases_mes_ingreso||[]).map(function(b){return{n:b.mes,total:b.total,stats:[{l:'Llamados',v:b.llamados,c:'#0A4FBF'},{l:'Sin llamar',v:b.sin_llamar,c:'#DC2626'}],col:'#7C3AED',bg:'#F5F3FF'};});break;
-    case 'provincia':var pv=D.bases_provincia||{};data=[{n:'PROVINCIA',total:pv.provincia||0,col:'#7C3AED',bg:'#F5F3FF'},{n:'LIMA',total:pv.lima||0,col:'#0A4FBF',bg:'#EBF2FF'}];break;
-  }
-  if(search)data=data.filter(function(d){return d.n.toUpperCase().indexOf(search)>=0;});
-  var totalNums=data.reduce(function(s,d){return s+(d.total||0);},0);
-  el('ac-bases-summary').innerHTML='<div style="display:flex;gap:10px;align-items:center;"><span style="font-size:10px;color:#6B7BA8;"><b>'+data.length+'</b> bases · <b>'+fmt(totalNums)+'</b> números</span></div>';
-  box.innerHTML=data.length?data.map(function(d){
-    var statsHtml='';
-    if(d.stats){statsHtml='<div style="display:grid;grid-template-columns:repeat('+Math.min(d.stats.length,4)+',1fr);gap:3px;margin-top:6px;">'+d.stats.map(function(s){return '<div style="text-align:center;background:rgba(255,255,255,.7);border-radius:6px;padding:4px 2px;backdrop-filter:blur(4px);"><div style="font-size:6px;color:#6B7BA8;text-transform:uppercase;font-weight:700;letter-spacing:.3px;">'+s.l+'</div><div style="font-size:12px;font-weight:800;color:'+s.c+';">'+s.v+'</div></div>';}).join('')+'</div>';}
-    var pctBar=d.stats&&d.stats.length>=4?d.stats[3].v:'';
-    return '<div onclick="assignBase(\''+TAB_ACT+'\',\''+h(d.n)+'\')" style="background:'+d.bg+';border:1px solid rgba(0,0,0,.04);border-radius:14px;padding:14px;cursor:pointer;position:relative;overflow:hidden;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.04);" onmouseover="this.style.transform=\'translateY(-3px)\';this.style.boxShadow=\'0 8px 24px rgba(10,79,191,.12)\'" onmouseout="this.style.transform=\'none\';this.style.boxShadow=\'0 2px 8px rgba(0,0,0,.04)\'"><div style="position:absolute;top:0;left:0;right:0;height:3px;background:'+d.col+';border-radius:14px 14px 0 0;"></div><div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:'+d.col+';margin-bottom:4px;">'+h(d.n)+'</div><div style="display:flex;align-items:baseline;gap:6px;"><div style="font-family:\'Exo 2\';font-weight:800;font-size:26px;color:'+d.col+';line-height:1;">'+fmt(d.total)+'</div><div style="font-size:8px;color:#9AAAC8;">contactos</div></div>'+(d.v2?'<div style="font-family:\'Exo 2\';font-weight:800;font-size:14px;color:'+d.col+';margin-top:4px;">'+d.v2+'</div>':'')+statsHtml+'<div style="margin-top:8px;text-align:center;padding:5px;background:rgba(10,79,191,.06);border-radius:8px;font-size:9px;font-weight:700;color:#0A4FBF;">Click para asignar a asesor</div></div>';
-  }).join(''):'<div class="ld" style="grid-column:1/-1;">Sin datos para esta dimensión</div>';
-}
-
 /* MODAL STL */
 function rSTL(){var stl=D.speed_to_lead||[];if(!stl.length){el('stl-body').innerHTML='<div class="ld">Sin datos</div>';return;}var mx=Math.max.apply(null,stl.map(function(s){return s.leads;}));el('stl-body').innerHTML='<table class="vt"><thead><tr><th>Tiempo</th><th>Leads</th><th>Con cita</th><th>Conv%</th><th style="width:80px"></th></tr></thead><tbody>'+stl.map(function(s){var w=mx>0?Math.round(s.leads/mx*100):0;var col=parseFloat(s.conv_pct)>=15?'#059669':parseFloat(s.conv_pct)>=12?'#D97706':'#DC2626';return '<tr><td style="font-weight:700;">'+h(s.rango)+'</td><td>'+s.leads+'</td><td class="hi hi-c">'+s.con_cita+'</td><td style="color:'+col+';font-weight:700;">'+s.conv_pct+'%</td><td><div class="pb"><div class="pb-f" style="width:'+w+'%;background:'+col+';"></div></div></td></tr>';}).join('')+'</tbody></table><div class="ins" style="margin-top:10px;">Llamar el mismo día = mejor conversión. Cada día de espera reduce la probabilidad.</div>';}
 
