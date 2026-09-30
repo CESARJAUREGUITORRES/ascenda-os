@@ -1,0 +1,21 @@
+name: CIA A1+A2 Acquisition Freshness Gate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20260930030000_cia_a1_acquisition_landing_facts_v1.sql'
+      - 'supabase/migrations/20260930031000_cia_a2_event_runtime_freshness_v1.sql'
+      - 'ci/cia-a1-a2/**'
+      - 'docs/control/CIA_A1_A2_ACQUISITION_FRESHNESS_CURRENT.md'
+  workflow_dispatch:
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: CIA A1+A2 static contract
+        run: node ci/cia-a1-a2/contract.js
