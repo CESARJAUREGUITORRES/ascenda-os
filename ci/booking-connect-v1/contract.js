@@ -69,12 +69,14 @@ async function main() {
     if (name === 'aos_booking_pool_days_v3') return ['2026-09-21']
     if (name === 'aos_booking_availability_v2') return { ok: true, slots: [{ hora: '11:00', disponible: true, professional_id: payload.p_profesional_id || null }] }
     if (name === 'aos_booking_patient_lookup_v3') return { ok: true, found: true, patient: { nombre: 'Ana', apellido: 'Prueba', numero: '999999999', documento: '12345678', email: 'ana@example.test', secret: 'must-not-pass' } }
+    if (name === 'aos_agendar_publica_landing_v1') return { ok: true, agenda_id: U_PATIENT, source_channel: 'WEB', advisor_code: 'ORGANICO', acquisition_channel: 'LANDING', landing_code: 'ZIVITAL-WEB-NATIVE', campaign_name: 'WEB ORGÁNICO' }
     if (name === 'aos_agendar_publica_v2') return { ok: true, agenda_id: U_PATIENT, source_channel: 'WEB', advisor_code: 'ORGANICO' }
     throw new Error('UNEXPECTED_RPC_' + name)
   }
   const get = async path => {
-    assert(path.includes('aos_perfiles_profesional'))
     assert(!path.includes('password'))
+    if (path.includes('aos_landing_registry')) return [{ token: '0123456789abcdef0123456789abcdef', landing_code: 'ZIVITAL-WEB-NATIVE', nombre: 'Booking web Zi Vital', plataforma: 'ORGANIC', campaign_name: 'WEB ORGÁNICO' }]
+    assert(path.includes('aos_perfiles_profesional'))
     return profiles
   }
   const confirmationHandler = (req, res) => {
@@ -132,11 +134,13 @@ async function main() {
     context: { domain: 'FACIAL', approach: 'FACIAL_HARMONY_DESIGN', page: '/toxina' }
   })
   assert.strictEqual(r.statusCode, 200)
-  const bookCall = calls.find(x => x.name === 'aos_agendar_publica_v2')
+  const bookCall = calls.find(x => x.name === 'aos_agendar_publica_landing_v1')
   assert(bookCall)
-  assert.strictEqual(bookCall.payload.p_token, '__permanent__')
+  assert.strictEqual(bookCall.payload.p_landing_token, '0123456789abcdef0123456789abcdef')
   assert(bookCall.payload.p_nota.includes('[ZIVITAL_WEB_NATIVE_V1]'))
+  assert.strictEqual(bookCall.payload.p_referrer_url, '/toxina')
   assert.strictEqual(JSON.parse(r.body).source_channel, 'WEB')
+  assert.strictEqual(JSON.parse(r.body).acquisition_channel, 'LANDING')
 
   r = await call(handler, 'POST', PREFIX + '/confirmation', { appointment_id: U_PATIENT })
   assert.strictEqual(r.statusCode, 200)
