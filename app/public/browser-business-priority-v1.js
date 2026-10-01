@@ -1,4 +1,4 @@
-/* ASCENDA OS · Business Priority Mode P0-B/P0-C + P0 #632
+/* ASCENDA OS · Business Priority Mode P0-B/P0-C + P0 #632/#637 + booking DB recovery
  * Browser read scheduler. It never intercepts or delays governed writes.
  * P0 #632 hardens incident load shedding: while foreground recovery is active,
  * known analytical/dashboard RPCs, the legacy 5k admin ranking read and WA
@@ -7,6 +7,8 @@
  * P0 #637 keeps the bounded operational home snapshots live during recovery;
  * otherwise Admin/Advisor Home could never leave "Conectando..." while the
  * incident flag remained enabled after the database had recovered.
+ * Booking DB recovery also sheds the read-only Caja snapshot while recovery is
+ * active. Caja writes remain governed and untouched; normal mode remains live.
  * Compatibility contract marker for P0 #432: version:'p0-432-v1.0'
  */
 (function(){
@@ -27,8 +29,8 @@ var incidentMode=true; // fail safe until the same-origin status endpoint answer
 var incidentStatusReady=false;
 
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__={
-  version:'p0-637-v1.2-operational-homes',
-  policy:'critical-immediate__incident-secondary-shed__operational-homes-and-monitor-live__analytics-bounded__failure-cooldown',
+  version:'p0-638-v1.0-booking-db-recovery',
+  policy:'critical-immediate__incident-secondary-shed__caja-read-shed__operational-homes-and-monitor-live__analytics-bounded__failure-cooldown',
   incidentMode:true
 };
 
@@ -115,6 +117,9 @@ function recoveryResponse(status,body){
 var RECOVERY_SHED_READS={
   // aos_panel_admin / aos_panel_asesor are operational home snapshots. They stay
   // live in recovery and are still protected by single-flight + failure cooldown.
+  // Caja is a read-only 60s snapshot and is shed only while the explicit DB
+  // recovery flag is active; its write RPCs are not listed here.
+  aos_caja_ventas_dia:1,
   aos_historico_asesor_anual:1,
   aos_ticker_mkt:1,
   aos_kpi_flujo_clinico:1,
@@ -183,6 +188,7 @@ var SECONDARY_CC={
  * Patient search/history, next-lead and every aos_callcenter_* RPC are excluded.
  */
 var HEAVY_ANALYTICS={
+  aos_caja_ventas_dia:1,
   aos_ticker_mkt:1,
   aos_kpi_flujo_clinico:1,
   aos_actividad_minutos:1,
@@ -265,5 +271,5 @@ window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.calendarQueue=calendarQueue;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.analyticsQueue=analyticsQueue;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.incidentStatusPromise=incidentStatusPromise;
 window.__AOS_BUSINESS_PRIORITY_BROWSER_V1__.limits={calendar:CALENDAR_MAX_CONCURRENCY,analytics:MAX_ANALYTICS_CONCURRENCY,failureCooldownMs:FAILURE_COOLDOWN_MS};
-console.log('[BUSINESS-PRIORITY] P0 #637 recovery governor active + operational homes/monitor live');
+console.log('[BUSINESS-PRIORITY] P0 #638 recovery governor active + Caja read shed + operational homes/monitor live');
 })();
