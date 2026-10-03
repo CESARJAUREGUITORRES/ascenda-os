@@ -1,0 +1,114 @@
+name: Clinic DB Recovery Backup
+
+on:
+  push:
+    branches:
+      - infra/clinic-db-recovery-20261003
+    paths:
+      - '.github/workflows/clinic-db-recovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup-old-clinic-db:
+    name: Backup legacy Ascenda Clinic DB
+    runs-on: [self-hosted, Linux, X64, ascenda-zero-cost-v2]
+    timeout-minutes: 30
+
+    env:
+      OLD_DB_URL: ${{ secrets.ASCENDA_CLINIC_OLD_DB_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Runner healthcheck
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Runner: $RUNNER_NAME"
+          echo "OS: $RUNNER_OS"
+          uname -a
+          docker --version
+          docker info >/dev/null
+          node --version
+          npm --version
+
+      - name: Validate secret
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${OLD_DB_URL:-}" || {
+            echo "ASCENDA_CLINIC_OLD_DB_URL missing"
+            exit 2
+          }
+          echo "Secret present: PASS"
+
+      - name: Prepare secure backup directory
+        id: prep
+        shell: bash
+        run: |
+          set -euo pipefail
+          BACKUP_DIR="$HOME/ascenda-secure-backups/clinic-recovery-20261003-${GITHUB_RUN_ID}"
+          mkdir -p "$BACKUP_DIR"
+          chmod 700 "$HOME/ascenda-secure-backups" "$BACKUP_DIR"
+          echo "backup_dir=$BACKUP_DIR" >> "$GITHUB_OUTPUT"
+          echo "Secure backup directory prepared"
+
+      - name: Dump roles
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR='${{ steps.prep.outputs.backup_dir }}'
+
+          npx --yes supabase@2.119.0 db dump \
+            --db-url "$OLD_DB_URL" \
+            -f "$DIR/roles.sql" \
+            --role-only
+
+      - name: Dump schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR='${{ steps.prep.outputs.backup_dir }}'
+
+          npx --yes supabase@2.119.0 db dump \
+            --db-url "$OLD_DB_URL" \
+            -f "$DIR/schema.sql"
+
+      - name: Dump data
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR='${{ steps.prep.outputs.backup_dir }}'
+
+          npx --yes supabase@2.119.0 db dump \
+            --db-url "$OLD_DB_URL" \
+            -f "$DIR/data.sql" \
+            --use-copy \
+            --data-only \
+            -x "storage.buckets_vectors" \
+            -x "storage.vector_indexes"
+
+      - name: Verify backup
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR='${{ steps.prep.outputs.backup_dir }}'
+
+          for f in roles.sql schema.sql data.sql; do
+            test -s "$DIR/$f" || {
+              echo "$f: FAIL"
+              exit 4
+            }
+
+            bytes=$(stat -c '%s' "$DIR/$f")
+            sha=$(sha256sum "$DIR/$f" | awk '{print $1}')
+
+            echo "$f: PASS bytes=$bytes sha256=$sha"
+          done
+
+          echo "SECURE_BACKUP_DIR=$DIR"
+          echo "No clinical data uploaded to GitHub artifacts."
