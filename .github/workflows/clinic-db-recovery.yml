@@ -21,8 +21,6 @@ jobs:
       OLD_DB_URL: ${{ secrets.ASCENDA_CLINIC_OLD_DB_URL }}
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
       - name: Runner healthcheck
         shell: bash
