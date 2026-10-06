@@ -26,7 +26,9 @@ for(const forbidden of ['INSERT INTO aos_ventas','UPDATE aos_ventas','DELETE FRO
 ok((staging.match(/\.supabase\.co/g) || []).length === 0, 'staging harness must not contain a Supabase hostname');
 ok(staging.includes('/rest/v1/rpc/aos_sales_intelligence_gateway'), 'staging gateway route missing');
 ok(/for\(var i=9;i<=12;i\+\+\)/.test(staging), 'fixture must expose 12 months');
-ok(shell.includes('var _APP_VERSION = 20260814.3;'), 'shell cache version must force activation');
+const appVersionMatch=shell.match(/var _APP_VERSION = ([0-9.]+);/);
+ok(appVersionMatch, 'shell cache version marker missing');
+ok(Number(appVersionMatch[1]) >= 20260912.2025, 'shell cache version must force activation');
 ok(shell.includes('function revalidateAdminSessionContext()'), 'admin session revalidation missing');
 ok(shell.includes("id:'admin-sales-intelligence'"), 'Sales Intelligence menu id missing');
 ok(shell.includes('requiresPanel:true'), 'panel gate missing');
